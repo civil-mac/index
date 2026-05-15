@@ -86,7 +86,6 @@
 
 <div id="container">
     <div id="player-wrapper">
-        <div id="player"></div>
     </div>
 
     <div class="controls">
@@ -105,7 +104,6 @@ let pool = [];
     let player;
     let isSkipping = false;
 
-    // Load the YouTube API
     const tag = document.createElement('script');
     tag.src = "https://www.youtube.com/iframe_api";
     const firstScriptTag = document.getElementsByTagName('script')[0];
@@ -113,16 +111,24 @@ let pool = [];
 
     function onYouTubeIframeAPIReady() {
         pool = shuffle([...masterList]);
-        
-        // POPULATION LOGIC: Take the first video out of the pool now
         const initialVideo = pool.shift();
         history.push(initialVideo);
 
-        player = new YT.Player('player', {
-            videoId: initialVideo, 
-            playerVars: { 'autoplay': 1, 'playsinline': 1 },
+ player = new YT.Player('player', {
+            height: '100%',
+            width: '100%',
+            videoId: '', 
+            playerVars: { 
+                'autoplay': 1, 
+                'playsinline': 1,
+                'controls': 1,
+                'rel': 0 
+            },
             events: {
-                'onReady': onPlayerReady,
+                'onReady': (event) => {
+                    event.target.cueVideoById(initialVideo);
+                    updateStatus();
+                },
                 'onStateChange': onPlayerStateChange,
                 'onError': onPlayerError
             }
@@ -183,3 +189,5 @@ let pool = [];
     }
 </script>
 </body>
+<html>
+    
