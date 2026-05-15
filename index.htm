@@ -6,7 +6,7 @@
 
     .playlist-label {
     font-size: 1.25rem;
-    letter-spacing: 0.15em; /* Matches the 'Randomizer' spacing */
+    letter-spacing: 0.15em;
     color: #6366f1; 
     text-transform: uppercase;
     font-weight: 700;
@@ -27,7 +27,7 @@
     letter-spacing: 1px; 
     text-transform: uppercase; 
     color: #fff;
-    font-weight: 800; /* Extra bold like the Almanac */
+    font-weight: 800;
     }
     
     p.description { 
@@ -35,9 +35,9 @@
     color: #94a3b8; 
     line-height: 1.6; 
     margin: 0 auto; 
-    max-width: 500px; /* Limits the width of the text block */
-    text-align: justify; /* Spreads text to fill the width */
-    text-justify: inter-word; /* Makes the spacing look natural */
+    max-width: 500px;
+    text-align: justify; 
+    text-justify: inter-word;
     }
 
     #container { width: 90%; max-width: 900px; text-align: center; }
@@ -48,8 +48,6 @@
         .btn:hover { background: #6366f1; transform: scale(1.05); box-shadow: 0 0 20px rgba(79, 70, 229, 0.4); }
         .controls { margin-top: 30px; display: flex; gap: 20px; justify-content: center; }
 
-
-    /* Custom Button Style - Removes the "White Highlighted Text" look */
     .btn { 
         background: #4f46e5; 
         color: white; 
@@ -104,13 +102,12 @@ let pool = [];
     firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
     function onYouTubeIframeAPIReady() {
-    // Shuffles the list but doesn't play yet
     pool = shuffle([...masterList]); 
     
     player = new YT.Player('player', {
         height: '100%',
         width: '100%',
-        videoId: pool[0], // Pre-loads the first video thumbnail behind the overlay
+        videoId: pool[0],
         playerVars: { 
             'autoplay': 0, 
             'playsinline': 1,
@@ -126,10 +123,7 @@ let pool = [];
 }
 
 function startPlayer() {
-    // Hides the overlay so you can see the player
     document.getElementById('overlay').classList.add('hidden');
-    
-    // Logic fix: Shift the first song out of the pool so "Next" doesn't repeat it
     const firstId = pool.shift();
     history.push(firstId);
     
