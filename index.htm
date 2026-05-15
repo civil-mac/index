@@ -143,8 +143,8 @@ let pool = [];
     function onYouTubeIframeAPIReady() {
         pool = shuffle(masterList);
         player = new YT.Player('player', {
-            height: '360',
-            width: '640',
+            height: '100%',
+            width: '100%',
             videoId: pool[0], 
             playerVars: { 'autoplay': 1, 'playsinline': 1 },
             events: {
