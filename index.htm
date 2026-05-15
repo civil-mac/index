@@ -104,42 +104,25 @@ let pool = [];
     let player;
     let isSkipping = false;
 
-    // Load the YouTube API
+    // Load the YouTube API with explicit HTTPS
     const tag = document.createElement('script');
     tag.src = "https://www.youtube.com/iframe_api";
     const firstScriptTag = document.getElementsByTagName('script')[0];
     firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
     function onYouTubeIframeAPIReady() {
-        // Create the player FIRST with no video ID
+        pool = shuffle(masterList);
         player = new YT.Player('player', {
-            height: '100%',
-            width: '100%',
-            playerVars: { 
-                'autoplay': 1, 
-                'playsinline': 1,
-                'controls': 1,
-                'rel': 0 
-            },
+            height: '360',
+            width: '640',
+            videoId: pool[0], 
+            playerVars: { 'autoplay': 1, 'playsinline': 1 },
             events: {
                 'onReady': onPlayerReady,
                 'onStateChange': onPlayerStateChange,
                 'onError': onPlayerError
             }
         });
-    }
-
-    function onPlayerReady(event) {
-        // Shuffle the pool ONLY once the player is officially "Ready"
-        pool = shuffle([...masterList]);
-        
-        // Take the first video and move it to history
-        const firstId = pool.shift();
-        history.push(firstId);
-        
-        // Load it
-        event.target.loadVideoById(firstId);
-        updateStatus();
     }
 
     function shuffle(array) {
@@ -151,15 +134,22 @@ let pool = [];
         return arr;
     }
 
+    function onPlayerReady(event) {
+        updateStatus();
+    }
+
     function onPlayerStateChange(event) {
         if (event.data === YT.PlayerState.ENDED) {
             nextTrack();
         }
     }
 
+    // FIXED: Added a 500ms delay to prevent the "Blinking" infinite loop
     function onPlayerError(event) {
         if (isSkipping) return; 
         isSkipping = true;
+        
+        console.warn("Embed restricted. Skipping in 500ms...");
         setTimeout(() => {
             isSkipping = false;
             nextTrack();
@@ -168,7 +158,7 @@ let pool = [];
 
     function nextTrack() {
         if (pool.length === 0) {
-            pool = shuffle([...masterList]);
+            pool = shuffle(history);
             history = [];
         }
         const nextId = pool.shift();
@@ -188,7 +178,7 @@ let pool = [];
     }
 
     function updateStatus() {
-        document.getElementById('info').innerText = `Track ${history.length} of ${masterList.length}`;
+        document.getElementById('info').innerText = `Track ${history.length || 1} of ${masterList.length}`;
     }
 </script>
 </body>
