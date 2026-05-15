@@ -65,10 +65,10 @@
     
     #info { margin-top: 20px; font-family: 'Courier New', Courier, monospace; color: #64748b; font-size: 0.9rem; }
         .hidden { display: none !important; }
-
        
 </style>
 </head>
+    
 <body>
 <div id="header">
     <span class="playlist-label">Improv Music Playlist Shuffler</span>
@@ -137,7 +137,6 @@ let pool = [];
         }
     }
 
-    // FIXED: Added a 500ms delay to prevent the "Blinking" infinite loop
     function onPlayerError(event) {
         if (isSkipping) return; 
         isSkipping = true;
