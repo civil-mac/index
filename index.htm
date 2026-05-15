@@ -104,20 +104,17 @@ let pool = [];
     let player;
     let isSkipping = false;
 
+    // Load the YouTube API
     const tag = document.createElement('script');
     tag.src = "https://www.youtube.com/iframe_api";
     const firstScriptTag = document.getElementsByTagName('script')[0];
     firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
     function onYouTubeIframeAPIReady() {
-        pool = shuffle([...masterList]);
-        const initialVideo = pool.shift();
-        history.push(initialVideo);
-
- player = new YT.Player('player', {
+        // Create the player FIRST with no video ID
+        player = new YT.Player('player', {
             height: '100%',
             width: '100%',
-            videoId: '', 
             playerVars: { 
                 'autoplay': 1, 
                 'playsinline': 1,
@@ -125,14 +122,24 @@ let pool = [];
                 'rel': 0 
             },
             events: {
-                'onReady': (event) => {
-                    event.target.cueVideoById(initialVideo);
-                    updateStatus();
-                },
+                'onReady': onPlayerReady,
                 'onStateChange': onPlayerStateChange,
                 'onError': onPlayerError
             }
         });
+    }
+
+    function onPlayerReady(event) {
+        // Shuffle the pool ONLY once the player is officially "Ready"
+        pool = shuffle([...masterList]);
+        
+        // Take the first video and move it to history
+        const firstId = pool.shift();
+        history.push(firstId);
+        
+        // Load it
+        event.target.loadVideoById(firstId);
+        updateStatus();
     }
 
     function shuffle(array) {
@@ -142,10 +149,6 @@ let pool = [];
             [arr[i], arr[j]] = [arr[j], arr[i]];
         }
         return arr;
-    }
-
-    function onPlayerReady(event) {
-        updateStatus();
     }
 
     function onPlayerStateChange(event) {
