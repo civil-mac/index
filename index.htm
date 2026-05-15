@@ -3,18 +3,8 @@
     <meta charset="UTF-8">
     <title>ARI AT EVERYTHING - Custom Shuffler</title>
     <style>
-    body { 
-        background: #0b0f1a; 
-        color: #e2e8f0; 
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-        display: flex; 
-        flex-direction: column; 
-        align-items: center; 
-        justify-content: flex-start; 
-        min-height: 100vh; 
-        margin: 0; 
-        padding-top: 40px;
-        }
+    body { background: #0b0f1a; color: #e2e8f0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+
     
     #header {
         text-align: center;
@@ -35,12 +25,8 @@
     text-justify: inter-word; /* Makes the spacing look natural */
     }
 
-    #container { 
-    width: 90%; 
-    max-width: 800px; 
-    margin: 0 auto; 
-    text-align: center; 
-    }
+    #container { width: 90%; max-width: 900px; text-align: center; }
+
            
     #player { width: 100%; height: 100%; }
        
@@ -49,8 +35,7 @@
         .btn { background: #4f46e5; color: white; border: none; padding: 14px 32px; border-radius: 10px; cursor: pointer; font-size: 1.1rem; font-weight: 600; transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 1px; }
         .btn:hover { background: #6366f1; transform: scale(1.05); box-shadow: 0 0 20px rgba(79, 70, 229, 0.4); }
         .controls { margin-top: 30px; display: flex; gap: 20px; justify-content: center; }
-        #info { margin-top: 20px; font-family: 'Courier New', Courier, monospace; color: #64748b; font-size: 0.9rem; }
-        .hidden { display: none !important; }
+
 
     /* Custom Button Style - Removes the "White Highlighted Text" look */
     .btn { 
@@ -66,10 +51,11 @@
         text-transform: uppercase;
         outline: none;
     }
-    .btn:hover { background: #4338ca; transform: translateY(-2px); }
-    .btn-secondary { background: #1e293b; }
+    .btn:hover { background: #6366f1; transform: scale(1.05); box-shadow: 0 0 20px rgba(79, 70, 229, 0.4); }
     
-    #info { margin-top: 20px; color: #64748b; font-size: 0.9rem; }
+    #info { margin-top: 20px; font-family: 'Courier New', Courier, monospace; color: #64748b; font-size: 0.9rem; }
+        .hidden { display: none !important; }
+
        
 </style>
 </head>
@@ -77,8 +63,7 @@
 <div id="header">
         <h1>ARI AT EVERYTHING</h1>
         <p class="description">
-            ARIatHOME all improv music playlist, hand-picked by @civil_mac. <br>
-            Compiled from @civil_mac, @ariathome2 (2026), @ARIatHOMEUnofficial (2021-2025), @ARIatHOMEMusic YouTube Channels, featuring all song performances from IRL to Desktop streams and other fan-edited unofficial "song releases"
+            ARIatHOME all improv music playlist, hand-picked by @civil_mac. Compiled from @civil_mac, @ariathome2 (2026), @ARIatHOMEUnofficial (2021-2025), @ARIatHOMEMusic YouTube Channels, featuring all song performances from IRL to Desktop streams and other fan-edited unofficial "song releases"
         </p>
     </div>
 
