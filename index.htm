@@ -2,17 +2,65 @@
 <head>
     <meta charset="UTF-8">
     <title>ARI AT EVERYTHING - Custom Shuffler</title>
-    <style>
-        body { background: #0b0f1a; color: #e2e8f0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
-        #container { width: 90%; max-width: 900px; text-align: center; }
-        #player-wrapper { width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 15px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.7); position: relative; border: 1px solid #1e293b; }
-        .overlay { position: absolute; inset: 0; background: rgba(11, 15, 26, 0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 20; }
-        .btn { background: #4f46e5; color: white; border: none; padding: 14px 32px; border-radius: 10px; cursor: pointer; font-size: 1.1rem; font-weight: 600; transition: all 0.3s ease; text-transform: uppercase; letter-spacing: 1px; }
-        .btn:hover { background: #6366f1; transform: scale(1.05); box-shadow: 0 0 20px rgba(79, 70, 229, 0.4); }
-        .controls { margin-top: 30px; display: flex; gap: 20px; justify-content: center; }
-        #info { margin-top: 20px; font-family: 'Courier New', Courier, monospace; color: #64748b; font-size: 0.9rem; }
-        .hidden { display: none !important; }
-    </style>
+   <style>
+    body { 
+        background: #0b0f1a; 
+        color: #e2e8f0; 
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+        display: flex; 
+        flex-direction: column; 
+        align-items: center; 
+        justify-content: flex-start; 
+        min-height: 100vh; 
+        margin: 0; 
+        padding-top: 40px;
+    }
+    
+    #header {
+        text-align: center;
+        max-width: 800px;
+        margin-bottom: 30px;
+        padding: 0 20px;
+    }
+
+    h1 { font-size: 2.5rem; margin-bottom: 8px; letter-spacing: 2px; text-transform: uppercase; }
+    p.description { font-size: 0.95rem; color: #94a3b8; line-height: 1.5; margin: 0 auto; max-width: 700px; }
+
+    #container { width: 90%; max-width: 900px; text-align: center; }
+    
+    #player-wrapper { 
+        width: 100%; 
+        aspect-ratio: 16/9; 
+        background: #000; 
+        border-radius: 15px; 
+        overflow: hidden; 
+        box-shadow: 0 20px 50px rgba(0,0,0,0.7); 
+        border: 1px solid #1e293b; 
+    }
+
+    #player { width: 100%; height: 100%; }
+
+    .controls { margin-top: 25px; display: flex; gap: 15px; justify-content: center; }
+
+    /* Custom Button Style - Removes the "White Highlighted Text" look */
+    .btn { 
+        background: #4f46e5; 
+        color: white; 
+        border: none; 
+        padding: 14px 32px; 
+        border-radius: 10px; 
+        cursor: pointer; 
+        font-size: 1.1rem; 
+        font-weight: 600; 
+        transition: all 0.2s;
+        text-transform: uppercase;
+        outline: none;
+    }
+    .btn:hover { background: #4338ca; transform: translateY(-2px); }
+    .btn-secondary { background: #1e293b; }
+    
+    #info { margin-top: 20px; color: #64748b; font-size: 0.9rem; }
+</style>
 </head>
 <body>
 <div id="header">
