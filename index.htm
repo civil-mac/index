@@ -23,18 +23,21 @@
         </p>
     </div>
 
-    <div id="container">
-        <div id="player-wrapper">
-            <div id="start-screen" class="overlay">
-                <button class="btn" onclick="startApp()">Enter Almanac</button>
-            </div>
-            <div id="player"></div>
-        </div>
+<div id="container">
+<div id="player"></div>
+<div class="controls">
+    <button onclick="prevTrack()">PREVIOUS</button>
+    <button onclick="nextTrack()">SKIP / NEXT</button>
+</div>
 
-        <div class="controls">
-            <button class="btn" style="background: #1e293b;" onclick="prevTrack()">Previous</button>
-            <button class="btn" onclick="nextTrack()">Skip / Next</button>
-        </div>
+        <div id="player"></div>
+    </div>
+
+    <div class="controls">
+        <button class="btn" style="background: #1e293b;" onclick="prevTrack()">Previous</button>
+        <button class="btn" onclick="nextTrack()">Skip / Next</button>
+    </div>
+
 
     <div id="info">Initializing data...</div>
 </div>
