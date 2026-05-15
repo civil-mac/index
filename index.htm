@@ -105,14 +105,9 @@ let pool = [];
     firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
     function startPlayer() {
-    // 1. Hide the overlay
     document.getElementById('overlay').style.display = 'none';
-    
-    // 2. Take the first ID from the pool and move it to history
-    const firstId = pool.shift();
+        const firstId = pool.shift();
     history.push(firstId);
-    
-    // 3. Command the player to load and play
     player.loadVideoById(firstId);
     updateStatus();
     }
