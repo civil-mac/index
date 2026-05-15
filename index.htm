@@ -1,6 +1,5 @@
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
     <title>ARI AT EVERYTHING - Custom Shuffler</title>
     <style>
     body { background: #0b0f1a; color: #e2e8f0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
@@ -26,9 +25,6 @@
     }
 
     #container { width: 90%; max-width: 900px; text-align: center; }
-
-           
-    #player { width: 100%; height: 100%; }
        
     #player-wrapper { width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 15px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.7); position: relative; border: 1px solid #1e293b; }
         .overlay { position: absolute; inset: 0; background: rgba(11, 15, 26, 0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 20; }
@@ -67,9 +63,10 @@
         </p>
     </div>
 
-<div id="container">
-<div id="player"></div>
-<div class="controls">
+        <div id="player"></div>
+    </div>
+
+    <div class="controls">
         <button class="btn" style="background: #1e293b;" onclick="prevTrack()">Previous</button>
         <button class="btn" onclick="nextTrack()">Skip / Next</button>
     </div>
