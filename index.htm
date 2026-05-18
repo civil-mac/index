@@ -1419,10 +1419,11 @@ const masterTrackMap = {
             }
         }
     
-    function playCurrentTrack() {
+function playCurrentTrack() {
             const videoId = pool[currentIndex];
             if (!videoId) return;
 
+            // Maintain your stable list history slot
             if (currentTrackTitle) {
                 lastPlayedTitle = currentTrackTitle;
             }
@@ -1430,11 +1431,18 @@ const masterTrackMap = {
             currentTrackTitle = masterTrackMap[videoId] || `Track ID: ${videoId}`;
             document.getElementById('info').innerText = `Track ${currentIndex + 1} of ${pool.length}`;
 
-            if (player && typeof player.loadVideoById === 'function') {
+            // THE IFRAME TRICK: Slice a sub-queue of the next upcoming tracks from your pool
+            if (player && typeof player.loadPlaylist === 'function') {
+                const localQueue = pool.slice(currentIndex, currentIndex + 10); // Grabs the next 10 videos
+                
+                // Instruct YouTube to load this local array as an active playlist framework
+                player.loadPlaylist(localQueue, 0, 0); 
+            } else if (player && typeof player.loadVideoById === 'function') {
                 player.loadVideoById(videoId);
             } else {
                 console.log("Player not fully initialized yet.");
             }
+            
             updateFeedUI();
         }
 
@@ -1467,20 +1475,28 @@ function onPlayerStateChange(event) {
             const silentAudio = document.getElementById('silent-gap-killer');
 
             if (event.data == YT.PlayerState.PLAYING) {
-                // Force an active audio stream context on your domain
                 if (silentAudio) {
-                    silentAudio.volume = 0.01; // Keep it virtually imperceptible
-                    silentAudio.play().catch(e => console.log("Audio kickstart deferred."));
+                    silentAudio.volume = 0.01;
+                    silentAudio.play().catch(e => console.log("Audio focus deferred."));
                 }
                 
+                // BRIDGE WORKAROUND: Force the main browser context to claim master control
                 if ('mediaSession' in navigator) {
                     navigator.mediaSession.playbackState = "playing";
                     
-                    // Explicitly map keys to Windows the millisecond playback is live
-                    navigator.mediaSession.setActionHandler('nexttrack', () => { nextTrack(); });
-                    navigator.mediaSession.setActionHandler('previoustrack', () => { prevTrack(); });
-                    navigator.mediaSession.setActionHandler('play', () => { if(player) player.playVideo(); });
-                    navigator.mediaSession.setActionHandler('pause', () => { if(player) player.pauseVideo(); });
+                    // Re-register the action handlers explicitly on the top-level window context
+                    navigator.mediaSession.setActionHandler('nexttrack', () => { 
+                        nextTrack(); 
+                    });
+                    navigator.mediaSession.setActionHandler('previoustrack', () => { 
+                        prevTrack(); 
+                    });
+                    navigator.mediaSession.setActionHandler('play', () => { 
+                        if (player) player.playVideo(); 
+                    });
+                    navigator.mediaSession.setActionHandler('pause', () => { 
+                        if (player) player.pauseVideo(); 
+                    });
                 }
             }
             
