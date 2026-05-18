@@ -1463,27 +1463,29 @@ const masterTrackMap = {
             updateFeedUI();
         }
 
-        function onPlayerStateChange(event) {
-            const silentAudio = document.getElementById('silent-audio-track');
+function onPlayerStateChange(event) {
+            const silentAudio = document.getElementById('silent-gap-killer');
 
             if (event.data == YT.PlayerState.PLAYING) {
-                // Kickstart the silent track on your domain to force Android to link the media widget
+
                 if (silentAudio) {
-                    silentAudio.play().catch(e => console.log("Audio focus kickstart deferred."));
+                    silentAudio.play().catch(e => console.log("Audio kickstart deferred until interaction."));
                 }
-                
-                const currentId = pool[currentIndex];
-                currentTrackTitle = masterTrackMap[currentId] || `Track ID: ${currentId}`;
-                updateFeedUI();
+        
+                if ('mediaSession' in navigator) {
+                    navigator.mediaSession.playbackState = "playing";
+                }
             }
             
-            if (event.data == YT.PlayerState.PAUSED || event.data == YT.PlayerState.ENDED) {
-                if (silentAudio) {
-                    silentAudio.pause();
+            if (event.data == YT.PlayerState.PAUSED) {
+                if (silentAudio) silentAudio.pause();
+                if ('mediaSession' in navigator) {
+                    navigator.mediaSession.playbackState = "paused";
                 }
             }
 
             if (event.data == YT.PlayerState.ENDED) {
+                if (silentAudio) silentAudio.pause();
                 nextTrack();
             }
         }
