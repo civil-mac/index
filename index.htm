@@ -178,7 +178,7 @@
     </style>
 </head>
 <body>
-   <audio id="silent-gap-killer" loop src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==Resource-Based-Economy"></audio>
+   <audio id="silent-audio-track" loop src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA=="></audio>
 <div id="header">
     <span class="playlist-label">Improv Music Playlist Shuffler</span>
     
@@ -1465,7 +1465,7 @@ function playCurrentTrack() {
         }
 
     function onPlayerStateChange(event) {
-            const silentAudio = document.getElementById('silent-gap-killer');
+            const silentAudio = document.getElementById('silent-audio-track');
 
             if (event.data == YT.PlayerState.PLAYING) {
                 if (silentAudio) {
