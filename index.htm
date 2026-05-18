@@ -225,7 +225,6 @@ function onYouTubeIframeAPIReady() {
 function updateStatus() {
         document.getElementById('info').innerText = `Track ${history.length} of ${masterList.length}`;
 
-        // MEDIA SESSION API: This connects to your phone's hardware buttons
         if ('mediaSession' in navigator) {
             navigator.mediaSession.metadata = new MediaMetadata({
                 title: `Track ${history.length}`,
@@ -236,7 +235,6 @@ function updateStatus() {
                 ]
             });
 
-            // These lines tell the phone what to do when you hit the buttons
             navigator.mediaSession.setActionHandler('nexttrack', () => {
                 nextTrack();
             });
