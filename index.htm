@@ -1488,24 +1488,17 @@ function onPlayerStateChange(event) {
                     navigator.mediaSession.metadata = new MediaMetadata({
                         title: "ARI AT EVERYTHING",
                         artist: "ARIatHOME",
-                        album: "Live Improv Shuffler"
                     });
                 }
             }
             
-            if (event.data == YT.PlayerState.PAUSED) {
+if (event.data == YT.PlayerState.PAUSED || event.data == YT.PlayerState.ENDED) {
                 if (silentAudio) {
                     silentAudio.pause();
-                }
-                if ('mediaSession' in navigator) {
-                    navigator.mediaSession.playbackState = "paused";
                 }
             }
 
             if (event.data == YT.PlayerState.ENDED) {
-                if (silentAudio) {
-                    silentAudio.pause();
-                }
                 nextTrack();
             }
         }
