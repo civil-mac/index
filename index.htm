@@ -1465,20 +1465,18 @@ function playCurrentTrack() {
         }
 
 function onPlayerStateChange(event) {
-            const silentAudio = document.getElementById('silent-gap-killer');
+            const silentAudio = document.getElementById('silent-audio-track');
 
             if (event.data == YT.PlayerState.PLAYING) {
-                // YOUR MOBILE WIN: Native audio context kickstart
+
                 if (silentAudio) {
-                    silentAudio.play().catch(e => console.log("Audio focus deferred."));
+                    silentAudio.play().catch(e => console.log("Audio kickstart deferred."));
                 }
-                
-                // PC KEY RE-LINKING: Force the browser to evaluate capability flags while audio is active
+
                 if ('mediaSession' in navigator) {
                     navigator.mediaSession.playbackState = "playing";
                     
                     try {
-                        // Dynamically bind the OS/Hardware keys directly to your site's custom functions
                         navigator.mediaSession.setActionHandler('nexttrack', () => { 
                             nextTrack(); 
                         });
@@ -1492,7 +1490,7 @@ function onPlayerStateChange(event) {
                             if (player && typeof player.pauseVideo === 'function') player.pauseVideo(); 
                         });
                     } catch (e) {
-                        console.log("Hardware media control binding deferred.");
+                        console.log("Hardware controls deferred.");
                     }
                 }
             }
@@ -1506,7 +1504,7 @@ function onPlayerStateChange(event) {
 
             if (event.data == YT.PlayerState.ENDED) {
                 if (silentAudio) silentAudio.pause();
-                nextTrack(); // Perfectly handles natural track advances
+                nextTrack();
             }
         }
 
