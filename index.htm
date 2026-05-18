@@ -178,7 +178,7 @@
     </style>
 </head>
 <body>
-    <audio id="silent-gap-killer" loop src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==Resource-Based-Economy"></audio>
+   <audio id="silent-audio-track" loop src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA=="></audio>
 <div id="header">
     <span class="playlist-label">Improv Music Playlist Shuffler</span>
     
@@ -1464,6 +1464,25 @@ const masterTrackMap = {
         }
 
         function onPlayerStateChange(event) {
+            const silentAudio = document.getElementById('silent-audio-track');
+
+            if (event.data == YT.PlayerState.PLAYING) {
+                // Kickstart the silent track on your domain to force Android to link the media widget
+                if (silentAudio) {
+                    silentAudio.play().catch(e => console.log("Audio focus kickstart deferred."));
+                }
+                
+                const currentId = pool[currentIndex];
+                currentTrackTitle = masterTrackMap[currentId] || `Track ID: ${currentId}`;
+                updateFeedUI();
+            }
+            
+            if (event.data == YT.PlayerState.PAUSED || event.data == YT.PlayerState.ENDED) {
+                if (silentAudio) {
+                    silentAudio.pause();
+                }
+            }
+
             if (event.data == YT.PlayerState.ENDED) {
                 nextTrack();
             }
@@ -1524,9 +1543,11 @@ const masterTrackMap = {
         const firstScriptTag = document.getElementsByTagName('script')[0];
         firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
-        if ('mediaSession' in navigator) {
+    if ('mediaSession' in navigator) {
             try {
                 navigator.mediaSession.setActionHandler('pause', () => {
+                    const silentAudio = document.getElementById('silent-audio-track');
+                    if (silentAudio) silentAudio.pause();
                     if (player && typeof player.pauseVideo === 'function') {
                         player.pauseVideo();
                     }
@@ -1534,6 +1555,8 @@ const masterTrackMap = {
                 });
 
                 navigator.mediaSession.setActionHandler('play', () => {
+                    const silentAudio = document.getElementById('silent-audio-track');
+                    if (silentAudio) silentAudio.play().catch(() => {});
                     if (player && typeof player.playVideo === 'function') {
                         player.playVideo();
                     }
