@@ -1511,17 +1511,17 @@ function updateStatus() {
         }
 
 if ('mediaSession' in navigator) {
-    navigator.mediaSession.playbackState = "playing";
-
-    navigator.mediaSession.metadata = new MediaMetadata({
-        title: currentTrackTitle,
-        artist: "Ari @Home",
-        album: "Stream Archive Shuffler",
-        artwork: [
-            { src: 'https://civil-mac.github.io/index/icon-512x512.png', sizes: '512x512', type: 'image/png' }
-        ]
-    });
-}
+                navigator.mediaSession.playbackState = "playing";
+                navigator.mediaSession.metadata = new MediaMetadata({
+                    title: currentTrackTitle || "Ari Shuffler Track",
+                    artist: "Ari @Home",
+                    album: "Stream Archive Shuffler",
+                    artwork: [
+                        { src: 'https://civil-mac.github.io/index/icon-512x512.png', sizes: '512x512', type: 'image/png' }
+                    ]
+                });
+            }
+        }
 
 if ('mediaSession' in navigator) {
     
