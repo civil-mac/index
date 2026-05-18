@@ -1394,38 +1394,35 @@ const masterTrackMap = {
         let currentTrackTitle = "";
 
 function nextTrack() {
-    if (!shuffledIndices || shuffledIndices.length === 0) return;
+    if (!pool || pool.length === 0) return;
 
-    // 1. Increment and wrap around if at the end of the list
-    currentTrackIndex = (currentTrackIndex + 1) % shuffledIndices.length;
+    // Increment index and loop seamlessly back to 0 if at the end
+    currentIndex = (currentIndex + 1) % pool.length;
 
-    // 2. Keep the Android silent audio alive during the transition gap
+    // Keep the Android background engine alive during video swapping gaps
     const silentAudio = document.getElementById('silent-audio-track');
     if (silentAudio && silentAudio.paused) {
-        silentAudio.play().catch(e => console.log("Silent audio wake-up failed:", e));
+        silentAudio.play().catch(e => console.log("Silent background track wake-up failed:", e));
     }
 
-    // 3. Play the actual track
-    playTrackAtCurrentIndex();
+    playCurrentTrack();
 }
 
 function prevTrack() {
-    if (!shuffledIndices || shuffledIndices.length === 0) return;
+    if (!pool || pool.length === 0) return;
 
-    // 1. Decrement and wrap around to the end if below zero
-    currentTrackIndex = (currentTrackIndex - 1 + shuffledIndices.length) % shuffledIndices.length;
+    // Decrement index and wrap backwards safely if below 0
+    currentIndex = (currentIndex - 1 + pool.length) % pool.length;
 
-    // 2. Keep Android silent audio alive
+    // Keep Android background alive
     const silentAudio = document.getElementById('silent-audio-track');
     if (silentAudio && silentAudio.paused) {
-        silentAudio.play().catch(e => console.log("Silent audio wake-up failed:", e));
+        silentAudio.play().catch(e => console.log("Silent background track wake-up failed:", e));
     }
 
-    // 3. Play the actual track
-    playTrackAtCurrentIndex();
+    playCurrentTrack();
 }
 
-// Helper function to consolidate execution and keep UI perfectly synced
 function playTrackAtCurrentIndex() {
     const trackKey = masterList[shuffledIndices[currentTrackIndex]];
     const track = masterTrackMap[trackKey];
@@ -1435,10 +1432,8 @@ function playTrackAtCurrentIndex() {
             videoId: track.id
         });
         
-        // Explicitly update your 7-slot activity feed immediately on navigation
         updateActivityFeed();
         
-        // Update Media Session Metadata so the Android lock screen shows the right song
         if ('mediaSession' in navigator) {
             navigator.mediaSession.metadata = new MediaMetadata({
                 title: track.title || "Unknown Track",
@@ -1506,7 +1501,6 @@ function onPlayerStateChange(event) {
     const silentAudio = document.getElementById('silent-audio-track');
     
     if (event.data == YT.PlayerState.PLAYING) {
-        // Force silent audio to run alongside YouTube to maintain background execution
         if (silentAudio && silentAudio.paused) {
             silentAudio.play().catch(() => {});
         }
@@ -1518,7 +1512,6 @@ function onPlayerStateChange(event) {
             navigator.mediaSession.playbackState = "paused";
         }
         
-        // If the track naturally ends, auto-advance to next track
         if (event.data == YT.PlayerState.ENDED) {
             nextTrack();
         }
