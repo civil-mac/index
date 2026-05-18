@@ -1394,24 +1394,6 @@ const masterTrackMap = {
         let currentTrackTitle = "";
 
 function nextTrack() {
-            const silentAudio = document.getElementById('silent-audio-track');
-            if (silentAudio) {
-                silentAudio.play().then(() => {
-                    if ('mediaSession' in navigator) {
-                        navigator.mediaSession.playbackState = "playing";
-                        
-                        const currentVideoId = masterList[currentIndex];
-                        const currentTrackName = masterTrackMap[currentVideoId] || "ARI AT EVERYTHING - Live Shuffler";
-
-                        navigator.mediaSession.metadata = new MediaMetadata({
-                            title: currentTrackName,
-                            artist: "ARIatHOME",
-                            album: "1,100+ Live Tracks Pool"
-                        });
-                    }
-                }).catch(e => console.log("Focus deferred."));
-            }
-
             if (shuffledIndices.length === 0) {
                 generateShufflePool();
             }
@@ -1427,24 +1409,6 @@ function nextTrack() {
         }
 
         function prevTrack() {
-            const silentAudio = document.getElementById('silent-audio-track');
-            if (silentAudio) {
-                silentAudio.play().then(() => {
-                    if ('mediaSession' in navigator) {
-                        navigator.mediaSession.playbackState = "playing";
-                        
-                        const currentVideoId = masterList[currentIndex];
-                        const currentTrackName = masterTrackMap[currentVideoId] || "ARI AT EVERYTHING - Live Shuffler";
-
-                        navigator.mediaSession.metadata = new MediaMetadata({
-                            title: currentTrackName,
-                            artist: "ARIatHOME",
-                            album: "1,100+ Live Tracks Pool"
-                        });
-                    }
-                }).catch(e => console.log("Focus deferred."));
-            }
-
             if (historyIndex > 0) {
                 historyIndex--;
                 currentIndex = historyList[historyIndex];
