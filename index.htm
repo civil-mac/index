@@ -1465,32 +1465,55 @@ function playCurrentTrack() {
         }
 
 function onPlayerStateChange(event) {
-            // Ground truth ID connection
+            // Ground truth ID connection to your real element
             const silentAudio = document.getElementById('silent-audio-track');
 
             if (event.data == YT.PlayerState.PLAYING) {
-
-                if (silentAudio) {
-                    silentAudio.play().catch(e => console.log("Audio focus kickstart deferred."));
+                if (playTimeout) {
+                    clearTimeout(playTimeout);
+                    playTimeout = null;
                 }
-            }
                 
                 updateFeedUI();
                 saveToHistory(currentIndex);
 
+                // Wake up your silent background track channel
                 if (silentAudio) {
                     silentAudio.play().catch(e => console.log("Audio focus deferred."));
                 }
 
+                // THE MAGIC LINK: Force Android UI layer to render the widget
                 if ('mediaSession' in navigator) {
                     navigator.mediaSession.playbackState = "playing";
                     
+                    // Pulls the live track name dynamically from your existing map
+                    const currentVideoId = masterList[currentIndex];
+                    const currentTrackName = masterTrackMap[currentVideoId] || "ARI AT EVERYTHING Track";
+
                     navigator.mediaSession.metadata = new MediaMetadata({
-                        title: "ARI AT EVERYTHING",
+                        title: currentTrackName,
                         artist: "ARIatHOME",
+                        album: "Live Improv Shuffler"
                     });
                 }
             }
+            
+            if (event.data == YT.PlayerState.PAUSED) {
+                if (silentAudio) {
+                    silentAudio.pause();
+                }
+                if ('mediaSession' in navigator) {
+                    navigator.mediaSession.playbackState = "paused";
+                }
+            }
+
+            if (event.data == YT.PlayerState.ENDED) {
+                if (silentAudio) {
+                    silentAudio.pause();
+                }
+                nextTrack();
+            }
+        }
             
 if (event.data == YT.PlayerState.PAUSED || event.data == YT.PlayerState.ENDED) {
                 if (silentAudio) {
