@@ -223,10 +223,8 @@ function onYouTubeIframeAPIReady() {
     }
 
 function updateStatus() {
-        // Keeps your existing track counter exactly as it is
         document.getElementById('info').innerText = `Track ${history.length} of ${masterList.length}`;
 
-        // PIXEL / ANDROID BACKGROUND MEDIA CONTROLLER HACK
         if ('mediaSession' in navigator) {
             const currentVideoId = history[history.length - 1];
 
