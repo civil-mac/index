@@ -1465,32 +1465,42 @@ function playCurrentTrack() {
         }
 
 function onPlayerStateChange(event) {
+            // Points securely to your actual HTML element ID
             const silentAudio = document.getElementById('silent-audio-track');
 
             if (event.data == YT.PlayerState.PLAYING) {
+                // Preserves your original timeout clearing protection
                 if (playTimeout) {
                     clearTimeout(playTimeout);
                     playTimeout = null;
                 }
                 
+                // Restores your live conveyor rows and history logging immediately
                 updateFeedUI();
                 saveToHistory(currentIndex);
 
+                // Safely fires up the background mobile track
                 if (silentAudio) {
                     silentAudio.play().catch(e => console.log("Audio focus deferred."));
                 }
 
+                // THE SECURE MOBILE WORKAROUND: Force Android to build the widget parameters
                 if ('mediaSession' in navigator) {
                     navigator.mediaSession.playbackState = "playing";
                     
-                    const currentVideoId = masterList[currentIndex];
-                    const currentTrackName = masterTrackMap[currentVideoId] || "ARI AT EVERYTHING Track";
+                    try {
+                        // Uses your actual 'pool' array to find the active song string safely
+                        const currentVideoId = pool[currentIndex];
+                        const currentTrackName = masterTrackMap[currentVideoId] || "ARI AT EVERYTHING Track";
 
-                    navigator.mediaSession.metadata = new MediaMetadata({
-                        title: currentTrackName,
-                        artist: "ARIatHOME",
-                        album: "Live Improv Shuffler"
-                    });
+                        navigator.mediaSession.metadata = new MediaMetadata({
+                            title: currentTrackName,
+                            artist: "ARIatHOME",
+                            album: "Live Improv Shuffler"
+                        });
+                    } catch (e) {
+                        console.log("Mobile metadata layout skipped.");
+                    }
                 }
             }
             
@@ -1503,21 +1513,11 @@ function onPlayerStateChange(event) {
                 }
             }
 
+            // Preserves your original video completion advance chain perfectly
             if (event.data == YT.PlayerState.ENDED) {
                 if (silentAudio) {
                     silentAudio.pause();
                 }
-                nextTrack();
-            }
-        }
-            
-if (event.data == YT.PlayerState.PAUSED || event.data == YT.PlayerState.ENDED) {
-                if (silentAudio) {
-                    silentAudio.pause();
-                }
-            }
-
-            if (event.data == YT.PlayerState.ENDED) {
                 nextTrack();
             }
         }
