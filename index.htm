@@ -167,10 +167,9 @@
 <div id="player"></div>
 <div class="controls">
     <button onclick="prevTrack()">PREVIOUS</button>
-    <button onclick="nextTrack()">SKIP / NEXT</button>
-</div>
+    <button onclick="nextTrack()">SKIP / NEXT</button></div>
 
-        <div id="player"></div>
+    <div id="player"></div>
     </div>
 
     <div class="controls">
@@ -178,10 +177,9 @@
         <button class="btn" onclick="nextTrack()">Skip / Next</button>
     </div>
 
-    <div id="info">Initializing data...</div>
-</div>
-
-<div id="feed-container">
+    <div id="info">Track 1 of 1177</div>
+    
+    <div id="feed-container">
         <h3>Live Activity Feed</h3>
         <ul id="feed-list"></ul>
     </div>
@@ -1368,6 +1366,8 @@ const masterTrackMap = {
     "rn4mVQswfNg": "Self Care",
     "6SGpdb8T-q4": "Waiting for Hasan (But He Won't Respond)"
 };
+
+    const masterList = Object.keys(masterTrackMap);
     
     let pool = [];
     let history = [];
