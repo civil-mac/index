@@ -1465,33 +1465,32 @@ function playCurrentTrack() {
         }
 
 function onPlayerStateChange(event) {
+            // Ground truth ID connection
             const silentAudio = document.getElementById('silent-audio-track');
 
             if (event.data == YT.PlayerState.PLAYING) {
-                // Keep your original timeout clearing logic perfectly intact
                 if (playTimeout) {
                     clearTimeout(playTimeout);
                     playTimeout = null;
                 }
                 
-                // Keep your original visual UI updates running exactly as they were
                 updateFeedUI();
                 saveToHistory(currentIndex);
 
-                // Kickstart the silent track for mobile lockscreen control
                 if (silentAudio) {
-                    silentAudio.play().catch(e => console.log("Audio focus kickstart deferred."));
+                    silentAudio.play().catch(e => console.log("Audio focus deferred."));
                 }
 
-                // THE FIREWALL: Safely route hardware keys to your exact app functions
+                // FORCE MOBILE OS TO SHOW BUTTONS
                 if ('mediaSession' in navigator) {
                     navigator.mediaSession.playbackState = "playing";
-                    try {
-                        navigator.mediaSession.setActionHandler('nexttrack', () => { nextTrack(); });
-                        navigator.mediaSession.setActionHandler('previoustrack', () => { prevTrack(); });
-                    } catch (e) {
-                        console.log("Media session handlers skipped.");
-                    }
+                    
+                    // This forces the lockscreen widget to wake up and map keys
+                    navigator.mediaSession.metadata = new MediaMetadata({
+                        title: "ARI AT EVERYTHING",
+                        artist: "ARIatHOME",
+                        album: "Live Improv Shuffler"
+                    });
                 }
             }
             
@@ -1504,7 +1503,6 @@ function onPlayerStateChange(event) {
                 }
             }
 
-            // Keep your original multi-state video completion chain running perfectly
             if (event.data == YT.PlayerState.ENDED) {
                 if (silentAudio) {
                     silentAudio.pause();
@@ -1512,6 +1510,7 @@ function onPlayerStateChange(event) {
                 nextTrack();
             }
         }
+    
         let lastPlayedTitle = "---";
 
         function updateFeedUI() {
