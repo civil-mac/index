@@ -178,6 +178,7 @@
     </style>
 </head>
 <body>
+    <audio id="silent-gap-killer" loop src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==Resource-Based-Economy"></audio>
 <div id="header">
     <span class="playlist-label">Improv Music Playlist Shuffler</span>
     
@@ -1429,10 +1430,25 @@ function onPlayerReady(event) {
 }
 
 function onPlayerStateChange(event) {
-    if (event.data === YT.PlayerState.ENDED) {
-        nextTrack();
-    }
-}
+            const silentAudio = document.getElementById('silent-gap-killer');
+            
+            if (event.data == YT.PlayerState.PLAYING) {
+                // Play the silent track to force Android to give us lock screen control
+                if (silentAudio) silentAudio.play().catch(e => console.log("Audio kickstart delayed until user interaction"));
+                
+                const currentId = pool[currentIndex];
+                currentTrackTitle = masterTrackMap[currentId] || `Track ID: ${currentId}`;
+                updateFeedUI();
+            }
+            
+            if (event.data == YT.PlayerState.PAUSED || event.data == YT.PlayerState.ENDED) {
+                if (silentAudio) silentAudio.pause();
+            }
+
+            if (event.data == YT.PlayerState.ENDED) {
+                nextTrack();
+            }
+        }
 
 function onPlayerError(event) {
     if (isSkipping) return; 
@@ -1557,29 +1573,32 @@ if ('mediaSession' in navigator) {
         }
 
 if ('mediaSession' in navigator) {
-    
-    navigator.mediaSession.setActionHandler('pause', () => {
-        if (player && typeof player.pauseVideo === 'function') {
-            player.pauseVideo();
+            navigator.mediaSession.setActionHandler('pause', () => {
+                const silentAudio = document.getElementById('silent-gap-killer');
+                if (silentAudio) silentAudio.pause();
+                if (player && typeof player.pauseVideo === 'function') {
+                    player.pauseVideo();
+                }
+                navigator.mediaSession.playbackState = "paused";
+            });
+
+            navigator.mediaSession.setActionHandler('play', () => {
+                const silentAudio = document.getElementById('silent-gap-killer');
+                if (silentAudio) silentAudio.play().catch(() => {});
+                if (player && typeof player.playVideo === 'function') {
+                    player.playVideo();
+                }
+                navigator.mediaSession.playbackState = "playing";
+            });
+
+            navigator.mediaSession.setActionHandler('nexttrack', () => {
+                nextTrack();
+            });
+
+            navigator.mediaSession.setActionHandler('previoustrack', () => {
+                prevTrack();
+            });
         }
-        navigator.mediaSession.playbackState = "paused";
-    });
-
-    navigator.mediaSession.setActionHandler('play', () => {
-        if (player && typeof player.playVideo === 'function') {
-            player.playVideo();
-        }
-        navigator.mediaSession.playbackState = "playing";
-    });
-
-    navigator.mediaSession.setActionHandler('nexttrack', () => {
-        nextTrack(); 
-    });
-
-    navigator.mediaSession.setActionHandler('previoustrack', () => {
-        prevTrack();
-    });
-}
         
 </script>
 </body>
