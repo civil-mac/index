@@ -1469,10 +1469,11 @@ function onPlayerStateChange(event) {
             const silentAudio = document.getElementById('silent-audio-track');
 
             if (event.data == YT.PlayerState.PLAYING) {
-                if (playTimeout) {
-                    clearTimeout(playTimeout);
-                    playTimeout = null;
+
+                if (silentAudio) {
+                    silentAudio.play().catch(e => console.log("Audio focus kickstart deferred."));
                 }
+            }
                 
                 updateFeedUI();
                 saveToHistory(currentIndex);
@@ -1481,11 +1482,9 @@ function onPlayerStateChange(event) {
                     silentAudio.play().catch(e => console.log("Audio focus deferred."));
                 }
 
-                // FORCE MOBILE OS TO SHOW BUTTONS
                 if ('mediaSession' in navigator) {
                     navigator.mediaSession.playbackState = "playing";
                     
-                    // This forces the lockscreen widget to wake up and map keys
                     navigator.mediaSession.metadata = new MediaMetadata({
                         title: "ARI AT EVERYTHING",
                         artist: "ARIatHOME",
