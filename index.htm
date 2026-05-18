@@ -178,7 +178,7 @@
     </style>
 </head>
 <body>
-   <audio id="silent-audio-track" loop src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA=="></audio>
+<audio id="silent-audio-track" src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAAAA" loop preload="auto"></audio>
 <div id="header">
     <span class="playlist-label">Improv Music Playlist Shuffler</span>
     
@@ -1394,27 +1394,60 @@ const masterTrackMap = {
         let currentTrackTitle = "";
 
 function nextTrack() {
-            if (shuffledIndices.length === 0) {
-                generateShufflePool();
-            }
-            historyIndex++;
-            if (historyIndex < historyList.length) {
-                currentIndex = historyList[historyIndex];
-            } else {
-                currentIndex = shuffledIndices.pop();
-                historyList.push(currentIndex);
-                historyIndex = historyList.length - 1;
-            }
-            loadVideo(masterList[currentIndex]);
-        }
+    if (!shuffledIndices || shuffledIndices.length === 0) return;
 
-        function prevTrack() {
-            if (historyIndex > 0) {
-                historyIndex--;
-                currentIndex = historyList[historyIndex];
-                loadVideo(masterList[currentIndex]);
-            }
+    // 1. Increment and wrap around if at the end of the list
+    currentTrackIndex = (currentTrackIndex + 1) % shuffledIndices.length;
+
+    // 2. Keep the Android silent audio alive during the transition gap
+    const silentAudio = document.getElementById('silent-audio-track');
+    if (silentAudio && silentAudio.paused) {
+        silentAudio.play().catch(e => console.log("Silent audio wake-up failed:", e));
+    }
+
+    // 3. Play the actual track
+    playTrackAtCurrentIndex();
+}
+
+function prevTrack() {
+    if (!shuffledIndices || shuffledIndices.length === 0) return;
+
+    // 1. Decrement and wrap around to the end if below zero
+    currentTrackIndex = (currentTrackIndex - 1 + shuffledIndices.length) % shuffledIndices.length;
+
+    // 2. Keep Android silent audio alive
+    const silentAudio = document.getElementById('silent-audio-track');
+    if (silentAudio && silentAudio.paused) {
+        silentAudio.play().catch(e => console.log("Silent audio wake-up failed:", e));
+    }
+
+    // 3. Play the actual track
+    playTrackAtCurrentIndex();
+}
+
+// Helper function to consolidate execution and keep UI perfectly synced
+function playTrackAtCurrentIndex() {
+    const trackKey = masterList[shuffledIndices[currentTrackIndex]];
+    const track = masterTrackMap[trackKey];
+
+    if (track && player && typeof player.loadVideoById === 'function') {
+        player.loadVideoById({
+            videoId: track.id
+        });
+        
+        // Explicitly update your 7-slot activity feed immediately on navigation
+        updateActivityFeed();
+        
+        // Update Media Session Metadata so the Android lock screen shows the right song
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.metadata = new MediaMetadata({
+                title: track.title || "Unknown Track",
+                artist: "ARIatHOME",
+                album: "ARI AT EVERYTHING Custom Shuffler"
+            });
         }
+    }
+}
     
         function shufflePool() {
             pool = [...masterList];
@@ -1470,59 +1503,27 @@ function playCurrentTrack() {
         }
 
 function onPlayerStateChange(event) {
-            const silentAudio = document.getElementById('silent-audio-track');
-
-            if (event.data == YT.PlayerState.PLAYING) {
-                if (playTimeout) {
-                    clearTimeout(playTimeout);
-                    playTimeout = null;
-                }
-                
-                updateFeedUI();
-                saveToHistory(currentIndex);
-
-                if (silentAudio) {
-                    silentAudio.play().catch(e => console.log("Audio focus deferred."));
-                }
-
-                if ('mediaSession' in navigator) {
-                    navigator.mediaSession.playbackState = "playing";
-                    
-                    try {
-                        navigator.mediaSession.metadata = new MediaMetadata({
-                            title: "ARI AT EVERYTHING - Live Shuffler",
-                            artist: "ARIatHOME",
-                            album: "1,100+ Live Tracks Pool"
-                        });
-
-                        navigator.mediaSession.setActionHandler('nexttrack', () => { 
-                            nextTrack(); 
-                        });
-                        navigator.mediaSession.setActionHandler('previoustrack', () => { 
-                            prevTrack(); 
-                        });
-                    } catch (e) {
-                        console.log("Android hardware registration bypassed.");
-                    }
-                }
-            }
-            
-            if (event.data == YT.PlayerState.PAUSED) {
-                if (silentAudio) {
-                    silentAudio.pause();
-                }
-                if ('mediaSession' in navigator) {
-                    navigator.mediaSession.playbackState = "paused";
-                }
-            }
-
-            if (event.data == YT.PlayerState.ENDED) {
-                if (silentAudio) {
-                    silentAudio.pause();
-                }
-                nextTrack();
-            }
+    const silentAudio = document.getElementById('silent-audio-track');
+    
+    if (event.data == YT.PlayerState.PLAYING) {
+        // Force silent audio to run alongside YouTube to maintain background execution
+        if (silentAudio && silentAudio.paused) {
+            silentAudio.play().catch(() => {});
         }
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.playbackState = "playing";
+        }
+    } else if (event.data == YT.PlayerState.PAUSED || event.data == YT.PlayerState.ENDED) {
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.playbackState = "paused";
+        }
+        
+        // If the track naturally ends, auto-advance to next track
+        if (event.data == YT.PlayerState.ENDED) {
+            nextTrack();
+        }
+    }
+}
     
         let lastPlayedTitle = "---";
 
