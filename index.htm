@@ -1464,46 +1464,41 @@ function playCurrentTrack() {
             updateFeedUI();
         }
 
-function onPlayerStateChange(event) {
-            const silentAudio = document.getElementById('silent-audio-track');
+    function onPlayerStateChange(event) {
+            const silentAudio = document.getElementById('silent-gap-killer');
 
             if (event.data == YT.PlayerState.PLAYING) {
-
                 if (silentAudio) {
-                    silentAudio.play().catch(e => console.log("Audio kickstart deferred."));
+                    silentAudio.play().catch(e => console.log("Audio focus kickstart deferred."));
                 }
 
                 if ('mediaSession' in navigator) {
                     navigator.mediaSession.playbackState = "playing";
                     
-                    try {
-                        navigator.mediaSession.setActionHandler('nexttrack', () => { 
-                            nextTrack(); 
-                        });
-                        navigator.mediaSession.setActionHandler('previoustrack', () => { 
-                            prevTrack(); 
-                        });
-                        navigator.mediaSession.setActionHandler('play', () => { 
-                            if (player && typeof player.playVideo === 'function') player.playVideo(); 
-                        });
-                        navigator.mediaSession.setActionHandler('pause', () => { 
-                            if (player && typeof player.pauseVideo === 'function') player.pauseVideo(); 
-                        });
-                    } catch (e) {
-                        console.log("Hardware controls deferred.");
+                    if (typeof navigator.mediaSession.setPositionState === 'function') {
+                        try {
+                            navigator.mediaSession.setPositionState({
+                                duration: player.getDuration() || 180,
+                                playbackRate: 1.0,
+                                position: player.getCurrentTime() || 0
+                            });
+                        } catch (e) {
+                            console.log("Timeline sync skipped.");
+                        }
                     }
                 }
             }
             
-            if (event.data == YT.PlayerState.PAUSED) {
-                if (silentAudio) silentAudio.pause();
-                if ('mediaSession' in navigator) {
+            if (event.data == YT.PlayerState.PAUSED || event.data == YT.PlayerState.ENDED) {
+                if (silentAudio) {
+                    silentAudio.pause();
+                }
+                if ('mediaSession' in navigator && event.data == YT.PlayerState.PAUSED) {
                     navigator.mediaSession.playbackState = "paused";
                 }
             }
 
             if (event.data == YT.PlayerState.ENDED) {
-                if (silentAudio) silentAudio.pause();
                 nextTrack();
             }
         }
