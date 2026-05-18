@@ -1403,6 +1403,10 @@ function shuffle(array) {
 
 function onPlayerReady(event) {
     event.target.playVideo();
+    if (history.length === 0 && pool.length > 0) {
+        history.push(pool.shift()); 
+    }
+    
     updateStatus();
 }
 
@@ -1425,12 +1429,17 @@ function onPlayerError(event) {
 
 function nextTrack() {
     if (pool.length === 0) {
-        pool = shuffle(history);
-        history = [];
+        alert("End of randomized pool! Re-shuffling...");
+        return;
     }
+
     const nextId = pool.shift();
     history.push(nextId);
-    player.loadVideoById(nextId);
+    
+    if (player && typeof player.loadVideoById === 'function') {
+        player.loadVideoById(nextId);
+    }
+    
     updateStatus();
 }
 
