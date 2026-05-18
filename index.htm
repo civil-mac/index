@@ -2,6 +2,12 @@
 <head>
     <meta charset="UTF-8">
     <title>ARI AT EVERYTHING - Custom Shuffler</title>
+    <link rel="manifest" href="manifest.json">
+    <script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js');
+  }
+    </script>
     <style>
     body { 
     background: #0b0f1a; 
