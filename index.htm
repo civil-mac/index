@@ -1489,8 +1489,15 @@ function onPlayerStateChange(event) {
                             artist: "ARIatHOME",
                             album: "1,100+ Live Tracks Pool"
                         });
+
+                        navigator.mediaSession.setActionHandler('nexttrack', () => { 
+                            nextTrack(); 
+                        });
+                        navigator.mediaSession.setActionHandler('previoustrack', () => { 
+                            prevTrack(); 
+                        });
                     } catch (e) {
-                        console.log("Mobile metadata registration deferred.");
+                        console.log("Android hardware registration bypassed.");
                     }
                 }
             }
