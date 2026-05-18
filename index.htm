@@ -1,12 +1,30 @@
 <html lang="en">
 <head>
+    
     <meta charset="UTF-8">
-    <title>ARI AT EVERYTHING - Custom Shuffler</title>
-    <link rel="manifest" href="manifest.json">
+    <title>ARI AT EVERYTHING - Custom Playlist Shuffler</title>
+    <meta name="description" content="Stream over 1,100 tracks of 100% live improvised music, freestyle rap, and custom Ableton beats created completely on the spot by ARIatHOME.">
+    <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "MusicPlaylist",
+  "name": "ARI AT EVERYTHING Custom Shuffler",
+  "creator": {
+    "@type": "MusicGroup",
+    "name": "ARIatHOME"
+  },
+  "genre": "Improvised Music, Freestyle Rap, Electronic, Beats",
+  "numTracks": "1177",
+  "description": "An interactive web shuffler cycling through live-recorded improvised music sessions."
+}
+</script>
+    
+    <link rel="manifest" href="/manifest.json">
+    
     <script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js');
-  }
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js');
+      }
     </script>
     <style>
     body { 
