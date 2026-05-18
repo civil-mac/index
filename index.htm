@@ -1396,10 +1396,8 @@ const masterTrackMap = {
 function nextTrack() {
     if (!pool || pool.length === 0) return;
 
-    // Increment index and loop seamlessly back to 0 if at the end
     currentIndex = (currentIndex + 1) % pool.length;
 
-    // Keep the Android background engine alive during video swapping gaps
     const silentAudio = document.getElementById('silent-audio-track');
     if (silentAudio && silentAudio.paused) {
         silentAudio.play().catch(e => console.log("Silent background track wake-up failed:", e));
@@ -1411,16 +1409,47 @@ function nextTrack() {
 function prevTrack() {
     if (!pool || pool.length === 0) return;
 
-    // Decrement index and wrap backwards safely if below 0
-    currentIndex = (currentIndex - 1 + pool.length) % pool.length;
+    if (currentIndex === 0) {
+        console.log("Already at the first track. Previous navigation blocked.");
+        return; 
+    }
 
-    // Keep Android background alive
+    currentIndex = currentIndex - 1;
+
     const silentAudio = document.getElementById('silent-audio-track');
     if (silentAudio && silentAudio.paused) {
         silentAudio.play().catch(e => console.log("Silent background track wake-up failed:", e));
     }
 
     playCurrentTrack();
+}
+
+function playCurrentTrack() {
+    const videoId = pool[currentIndex];
+    if (!videoId) return;
+
+    if (currentTrackTitle) {
+        lastPlayedTitle = currentTrackTitle;
+    }
+    
+    currentTrackTitle = masterTrackMap[videoId] || `Track ID: ${videoId}`;
+    document.getElementById('info').innerText = `Track ${currentIndex + 1} of ${pool.length}`;
+
+    if (player && typeof player.loadVideoById === 'function') {
+        player.loadVideoById({ videoId: videoId });
+    }
+
+    updateFeedUI();
+    
+    updateButtonStates();
+
+    if ('mediaSession' in navigator) {
+        navigator.mediaSession.metadata = new MediaMetadata({
+            title: currentTrackTitle,
+            artist: "ARIatHOME",
+            album: "ARI AT EVERYTHING Custom Shuffler"
+        });
+    }
 }
 
 function playTrackAtCurrentIndex() {
