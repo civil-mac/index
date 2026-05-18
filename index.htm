@@ -1455,57 +1455,58 @@ function onYouTubeIframeAPIReady() {
     }
 
 function updateStatus() {
-    document.getElementById('info').innerText = `Track ${history.length} of ${masterList.length}`;
+        
+        document.getElementById('info').innerText = `Track ${history.length} of ${masterList.length}`;
 
-    function getTitle(id) {
-        if (!id) return "---";
-        return songTitles[id] || `Track ID: ${id}`; 
+        const feedList = document.getElementById('feed-list');
+        feedList.innerHTML = "";
+
+        let prevText = "---";
+        if (history.length > 1) {
+            prevText = `ID: ${history[history.length - 2]}`;
+        }
+
+        const currentId = history[history.length - 1];
+        const currentText = `ID: ${currentId}`;
+
+        const nextTracks = pool.slice(0, 3);
+
+        const liPrev = document.createElement('li');
+        liPrev.className = 'feed-item';
+        liPrev.innerHTML = `<span>⏮ Last Played...</span> <span>${prevText}</span>`;
+        feedList.appendChild(liPrev);
+
+        const liCurrent = document.createElement('li');
+        liCurrent.className = 'feed-item active';
+        liCurrent.innerHTML = `<span>▶ Now Playing...</span> <span>${currentText}</span>`;
+        feedList.appendChild(liCurrent);
+
+        for (let i = 0; i < 3; i++) {
+            const liNext = document.createElement('li');
+            liNext.className = 'feed-item';
+            
+            const nextText = nextTracks[i] ? `ID: ${nextTracks[i]}` : "---";
+            liNext.innerHTML = `<span>⏭ [${i + 1}]</span> <span>${nextText}</span>`;
+            
+            feedList.appendChild(liNext);
+        }
+
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.metadata = new MediaMetadata({
+                title: `Track ${history.length} of ${masterList.length}`,
+                artist: 'ARI AT EVERYTHING',
+                album: 'Custom Shuffler',
+                artwork: [
+                    { src: `https://img.youtube.com/vi/${currentId}/maxresdefault.jpg`, sizes: '1280x720', type: 'image/jpeg' }
+                ]
+            });
+
+            navigator.mediaSession.setActionHandler('nexttrack', () => { nextTrack(); });
+            navigator.mediaSession.setActionHandler('previoustrack', () => { prevTrack(); });
+            navigator.mediaSession.setActionHandler('play', () => { player.playVideo(); });
+            navigator.mediaSession.setActionHandler('pause', () => { player.pauseVideo(); });
+        }
     }
-
-    const feedList = document.getElementById('feed-list');
-    feedList.innerHTML = ""; 
-
-    let prevText = "---";
-    if (history.length > 1) {
-        prevText = getTitle(history[history.length - 2]);
-    }
-
-    const currentId = history[history.length - 1];
-    const currentText = getTitle(currentId);
-
-    const liPrev = document.createElement('li');
-    liPrev.className = 'feed-item';
-    liPrev.innerHTML = `<span>⏮ Last Played</span> <span style="text-align:right; max-width:70%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${prevText}</span>`;
-    feedList.appendChild(liPrev);
-
-    const liCurrent = document.createElement('li');
-    liCurrent.className = 'feed-item active';
-    liCurrent.innerHTML = `<span>▶ Now Playing</span> <span style="text-align:right; max-width:70%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${currentText}</span>`;
-    feedList.appendChild(liCurrent);
-
-    for (let i = 0; i < 3; i++) {
-        const liNext = document.createElement('li');
-        liNext.className = 'feed-item';
-        liNext.innerHTML = `<span>⏭ Track [${i + 1}]</span> <span>---</span>`;
-        feedList.appendChild(liNext);
-    }
-
-    if ('mediaSession' in navigator) {
-        navigator.mediaSession.metadata = new MediaMetadata({
-            title: currentText,
-            artist: 'ARI AT EVERYTHING',
-            album: 'Custom Shuffler',
-            artwork: [
-                { src: `https://img.youtube.com/vi/${currentId}/maxresdefault.jpg`, sizes: '1280x720', type: 'image/jpeg' }
-            ]
-        });
-
-        navigator.mediaSession.setActionHandler('nexttrack', () => { nextTrack(); });
-        navigator.mediaSession.setActionHandler('previoustrack', () => { prevTrack(); });
-        navigator.mediaSession.setActionHandler('play', () => { player.playVideo(); });
-        navigator.mediaSession.setActionHandler('pause', () => { player.pauseVideo(); });
-    }
-}
 </script>
 </body>
 </html>
