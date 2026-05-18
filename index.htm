@@ -1388,145 +1388,90 @@ const masterTrackMap = {
     "6SGpdb8T-q4": "Waiting for Hasan (But He Won't Respond)"
 };
     
-    let pool = [];
-    let history = [];
-    let player;
-    let isSkipping = false;
+ let pool = [];
+        let currentIndex = 0;
+        let player = null;
+        let currentTrackTitle = "";
 
-const tag = document.createElement('script');
-tag.src = "https://www.youtube.com/iframe_api";
-const firstScriptTag = document.getElementsByTagName('script')[0];
-firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-
-function onYouTubeIframeAPIReady() {
-    pool = shuffle(masterList);
-    player = new YT.Player('player', {
-        videoId: pool[0], 
-        playerVars: { 'autoplay': 1, 'playsinline': 1 },
-        events: {
-            'onReady': onPlayerReady,
-            'onStateChange': onPlayerStateChange,
-            'onError': onPlayerError
+        // 1. CHOOSE NEXT RANDOM TRACK VIA SHUFFLE
+        function nextTrack() {
+            if (pool.length === 0) return;
+            currentIndex++;
+            if (currentIndex >= pool.length) {
+                shufflePool();
+                currentIndex = 0;
+            }
+            playCurrentTrack();
         }
-    });
-}
 
-function shuffle(array) {
-    let arr = [...array];
-    for (let i = arr.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [arr[i], arr[j]] = [arr[j], arr[i]];
-    }
-    return arr;
-}
-
-function onPlayerReady(event) {
-    event.target.playVideo();
-    if (history.length === 0 && pool.length > 0) {
-        history.push(pool.shift()); 
-    }
-    
-    updateStatus();
-}
-
-function onPlayerStateChange(event) {
-            const silentAudio = document.getElementById('silent-gap-killer');
-            
-            if (event.data == YT.PlayerState.PLAYING) {
-                // Play the silent track to force Android to give us lock screen control
-                if (silentAudio) silentAudio.play().catch(e => console.log("Audio kickstart delayed until user interaction"));
-                
-                const currentId = pool[currentIndex];
-                currentTrackTitle = masterTrackMap[currentId] || `Track ID: ${currentId}`;
-                updateFeedUI();
+        // 2. BACKTRACK LOGIC
+        function prevTrack() {
+            if (pool.length === 0) return;
+            if (currentIndex > 0) {
+                currentIndex--;
+                playCurrentTrack();
             }
-            
-            if (event.data == YT.PlayerState.PAUSED || event.data == YT.PlayerState.ENDED) {
-                if (silentAudio) silentAudio.pause();
-            }
+        }
 
+        // 3. INITIAL SHUFFLE POOL GENERATOR
+        function shufflePool() {
+            pool = [...masterList];
+            for (let i = pool.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [pool[i], pool[j]] = [pool[j], pool[i]];
+            }
+        }
+
+        // 4. INJECT VIDEO DIRECTLY INTO YOUTUBE API PLAYER
+        function playCurrentTrack() {
+            const videoId = pool[currentIndex];
+            if (!videoId) return;
+
+            currentTrackTitle = masterTrackMap[videoId] || `Track ID: ${videoId}`;
+            document.getElementById('info').innerText = `Track ${currentIndex + 1} of ${pool.length}`;
+
+            if (player && typeof player.loadVideoById === 'function') {
+                player.loadVideoById(videoId);
+            } else {
+                console.log("Player not fully initialized yet.");
+            }
+            updateFeedUI();
+        }
+
+        // 5. YOUTUBE FRAMEWORK LIFECYCLE CALLBACKS
+        function onYouTubeIframeAPIReady() {
+            shufflePool();
+            const firstVideoId = pool[currentIndex];
+            currentTrackTitle = masterTrackMap[firstVideoId] || `Track ID: ${firstVideoId}`;
+
+            player = new YT.Player('player', {
+                videoId: firstVideoId,
+                playerVars: {
+                    'autoplay': 1,
+                    'controls': 1,
+                    'modestbranding': 1,
+                    'rel': 0
+                },
+                events: {
+                    'onReady': onPlayerReady,
+                    'onStateChange': onPlayerStateChange
+                }
+            });
+        }
+
+        function onPlayerReady(event) {
+            event.target.playVideo();
+            updateFeedUI();
+        }
+
+        function onPlayerStateChange(event) {
             if (event.data == YT.PlayerState.ENDED) {
                 nextTrack();
             }
         }
 
-function onPlayerError(event) {
-    if (isSkipping) return; 
-    isSkipping = true;
-    
-    console.warn("Embed restricted. Skipping in 500ms...");
-    setTimeout(() => {
-        isSkipping = false;
-        nextTrack();
-    }, 500); 
-}
-
-function nextTrack() {
-    if (pool.length === 0) {
-        alert("End of randomized pool! Re-shuffling...");
-        return;
-    }
-
-    const nextId = pool.shift();
-    history.push(nextId);
-    
-    if (player && typeof player.loadVideoById === 'function') {
-        player.loadVideoById(nextId);
-    }
-    
-    updateStatus();
-}
-
-function prevTrack() {
-    if (history.length > 1) {
-        const current = history.pop();
-        pool.unshift(current);
-        const prevId = history[history.length - 1];
-        player.loadVideoById(prevId);
-        updateStatus();
-    }
-}
-
-function updateStatus() {
-    document.getElementById('info').innerText = `Track ${history.length || 1} of ${masterList.length}`;
-
-    const feedList = document.getElementById('feed-list');
-    if (feedList) {
-        feedList.innerHTML = ""; 
-
-        let prevText = "---";
-        if (history.length > 1) {
-            const prevId = history[history.length - 2];
-            prevText = masterTrackMap[prevId] || `Track ID: ${prevId}`;
-        }
-
-        const currentId = history.length > 0 ? history[history.length - 1] : pool[0];
-        const currentText = masterTrackMap[currentId] || `Track ID: ${currentId}`;
-
-        const liPrev = document.createElement('li');
-        liPrev.className = 'feed-item';
-        liPrev.innerHTML = `<span>⏮ Last Played</span> <span style="text-align:right; max-width:70%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${prevText}</span>`;
-        feedList.appendChild(liPrev);
-
-        const liCurrent = document.createElement('li');
-        liCurrent.className = 'feed-item active';
-        liCurrent.innerHTML = `<span>▶ Now Playing</span> <span style="text-align:right; max-width:70%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${currentText}</span>`;
-        feedList.appendChild(liCurrent);
-
-        const startIndex = history.length > 0 ? 0 : 1;
-
-        for (let i = 0; i < 5; i++) {
-            const liNext = document.createElement('li');
-            liNext.className = 'feed-item';
-            
-            const nextId = pool[startIndex + i];
-            const nextText = nextId ? (masterTrackMap[nextId] || `Track ID: ${nextId}`) : "---";
-
-            liNext.innerHTML = `<span>Next [${i + 1}]</span> <span style="text-align:right; max-width:70%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${nextText}</span>`;
-            feedList.appendChild(liNext);
-        }
-        
-function updateFeedUI() {
+        // 6. POPULATE THE LIVE ACTIVITY QUEUE GRAPHICALLY
+        function updateFeedUI() {
             const feedList = document.getElementById('feed-list');
             if (!feedList) return;
             feedList.innerHTML = '';
@@ -1543,61 +1488,76 @@ function updateFeedUI() {
             }
 
             const liCurrent = document.createElement('li');
-            liCurrent.className = 'feed-item current-item';
+            liCurrent.className = 'feed-item current-item active';
             const currentText = currentTrackTitle || "---";
-            liCurrent.innerHTML = `<span>Playing</span> <span style="text-align:right; font-weight:bold; max-width:70%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#38bdf8;">${currentText}</span>`;
+            liCurrent.innerHTML = `<span>Playing</span> <span style="text-align:right; font-weight:bold; max-width:70%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#6366f1;">${currentText}</span>`;
             feedList.appendChild(liCurrent);
 
             const queueLimit = 5;
             const startIndex = currentIndex + 1;
             const endIndex = Math.min(pool.length, startIndex + queueLimit);
-            for (let i = 0; i < (endIndex - startIndex); i++) {
+            for (let i = startHistory; i < (endIndex - startIndex); i++) {
+                const idx = startIndex + i;
+                if (idx >= pool.length) break;
                 const liNext = document.createElement('li');
                 liNext.className = 'feed-item';
-                const nextId = pool[startIndex + i];
+                const nextId = pool[idx];
                 const nextText = nextId ? (masterTrackMap[nextId] || `Track ID: ${nextId}`) : "---";
                 liNext.innerHTML = `<span>Next [${i + 1}]</span> <span style="text-align:right; max-width:70%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${nextText}</span>`;
                 feedList.appendChild(liNext);
             }
-    
-if ('mediaSession' in navigator) {
-                navigator.mediaSession.playbackState = "playing";
-                navigator.mediaSession.metadata = new MediaMetadata({
-                    title: currentTrackTitle || "Ari Shuffler Track",
-                    artist: "Ari@Home",
-                    artwork: [
-                        { src: 'https://civil-mac.github.io/index/icon-512x512.png', sizes: '512x512', type: 'image/png' }
-                    ]
-                });
+
+            // SAFELY HAND INDENTIFIER DATA TO LOCK SCREEN CONTROLS DYNAMICALLY
+            if ('mediaSession' in navigator && window.MediaMetadata) {
+                try {
+                    navigator.mediaSession.metadata = new MediaMetadata({
+                        title: currentTrackTitle || "Ari Shuffler Track",
+                        artist: "Ari @Home",
+                        album: "Stream Archive Shuffler",
+                        artwork: [
+                            { src: 'https://civil-mac.github.io/index/icon-512x512.png', sizes: '512x512', type: 'image/png' }
+                        ]
+                    });
+                    navigator.mediaSession.playbackState = "playing";
+                } catch (e) {
+                    console.log("MediaSession sync deferred until playback begins.");
+                }
             }
         }
 
-if ('mediaSession' in navigator) {
-            navigator.mediaSession.setActionHandler('pause', () => {
-                const silentAudio = document.getElementById('silent-gap-killer');
-                if (silentAudio) silentAudio.pause();
-                if (player && typeof player.pauseVideo === 'function') {
-                    player.pauseVideo();
-                }
-                navigator.mediaSession.playbackState = "paused";
-            });
+        // LOAD THE NATIVE YOUTUBE IFRAME SCRIPT TAG ASYNCHRONOUSLY
+        const tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        const firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
-            navigator.mediaSession.setActionHandler('play', () => {
-                const silentAudio = document.getElementById('silent-gap-killer');
-                if (silentAudio) silentAudio.play().catch(() => {});
-                if (player && typeof player.playVideo === 'function') {
-                    player.playVideo();
-                }
-                navigator.mediaSession.playbackState = "playing";
-            });
+        // SAFELY REGISTRATION OF CONTROLS WITHOUT CRASHING INITIAL BOOT
+        if ('mediaSession' in navigator) {
+            try {
+                navigator.mediaSession.setActionHandler('pause', () => {
+                    if (player && typeof player.pauseVideo === 'function') {
+                        player.pauseVideo();
+                    }
+                    navigator.mediaSession.playbackState = "paused";
+                });
 
-            navigator.mediaSession.setActionHandler('nexttrack', () => {
-                nextTrack();
-            });
+                navigator.mediaSession.setActionHandler('play', () => {
+                    if (player && typeof player.playVideo === 'function') {
+                        player.playVideo();
+                    }
+                    navigator.mediaSession.playbackState = "playing";
+                });
 
-            navigator.mediaSession.setActionHandler('previoustrack', () => {
-                prevTrack();
-            });
+                navigator.mediaSession.setActionHandler('nexttrack', () => {
+                    nextTrack();
+                });
+
+                navigator.mediaSession.setActionHandler('previoustrack', () => {
+                    prevTrack();
+                });
+            } catch (e) {
+                console.log("Hardware media control mapping skipped.");
+            }
         }
         
 </script>
