@@ -3,9 +3,14 @@
   "name": "ARI AT EVERYTHING Custom Shuffler",
   "icons": [
     {
-      "src": "https://img.youtube.com/vi/FQl0Tig00Ws/maxresdefault.jpg",
-      "type": "image/jpeg",
-      "sizes": "1280x720"
+      "src": "https://img.icons8.com/color/192/youtube-play.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "https://img.icons8.com/color/512/youtube-play.png",
+      "type": "image/png",
+      "sizes": "512x512"
     }
   ],
   "start_url": "index.htm",
