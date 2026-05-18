@@ -1470,14 +1470,14 @@ function updateStatus() {
 
         const startIndex = history.length > 0 ? 0 : 1;
 
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < 5; i++) {
             const liNext = document.createElement('li');
             liNext.className = 'feed-item';
             
             const nextId = pool[startIndex + i];
             const nextText = nextId ? (masterTrackMap[nextId] || `Track ID: ${nextId}`) : "---";
 
-            liNext.innerHTML = `<span>... Next [${i + 1}]</span> <span style="text-align:right; max-width:70%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${nextText}</span>`;
+            liNext.innerHTML = `<span>Next [${i + 1}]</span> <span style="text-align:right; max-width:70%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${nextText}</span>`;
             feedList.appendChild(liNext);
         }
 
