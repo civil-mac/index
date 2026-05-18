@@ -1423,7 +1423,6 @@ function playCurrentTrack() {
             const videoId = pool[currentIndex];
             if (!videoId) return;
 
-            // Maintain your stable list history slot
             if (currentTrackTitle) {
                 lastPlayedTitle = currentTrackTitle;
             }
@@ -1431,13 +1430,7 @@ function playCurrentTrack() {
             currentTrackTitle = masterTrackMap[videoId] || `Track ID: ${videoId}`;
             document.getElementById('info').innerText = `Track ${currentIndex + 1} of ${pool.length}`;
 
-            // THE IFRAME TRICK: Slice a sub-queue of the next upcoming tracks from your pool
-            if (player && typeof player.loadPlaylist === 'function') {
-                const localQueue = pool.slice(currentIndex, currentIndex + 10); // Grabs the next 10 videos
-                
-                // Instruct YouTube to load this local array as an active playlist framework
-                player.loadPlaylist(localQueue, 0, 0); 
-            } else if (player && typeof player.loadVideoById === 'function') {
+            if (player && typeof player.loadVideoById === 'function') {
                 player.loadVideoById(videoId);
             } else {
                 console.log("Player not fully initialized yet.");
@@ -1480,11 +1473,9 @@ function onPlayerStateChange(event) {
                     silentAudio.play().catch(e => console.log("Audio focus deferred."));
                 }
                 
-                // BRIDGE WORKAROUND: Force the main browser context to claim master control
                 if ('mediaSession' in navigator) {
                     navigator.mediaSession.playbackState = "playing";
                     
-                    // Re-register the action handlers explicitly on the top-level window context
                     navigator.mediaSession.setActionHandler('nexttrack', () => { 
                         nextTrack(); 
                     });
