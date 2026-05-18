@@ -1509,7 +1509,41 @@ function updateStatus() {
             liNext.innerHTML = `<span>Next [${i + 1}]</span> <span style="text-align:right; max-width:70%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${nextText}</span>`;
             feedList.appendChild(liNext);
         }
+        
+function updateFeedUI() {
+            const feedList = document.getElementById('feed-list');
+            if (!feedList) return;
+            feedList.innerHTML = '';
 
+            const historyLimit = 3;
+            const startHistory = Math.max(0, currentIndex - historyLimit);
+            for (let i = startHistory; i < currentIndex; i++) {
+                const liPrev = document.createElement('li');
+                liPrev.className = 'feed-item history-item';
+                const prevId = pool[i];
+                const prevText = prevId ? (masterTrackMap[prevId] || `Track ID: ${prevId}`) : "---";
+                liPrev.innerHTML = `<span>History</span> <span style="text-align:right; max-width:70%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${prevText}</span>`;
+                feedList.appendChild(liPrev);
+            }
+
+            const liCurrent = document.createElement('li');
+            liCurrent.className = 'feed-item current-item';
+            const currentText = currentTrackTitle || "---";
+            liCurrent.innerHTML = `<span>Playing</span> <span style="text-align:right; font-weight:bold; max-width:70%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#38bdf8;">${currentText}</span>`;
+            feedList.appendChild(liCurrent);
+
+            const queueLimit = 5;
+            const startIndex = currentIndex + 1;
+            const endIndex = Math.min(pool.length, startIndex + queueLimit);
+            for (let i = 0; i < (endIndex - startIndex); i++) {
+                const liNext = document.createElement('li');
+                liNext.className = 'feed-item';
+                const nextId = pool[startIndex + i];
+                const nextText = nextId ? (masterTrackMap[nextId] || `Track ID: ${nextId}`) : "---";
+                liNext.innerHTML = `<span>Next [${i + 1}]</span> <span style="text-align:right; max-width:70%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${nextText}</span>`;
+                feedList.appendChild(liNext);
+            }
+    
 if ('mediaSession' in navigator) {
                 navigator.mediaSession.playbackState = "playing";
                 navigator.mediaSession.metadata = new MediaMetadata({
