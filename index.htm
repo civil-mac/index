@@ -1441,47 +1441,45 @@ function prevTrack() {
     }
 }
 
-// 4. CLEAN SINGLE FUNCTION FOR THE UPDATED DASHBOARD FEED
 function updateStatus() {
-    // Keep counter updated
+    
     document.getElementById('info').innerText = `Track ${history.length || 1} of ${masterList.length}`;
 
     const feedList = document.getElementById('feed-list');
     if (feedList) {
         feedList.innerHTML = ""; 
 
-        // Determine Last Played Text
         let prevText = "---";
         if (history.length > 1) {
             const prevId = history[history.length - 2];
             prevText = masterTrackMap[prevId] || `Track ID: ${prevId}`;
         }
 
-        // Determine Now Playing Text
         const currentId = history[history.length - 1] || pool[0];
         const currentText = masterTrackMap[currentId] || `Track ID: ${currentId}`;
 
-        // Row 1: Last Played Layout
         const liPrev = document.createElement('li');
         liPrev.className = 'feed-item';
-        liPrev.innerHTML = `<span> briefs ⏮ Last Played</span> <span style="text-align:right; max-width:70%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${prevText}</span>`;
+        liPrev.innerHTML = `<span>⏮ Last Played</span> <span style="text-align:right; max-width:70%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${prevText}</span>`;
         feedList.appendChild(liPrev);
 
-        // Row 2: Now Playing Active Highlight Layout
         const liCurrent = document.createElement('li');
         liCurrent.className = 'feed-item active';
         liCurrent.innerHTML = `<span>▶ Now Playing</span> <span style="text-align:right; max-width:70%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${currentText}</span>`;
         feedList.appendChild(liCurrent);
 
-        // Rows 3-5: Future Queue Structural Clean Placeholders
         for (let i = 0; i < 3; i++) {
             const liNext = document.createElement('li');
             liNext.className = 'feed-item';
-            liNext.innerHTML = `<span>⏭ Track [${i + 1}]</span> <span>---</span>`;
+            
+            const nextId = pool[i];
+
+            const nextText = nextId ? (masterTrackMap[nextId] || `Track ID: ${nextId}`) : "---";
+
+            liNext.innerHTML = `<span>⏭ Track [${i + 1}]</span> <span style="text-align:right; max-width:70%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${nextText}</span>`;
             feedList.appendChild(liNext);
         }
 
-        // SYNC OVER THE METADATA TO ANDROID OS ENGINE & CAR AUDIO
         if ('mediaSession' in navigator && currentId) {
             navigator.mediaSession.metadata = new MediaMetadata({
                 title: currentText,
