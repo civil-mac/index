@@ -104,6 +104,53 @@
         font-size: 0.9rem; }
     
     .hidden { display: none !important; }
+
+    #feed-container {
+        margin-top: 25px;
+        width: 100%;
+        max-width: 500px;
+        background: rgba(15, 23, 42, 0.6);
+        border: 1px solid #1e293b;
+        border-radius: 8px;
+        padding: 15px;
+        text-align: left;
+    }
+
+    #feed-container h3 {
+        font-size: 0.8rem;
+        color: #6366f1;
+        text-transform: uppercase;
+        margin: 0 0 12px 0;
+        letter-spacing: 0.1em;
+    }
+
+    #feed-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        font-family: 'Courier New', monospace;
+        font-size: 0.85rem;
+    }
+
+    .feed-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 6px 8px;
+        border-bottom: 1px solid rgba(30, 41, 59, 0.5);
+        color: #64748b;
+    }
+
+    .feed-item:last-child {
+        border-bottom: none;
+    }
+
+    .feed-item.active {
+        color: #fff;
+        background: rgba(99, 102, 241, 0.15);
+        border-left: 3px solid #6366f1;
+        padding-left: 5px;
+        font-weight: bold;
+    }
     </style>
 </head>
 <body>
@@ -133,6 +180,11 @@
 
     <div id="info">Initializing data...</div>
 </div>
+
+<div id="feed-container">
+        <h3>Live Activity Feed</h3>
+        <ul id="feed-list"></ul>
+    </div>
 
 <script>
 const masterList = ["FQl0Tig00Ws","elSC1WB15Y0","soyulF20xW0","Oxoge37o5Ew","LYRh6sFSq1k","5eUZPAlPnY0","YG_0By8AU9g","i-oCtG5E9Ik","_8UzQhka2wo","qsKs7Qi8Eyk","lU4TmmC1UM0","d9JCGuhdw88","8mSG3smf8Ng","7j6SeP8HpKo","JCN8PiRcqqM","ZdSXclPaMT8","_jJO-vsPUR4","H-6ErgjpiFQ","b-mOx1cZB3Q","IHBJcvuJnGw","7NU4dpLiJuw","ubnrcdnFx8U","qBWeJaTNjEI","eMQfNXcbWgQ","NWHNnaXXQWk","kQ-STpM1UCE","wd_YQ-rymRU","vdZ3c2MghKM","0O4h5T0bLgg","wKSHCIRNkWo","PEgemk50kwM","Ul7BYwgVZw0","yhpFHZzQtQ0","FyAABpkJoOY","u7THyrFytXA","iT9Sd5feJ2w","XMu6tsglJxM","IyL9a38q2_4","rlFBXpwROTk","DtUq64VpRvs","BJSL6Y0oxYY","rzdvBgvPmFU","a1fjCiy8a7M","ONtUvlnqRg0","2LWJWjKux0s","1goonl_rxlU","OuUeXaUbbxc","_o_xm8-cxhI","Kr1KZr-LI18","cWBssuvYyNc","6Mk30CLIVy8","CCmO65nIAPo","NOO2IuxlJAk","TtUqEkHF0RM","xymQJULqAGQ","dKVnedRt5k4","LNIwwIvCE-0","r6cAApkDX34","gqWSFX-JU80","8u3FwA4WU_I","g6Mz0puiVDg","S8HG2tdkWDc","iK1JRIXLSJM","DHg8_SfE8bQ","NGB1xx5AgzM","UHR-FOvQlKc","LLsh7P_LCEU","JfyKSUJ-Bfw","Rpng9gVt1Ww","OqIfNBiucDU","3C9X7z4w6iM","GcxKME9VsTE","lWh3TdgVzqg","eHQtaGjbgqg","qUy2zZ5WL6k","9EoADF2wTOU","5SIwIdw6kvk","WhYXtkqbipc","1ReYgZ3b3u8","eGxK-6b116E","qqEqVPtax-g","JdmnvHwiPQs","bIioaVAU3Xo","bJc_z408pfg","6hrVYRVVg4Y","liGynkA3QvU","nltVSpq2H8Q","FnMGl40fDUg","cVWm-j4qasY","cTFwSG3zzkA","WQZt7wc301k","Utl6tnZ9Yps","JBa1Bx3GWDY","C77RpBtO8CE","BAXrsWYw2SI","6IXZGtCCIMs","1wTEDY6TTKI","fT5hp_H4_qM","coMInPjP_7o","Xf7uP-MDtas","RTUx5ev6huk","J4OHn9vspzI","EDnDuJgfJ1Q","x5nU6fmm9ek","pzIL1bnjUaI","Ugys-PmOW7A","On-RWeu0hQI","6x-0vuLM_Ng","sD2NywmqSJ4","NHETWjo_ItE","JrISt6V_z3s","FDcy_z8xZmE","835zNUmN_60","uGAZXVybpG4","b5nAkOdnz4k","DIBJzpf-Abg","-yBZABUDoUE","H9SOYFK6u8M","lmtxZleD82g","iVANF4eBM9U","Sslhu9q5MUk","pMCeKESJTo0","G59tNi1R8fQ","YxVRW1ZFZJs","fBJKCzmLx3w","g6vs5aqiiwQ","ldl0tn0_i_4","wO7GxBZmTvU","GgBpA7qfELI","qIPgryJOahY","gMwXTE9VXKY","-zJtUKeV5As","fqkl8PCca74","PQXLIPOfjnA","zSSvwPBuiBM","-amdenk-FBE","g8Tfday68tc","Xay0YKF0NIU","eifdYc5UQpI","gCd_sxDaEIE","5mNiGHUe53s","hO-Lqtgqhu4","HwP0u51lYqs","OSmpkBsr_vc","pi7Su9Jgjj4","35eWU4CZBes","O59IUGLZc1E","ZP1AzISAtbE","vgEX_G_JL3A","YRp4M8MENOI","e36UGrOcjoY","j6BGKMvgFJE","fbBsEwqHlHM","iXTAdcXfX8M","csfB2SyMraE","ejSEzBpmrhs","Rpwl7FhPxx8","tloyZdlOGbg","M0McJIKbI2M","waK3wUEWRGY","aahULWUc_PM","bMKDY8kjrUQ","1JB4VDMil0M","UECHRZKdUMM","_Crmp4nXeE8","E5SAwTGtSGk","hDy85Kb46Sg","Gqc8re2nOGw","5WzRGZUfD3Y","vGBDJZO8D-0","9TwUIlyemDY","rasW9HYDeOs","FrppT89u46o","-KrvBiRtshA","zQb80bkgmik","MvAq9N-fNsg","O_Xfb6mMu2s","fzEGqrL2b_4","J0dtDlBAfF0","Tm4fVr8353M","fWfA9Gv_p_M","2ZUrh_25CGE","gBX0hlaiIJ0","IrsdbJed480","0JCygnqc4So","NW1VGwmfMiM","7yY2PMnPEaM","ETx1xRei90I","1_D3cKgyM4k","XRknI4PoLpw","IzS5S3KiYkE","JBsbXPkieH0","rr6yei90NtM","yq805deG1EI","lpbe1qskKMU","wn3FH1fWKbU","DHm2YktFbkQ","cexyaI25UTk","b2-dANEcV2w","ipCxsY6IU8s","FypGqwhZq5s","smwKMZSP6Ts","SCtMVwFNqHM","8OXpXDrcIVs","Xel082Ss7L8","IgvEWWsPI0Y","OUMoNZV3ZCE","obkmLWDcn1g","hr30IWcF6As","gh6JO1H0IXY","iuUIZPhUuFU","nGFsHecS4vQ","KAIIBQ8OlWI","hQ8ASUiHOZU","52WmiUyKthU","eP9o4NkGkYU","W8QfVLH8QZQ","OeYYhCZN3cU","vWPnNl3sYcY","VfCe4wH0MEg","S8jy16bSk9w","qcZpllvc6_g","ZBaEHakNr-c","SXl8ekICzvc","5xs7u6udXXA","fh0zkO1JUv4","Ar1C4_taP1s","fb7PYQsQP-M","qL57yqzWLqM","EhdIMzCxNc4","E1nUMqoTcOo","9G5vdUd_RxM","guMVv6sRRP4","i-Psz-IKQlw","ZrfmnDdc4Hk","k5AtEIob6iQ","yRGytO2YPBw","r2iuRMh8Ufc","3qVaZ0IKEvQ","t8YSmJ6IXxw","k8M2L29TsSw","KPeIxyGTtFQ","_OFngWLvBkE","hqBEzKpuwzQ","0_w_P5Jkklk","KOtUlkSEby8","H7LV7aEhO_0","xklgkwx-Rvo","DkSiu7ikzHY","9JVOyog68VM","Uq7QDyDhfx0","dagcXALx0E0","NXYocXBV0y8","N0dpQbe53cc","MNHq0to-1eI","xCpXXQhtTeQ","zzjTIK7W_bQ","ThDr8GVZZVs","7zoIWxKg4zM","V2n2BQjsDvs","NjgVIxilIOg","D_ZlA01Oa-E","G966oGPDYMA","Cosc5dIoaOU","BRv7bJ9qlg4","o4pjXWTwubA","8jrORsdWtfM","G6k0Jblsl5E","4f_FIloI96E","qcgnFZZoH6k","MKQp0m6TKKc","9Rnw8FSwqqA","PYSK_2CBjvw","l59FJ24xjrU","SCpAX-MDR00","HqQ-dWRMug8","xcvC4_okvXw","xJNdhOvyu94","sETMnXCPlOg","KbyUD0QtG0U","Qd470krSusw","SSYXMk0m-5w","fUK_gfVlYB0","nd0yBSmTMcU","llQBPUbpjQ0","GOGCpCjOJkA","zm-jB3LNA5A","DiXHF_bKyHI","1fJcCS2sR2A","-rx6sn6ioOo","I-TSfkDxKKc","GL0d_QZimSw","dGrICUaLgFA","cjvsI216hMg","d7P6sOu8P7s","YxbPTQFumwQ","ck_dGnmJZRo","5oTkJgO99Q8","3t7ZkZMcTJc","SmVzgTKmAng","beX5riMTyDo","OHhMfFagAyA","yjSTWOXCwSM","TC9jQZJlh2c","cBzDoG1-Y58","Y5zPyIjyDb8","BvVNpHLblEQ","HxBg3-AOFEQ","2AOYvhsnBNc","6uQCUFJ2xyU","db8NzaCKCbo","Ha33aeQRAPE","TqbF4sgd7fQ","9O_vj6EPSAk","TeGp4NidXkU","bT4N24EE4LA","onPco45nO4k","lW8JyZWML24","s8BnIZqciWk","QLrAmY_JF9Y","KHvQBlG3A30","gYVXYoQ4o9o","p3rFPcna3mc","3zQCNOPSn1M","8yCgWPpZ1o8","zP3ngyvTyOM","SxswZjAiH0E","loZzsglUNT0","-bSiN-nE0ls","oKQukrhbPD4","MUsWvDZKLX0","QVy7bwm2wnk","abHdkgOY2FA","Zj05OJpBtLQ","e5SuL-1M3L8","jI5OYPF07fs","naIizo_QAeY","yJiPHa5jdpA","uBDGkJj6X_w","B0fSGNkyhPc","SMhINkP1HHU","hc9ytLaAqtM","K1VLeDWhM5k","ZZqxAFviZ2M","qZ6twiIoowY","k_xb-3AKD2U","YSILgaQEc44","5FlJkACca04","Bam2pFPpH3g","OoxPjRKReVc","tERpgvq7uIw","F9J1JTSCOco","ugx7fWVrVj0","iGBQBmjmNKs","NoKbolDGaHk","bNAQqLbp2Xc","FC3KgNNH54k","rFYdoTCT11k","7s7h0_BbLw4","6u-FiqQs30M","ZnFLFUaW6-Q","8hsgq3gtdJA","r81SuTXzfko","O5Rn8uRfwwg","n_guaVRyFPE","H9vyUd-p1aM","N_5uYS6BDJA","VHlv_xVaxAw","Hbwy4fU44vM","wxJg9ibybPo","f0r1rSQYCX4","nZ_F_tVGPZE","zQpHcchHQ5Q","WJ8bBwyKvuM","pfd_0di3QUI","GV5hRxp4Dpw","Yfiqsj61XIY","b2b0IQ1RKFM","7GdXUbkNXKg","Wr_gLGRr9c8","Zqwzq6AqmUk","LydjPO2wpPU","d6p-bdD4jeI","JbQ8wAixI8o","T7G6mWJ5rcA","2iQV1aeRRy4","l3sjPHIJO44","9t49VwTLVn4","UAzScHfzaOA","uCDD2cctC2w","WsFW1hqAFqY","F4hXbMAuSqg","ar5ywLx2gAc","KWAhhK3LZ-w","uHd12Zn_bYg","2XUem-6uVNc","VPNYub59Zmo","PRAs1iFVqq8","niy2w43uCDk","m2cH9lxXzbw","4AgdJBQ7wQw","yodXk-OltEY","ClYQW07yNFQ","tqIQvGS4SV0","eKlUU-7RYqA","UHX0hRFgNNk","tAzkCKeI-_g","B1xGxaDYBrI","A6Q51MQGreQ","080C_lrgynA","ok81STWVhV0","HN8CreG95G0","SrLROryut9Q","94KGUtAKdb0","7ovaKz-1FWQ","5kDii9cNatg","P6-JzVEOuOo","n77GYzU6ZJc","YC6sZU2JB4I","-rfLhLeQXqQ","re2k8QKg0Bw","8BDNn_1adpk","bfeMmOo2K_s","HMUisNpjWvA","cXcHi0Gh1QM","PPDYCs0u6Gs","_Z-j4a-OmsY","lkZL6_zAwTo","iAeu7I8VELU","bM1vD0ZIB28","LFYehHF9OzQ","8L_1rGBLAz4","L5i3QMdMGzc","VSkns14eQU8","pdkaXhQ3hh8","gm2CpcFodBU","DX5vYRPQLvw","IHI-PSIpVms","cfYivfwdaZ0","8nVIOzAsS34","YqRGF0oTcHw","dBBQz7GBl1w","xqXW1iwXuBM","yRi2jmYszdE","xpVhwtr2eto","XgjHjNz4Tp8","A4jNksIONCY","sXc5tsqHC64","xKVEqurNKHg","8rwuwwgntKs","MTnNl786wM4","TuV5Z09eoqc","8AkdREJRqU8","7158zYgj1XE","Sc5O2IVAd_g","zYfwCJ-MO2I","qJXP2FxAo0o","cmyFIagxkfY","kTah_0o4q8E","PpjMipLQbcE","Nj3bu0d2BX4","pyqvG1ikILA","9OPztERLzfE","p_UKFysLHeo","c_fJXJaVgZI","3KyKnepvOnw","N1Kx8HJCRIg","8__FcUCsPlU","-6y6iU7ALgk","arqirBm3rQ0","TCWlVgmMRE0","cF6xh7KWn4o","zdmEXnizU0g","-B3L-SK-YCo","nZpnLSSoCaE","AGClCly3IKA","NaUOMfEzQCE","dyjoDoaxchk","ib8isRApZFU","9MB7b0C72Y4","10onzGn6q9M","GZNMHoWbIi4","7dJoPlVWLgE","-uJ54uu2mEQ","kGLo8ocUdSY","8B7IaXQFcL4","OxJ59voyZT4","hH_7UvecP_M","TZrcpr4VdK8","XOn6YP6_59A","e-wKNcgNPao","iuvLgU0t8So","WMK2Zj3-yk8","-OISlwYikeg","BXtupXIJQDY","B2Uwx7a_C3k","tGzbA3QnUlw","NWd5wzfWlcs","aVuYqHrcu6U","as-3CFSi4s4","VsrcDw3nCl8","4b25h0_yySk","mZxi6fFM8V0","zvGFQ0EaRTM","2JeuVqfpv3Y","3N05xE0ks6w","MfxuwcD01Fk","G0AfVgBRUEs","LHJntzIYon0","qytDQOgkHjA","Lp5tXxwmUTQ","Bx6sJw9NKsU","X1IrJiOs0p8","ukPCfO3wIzU","vIcp4oix3SM","MM_9pkpcMYc","05rWeyCDgEw","cpuBTso2VLY","FWAXgePUkts","07M90sThcxY","FWFCOpKMfX4","_O7m_OPflLQ","HyEzZ3Mz2Ng","b5e7xnfy8DQ","X1a12Df8Wgk","oDG3paGQESs","6S4vzDGykNA","AEVzdBdiIa4","25o_S0lJXP8","Jyghc4sA4bQ","mAKQAOCAKfA","x73d20VgNP4","Ca-YdudksKE","o6B4T14RxY0","-beJ6sttg3k","3bas0tfTV8c","hkMGuq1rD_E","Th1eADyPCTs","3oZma2tPNn8","x_FckxiItk8","BRJoIX67DIs","lheOj_lTe2A","MszFLID81c8","VRSlxeZxzGM","-qGdjYSMIR4","jfHubSVHEZ0","o7aK0L6kupg","ERN-G-0awEs","6-zKy1r16Mw","TMEMu7EOzks","uM73OIuL04k","5lNl-AQJP3U","WtsgX0Odz5w","Il2xqacxO7k","RjH9zb009-E","u6NdERR2pV0","819gPFlsRMA","oejWl4JStcE","dDW4X-XpJ2s","_rWjLTke6mI","hTMqnRYqEuo","oo95_2eoxTc","OYoLqdARCnM","qU3jzDL6GzQ","ZHsXzzk9lLw","4JR2coB7cOg","O585zcH6rAs","5o77nJ56CI8","y1pgrf0Eq10","1CggaXmDF7E","627H7PKUgBg","JYTLrKsbsGk","latkT1W4jLg","GSEDodJGp5w","5lT_EcVzG1k","Kdh6M-Gc5Z8","446F3EDogu8","lcjaFuD3Rbg","SZcVzu7X4rQ","kgEpRLuXI-k","hFg50WTYpFY","OG_o9J-fSmk","gHX3eazrM_I","_rvTo9zE0To","gfdU5MM8_yk","b8lJny8-ULA","uAW5g-Fx6mU","xycj-tilxdU","4S34r5j3ac8","Nsh08h2MsFc","8GnYehU41Wg","109gacidhQ4","XZHY2ePGP28","rhx3HR8APWo","ruRCm0KFEQI","-0PyXVWZB40","4AfT-OghTiw","J3hakemVZ58","LeHfrQ9ozDM","mBAt7BrYMLc","2j2x70q5mmA","jdibynQuBq4","CDwbq0Lf-u8","TM0LYXTyP3c","NTioq8d5tJA","bIAmqSj1wnk","f0BIZtHgQQI","kHoueB6fT4g","7lnmmSTtIX0","a2jDNc0kOPQ","yabaFZlavL8","EENNFtx9J0M","yXhyZ3vW7fM","a_YQQh5Br9c","eBYdNgQAojQ","edlqlla-ts0","kwv4-8NWVYw","mSfYHYredXU","T9nncWyZPU4","OKquoZ0Ki0s","Viw5n44EZ8p","5W8DacULPQ8","xnqtjlngP64","LUlCsMPAvhU","9FIyLCRR-io","SQkxzqo0tc4","3U8nr_ZIOGk","nvefVAbXvG0","9FNZEu0nw0k","1OIZDhrboh0","RR7xVDIO0CM","5EGcJ9OGrUg","xDEOHKbfhU8","-yVUraAmst4","o7oJWYtWFoY","I9_emJefTgw","7QYiUCFKGHA","IfdGQGL5VYk","ibwacDudr-o","J3HIR99JQgU","ZcjswxccaM8","RiaLl22Ti2Y","QQf0Qiep4y0","AMuleJeOUYQ","FCCltqu28hM","Zt_2b5EihrU","E-btVuHcO2A","xJUn8j-Glks","XWFYo5WW6b0","FNGa5HSDfeU","bXeFqDSXEmQ","HOGwGjHdqbk","bE94gK812KI","lskHD0SEzsw","UmJyLetzjyg","cht7DULrxDU","NkUD7hxXQQk","VLckWK1dG5M","tVkr6MwQR20","GgBOtLdDD48","XgYfZAiLzU0","6iyAXM9VVGA","23PR6XWRQsY","9sCfXg1Z4Dc","wCtGeNHFKoc","OKi5dbU9FgI","Ek7Amy50NNU","NLFR0OIGbho","4sP1Fhnc618","HCdOHqYFDP8","SeF90pGDyhA","8EGGqRZfbB4","sLiT02Ou4EU","Qy3KF-5M4xs","584Z0hWJ5Pk","zwW2YxLmI0Q","j_ikepKKQHo","LDTs4vsLi84","WoMSRUS7wGA","1sB5lsAymxM","dTpfeGmNGtY","uKlT8sfyNN0","Scs8f54EZ8g","goFCnVuyYO0","Ut96UZabWgk","KlLe3cwk8JU","4YbM0dbw7c8","H50ZxS5jzpU","bHPogjsfpEk","amszUEuLYfg","EE-ezUXnbLQ","f0zxNkyS-YY","20bfuUL9r9g","cSl3Oj5mtC8","otqA07ynk-Q","Hgpxqklx54c","JS4a5onOzq8","hdS7i11lqBY","1RSmv_fQ824","hwaKO_ryn-c","bwew6QHNixo","tbn3_h1YEsU","BtTEf9n6hkY","X0UyfU153N0","u4vgU-lWgCo","IWdyl-_eVMI","0e2d97KQgkA","-dHuQemDx3I","OyHGYVj16_E","ZxvJuPRsPGE","K4uCZomdReA","a9Jaz8PED8A","qeD6GVF-vtk","q1gUcmN6Xd0","9u_I03HyIvk","uVo1Et40z2A","MF8lbGq5Txo","TqYK1d1Goas","VYVEcGWn-CQ","LU4-LKMotpU","AS9mneocVlg","kwEYUDIjUR0","TLVLqp0RrIc","tLZ1QgVEYu0","BG0GQBljqbc","fDHydhtLEw0","WvjRQs6doUM","tuYDFNsHrOk","Tg1Trv_ZpCg","EuspLltJPNI","54HdXEtvoDs","OMZcJhJRS2I","VKWQibZR_nU","AHHRIjCklec","18cQQpYkPx0","xv0BSUIuJO8","Ga56Dz5fhDs","1JTICAy4Ezw","cyJ96SJdWYk","YeU5EtcYm20","HPwVRI7WahQ","u8Fb3-n4EQI","_uhWK0JcyHo","jyEeIkrR6ms","yaAMuSaFmXk","Mb6lFv-Ug58","m1DUY2WGgf8","DNVJ30fNFo8","zB9EW3RSQD4","cX82I7XMNo8","iUP4InZpV-c","hJR_cfnaGRM","qE9Rjj8_XAQ","br2Pv2dyUAs","Lfn0OCfYJ3A","fSbNuHR8BPs","vfC3VtJ3Q2g","2aLdVY9pKvQ","BamzoNs8h_4","H1OgauckcYM","3Kf5jpiTTiI","5ormxaVpcsU","fOZmkZzR73Y","8FLMTX7mNmc","GDjFiqsQX9E","K6F-BCwED0w","LPXSV8k8FSo","YAv79rSpx0c","-_KDOy5LF8c","eXnTLtm2hN4","5HbofI_grNw","7tYlrQpDv9g","O5eXB10pZ2Y","z6CW7ZRGXs4","F6jvwNpmHsY","zNg1tAJ-Uvs","Qw4bZ4megH8","LxT-ETyhd9M","RrAo50nIvBw","G-o2bASCGDs","O24gJd1ys9M","DoRiun7NkTY","HiPSvjlMueI","Ry3VDqTk1HU","oXLa5vS3paE","5wfxuHiNBCk","GaD2XOptvUo","iZZu0picv7Y","dF1LIaHekm4","gB3ZPpkjVm8","F_aqFOuwb1k","_KzVIvVoFoI","FjiuJk8QQuI","qLzLQtWzH_g","NsnrNAvcYE4","d2wJ_3HnSUE","h8Jx7Nd7li8","lpX6CjRE5M8","rn2yLNA2tKQ","PuckRQz6YUg","O7UE5MO2MOA","Rr_tG6GZi3k","r4jJN85B86k","lcgwHWkFmkk","MMd04XF9n6w","H7G4x6cc5sc","jiBkByOSQNs","jDcrwKG7kbo","JzwARufk3Sw","3rq1mdivXN0","TEW74DbRFa0","AMJnZgqzUdg","newFJMjyYJg","vB6HrjgvNHo","kekUcQclYW8","iAdiDhZDSR4","fqrlmeaIWzw","dWVxKGmJ_vg","Ohq-viXs8Iw","LI_Z9Bu6dMU","07C8ffMDE_0","KZ5-LhpeKLs","gZkIKyRx2Ts","fnDyQipnoHI","YNsN4tJil84","NmM0XV1w7bc","5KF28d4XXAw","YImLt1qnoT0","WxMa6RcY0RI","-wU0fqs5ibg","sme3-1Gtt_0","Oxa4XpkpgSk","YabZfwXoJBw","1DVgmgtyi-4","-dlNmVIqjYU","VePLr0ndOg4","S1Yb25QpfWo","aDGmIA6eEhk","G0AMOGIlazU","H_8Jh4SgT6c","66KgRaOrgdI","UfbOH-Gt1Vo","JABtN1DU4rM","6yyzkU_D37A","5lAlwyNOdoU","fV0dHcnwQoc","-dsvkSc3gXw","GAGY1ssJpVw","0Cp9hLQvo90","6XszCnjDaxk","h_52RhdAGwY","PyR9vRGqPfI","xETurtpk8fA","HecN1FkFja4","VFg2D1Xf8Z8","ZAErs_krANA","lRplqYWOJJc","_-ScH2LB-ew","2ojKG0tVat4","7cPei4qGqJI","uncWBMtJgJs","MCxbFWLcycs","cEOEpH9AIWQ","NwbDzWxGaXo","kBIJeCkaHlk","9vMekoGGoW8","hVNf6FhWrao","F-l88LqyBdA","cCgkCBZ58N8","A_Wtji6hXVE","8-no0wq5UNs","93WvXXF7XKM","efhoVEzTFuE","LM3h7v_aXWI","I5w8pkQZ86w","E2R6nXbr-3s","7GiNqUbU300","mVWesnopZuM","fhDJlZbcj2A","Gq_lJM1cKNQ","F0M7mh7Nvu4","I1x217rRDek","RMwekbKS3kU","skdZSrsXmBs","LrIWyNtSYc8","iLpL1GXFigo","s1AxsPpFw5Q","Xdm_LAoQoQI","_FMfjbWIUY8","RYMz8z_B6do","4428P4_L7Ts","MDWRn_zphbA","RrT3YyEYYNk","P_d1yhhX3z0","a6JEMwM4EKM","z3t0H0m7B4c","tdIfJcUyEaA","gGSO88MGMFI","r0KIdha3Q0g","tg0RFKqRhhg","dME9aF8BEds","ve5Drqc6Qk8","V5THZhEehbE","ukLlJTzevqI","AGZ4WIw-5Mk","ls6H_5lD4nk","eXv_BA_VonY","HTj2-86kbJ8","sTPtCHcwAuI","Acj_QiuG_cM","Gu151ua84fU","_NsPUqrwO_I","fJJtGaygwUY","WFuC1OIo_v8","n9Pgbd8iQhQ","gYGYRJMqZl4","vPqnoW9OHKM","02LqlysPl5M","WbIXjc_Jqvs","MzyOeOi-_to","PMRVrlSvEeU","EdBdfarbozQ","40yj1PIoeSo","6JBlPdFT6XI","nYevCw_eYRo","vBuVqvDxVpI","pBPe70NAoyY","ciFmnCJ6Fek","0UJKfN3Hig0","iJ6CmZXF8Vo","BKrdJR_RwYE","-IN_GgKch5E","lLy1lthphKw","rey-HotqOm8","aS4r_uwKqA0","6U5pri39cGI","llnyrMBZSeA","a-5CiZ2cxiE","a4ntxw8lI7I","I7KnyYyG5IM","ciEtryuEmHw","mYQ5NwpUnT0","Q49SHwRmBzc","gzU-SyZRVgE","uSWkx2SUtT8","a2lnI215Kno","XeKVX214hxA","Kaq3FL4HdTI","66eMQEzeS20","k40RjPg1DYs","BmZjYEqGIAg","3S5jm3LRs7U","U59wO5dchxg","3D5lgr7hcTk","IEf1vgwicgE","g-kDc0kbXOc","VOxdlrky8AE","QzAYtBwxcTg","m5nJtLJyhVk","TFRcCn8lrBg","1iVEz46X3Vk","zeNRmJL-jP4","wuye6ytbPUQ","1r9aHrcCQkI","za6wBBpWLR8","zOQVI9BYS68","nzYmQ66CcSM","Hs-a19zMBc4","L_vevbB9sr8","mIZyr9pkHRE","6vtsGSNvQzk","fpUp7ADjBZ4","EmjbickehOg","7udkWnLhEfc","ftguCHW1G0k","lzFYuR7KhgE","3YejPovjGH4","IvEQBdYKkP4","w5T6jj4-f3s","-RqNtsdP9R4","J5LOmf_1VAI","4TataJfVkl0","gcMxNxS9nwg","JbY4uR1Gztc","3TkRVu-S1g4","SYg1uxxVmwI","i96seXjg7fw","_0eJl7jX990","3YjaaFTIph8","4Rg_B37U-sw","3yZ1VvK9FPU","StuCC0rFnBc","Q8dpkU7PFcs","RwJFC44CRfk","A6AIpgZT5Xg","0VxaHHNAGVI","Spa8WY959p8","0QZDCB7vmSw","siJtsEzVORI","IO0CN4YLt2Q","c5D3jCNSrYY","nloluo_HBcM","VDKQiKLB1aY","77nFAtGhqKc","dA3QQIQO5CM","PGzj6Ve2d98","ZZaKkB8Hq6M","YbTRbq_depg","TRykR4yVwaU","A0F2X8y5RAA","WdjBZl3cXp0","Puyk1f2d54o","R73-q_u5vqM","vwHanNK0Yh0","wpxeAeW6uv4","rqBYc1ENRzM","cxufAxhSiKk","pm-rY4ZjFDg","w-biAJagtfA","PsQCCKtEXhk","9rWr-Tdp5dE","uYdj8Np-zPU","lUCyaPVkxmg","1jMqAL5gHmY","MX0xFhPnARI","nKjNS6mIxFs","3G3wV6vYS2g","Wbqj4BYVTNs","Su5nAKvJras","ZvB12vI5QZI","cnj21VdgwKE","3vAXPtsBeiA","aMsiGM1LnUc","InMK1oy4JUQ","iRcBSQL44Rk","VAf-2v44ypQ","FyoSZq2B-m8","ZuFvKJAnx6M","mPZg094El00","Z0x9_CIoJQs","zw0nQexYIVw","LDIEMMfwMyE","JmqFSxATIUo","R7LOah7IZq4","CBZkpsBEEWQ","jZUsRCeEwus","5GTj1-9YBU0","DLzhXNwY-BI","zurd0yrf0E4","XfCxhLY0fhc","j6qUaG9O0ek","LkEaZdD4xFQ","-nDuv1sSlUY","BwJjqaAtlWo","WeX753BsVyw","T388j1xgZBU","252LbKstUXo","ta187rHFm4E","xYkSBLot4B0","4nYYPZHb4pw","Lthchak9WLQ","IT6b4CzeW7I","cnN0z6aLk_8","pNiQzI3mLOg","cFkixDrXgsQ","jhgfayh3Qg8","yUMfygitnYw","XvYGu132zLU","NIPi8KHOirU","NBVz_Zg_2is","_q4x7VGZL2A","vzuu5twGt5Q","T6geIkxaQXg","crOuRnPNceE","wZNA7mZzWpQ","wxW8WK35Pig","MaSJJrekWWk","WKHj-VozyrA","v-nnGmU8i5s","Tiy74OmXpzw","ZWD87yc30oA","rjEowoiMUWY","J3y4U7ZKXLI","PQoNxMVzXUI","X95pWDvB8_U","tocdzZ-_Hl4","u2P5LAbPMYw","5OLhfsKdtGE","Oh16bPpky-c","o_CuJVcAwig","HBKN3QVaU-4","kAspFlGPFxw","46BR6wjUHcE","CfezI_Z5BO0","eVYDqvR9mQw","ixUiD2y-mcU","v8L_6ObGFcE","_RgQYQ2F2jI","B05rLmj4Oo4","E6tz94Fx8GU","sDuraDNSHbY","3IlNL-DkFsk","c5BBWlTGPU0","Je30UjVtDhI","eaxCH8sUDOs","Dy2x6gmaOpo","mnHDIbk8iSo","vTBneNdofpE","W58wdOSr5zQ","SdCmoJjwb2M","JlagD9p6W50","EcHCz6ZwdDo","1zjrPjyvGzw","B-zEkoKtwoU","pyFFqLrK85o","zD0dLfl6dU8","MCvPN1d3rl8","GYZoYjm3jsw","YlihsJn-pxY","p60pFHPPHK4","GEx_arts0Ig","PPSu3PECLmY","3VxlgZOjjEA","2WLEHGnxq-8","mHX_eHblMCE","iViGuhiY76c","DZyR55egUyw","lB5y2WL1H9A","6L3IS1B9rTI","tAs9EqjxUzM","sjP9hJqxCUI","jIjRg34RueY","Gu1GA6LUDfg","uXxWB1pcUlE","_dYZw_Epvtc","x23-xY0Cx0Q","fsD4--ShqPg","V_WDC3-jbP0","qsdONo8uiVo","V_DdGIkXmyo","LBQTXIfE0GY","otEvVcUcHJk","5dP_SACIaeM","Rrvf3JEQp9k","QqGdsggiBuI","szXFaUyorGw","jq0HDIXv2XY","t7TtEbNn5hc","NyWzKowHT48","ki74SR8QZLE","lWBZN2bU3uE","qleqRgvmJaU","5KOQuJZX-TQ","YF8RVe9Ae_Q","APZ28krXO7M","juCgrPueIcI","oimy2r3O6M0","Dl7c5HJlGwI","PXVtwaHFRDU","P6JdKoqcC0o","7yARJRN-zp8","5p2wtylBQVU","5yy7HUxfeqo","k6Zs2nYdLKk","SgVLlUtfvCw","8jbJctTx7uQ","sg9V1V6muB4","mGpF0N7eago","on7lYAOTBww","uVfD1R0nBE0","d03Uq0HX98U","Vuwh4M7JoAY","qDSDHpd8ld0","L3NbQY2b59M","ENRNnabVv_M","rn4mVQswfNg","SXX-YotJDVU"];
@@ -223,38 +275,65 @@ function onYouTubeIframeAPIReady() {
     }
 
 function updateStatus() {
+        // 1. Keep your existing counter status working
         document.getElementById('info').innerText = `Track ${history.length} of ${masterList.length}`;
 
-        if ('mediaSession' in navigator) {
-            const currentVideoId = history[history.length - 1];
+        // 2. BUILD THE 5-TRACK SLIDING WINDOW FEED
+        const feedList = document.getElementById('feed-list');
+        feedList.innerHTML = ""; // Clear out the layout to redraw
 
+        // Determine Previous Track
+        let prevText = "---";
+        if (history.length > 1) {
+            prevText = `ID: ${history[history.length - 2]}`;
+        }
+
+        // Determine Current Track
+        const currentId = history[history.length - 1];
+        const currentText = `ID: ${currentId}`;
+
+        // Gather Next 3 Tracks from the pool
+        const nextTracks = pool.slice(0, 3);
+
+        // Build Row 1: Previous Track
+        const liPrev = document.createElement('li');
+        liPrev.className = 'feed-item';
+        liPrev.innerHTML = `<span>⏮ PREV</span> <span>${prevText}</span>`;
+        feedList.appendChild(liPrev);
+
+        // Build Row 2: Now Playing (Active Highlight)
+        const liCurrent = document.createElement('li');
+        liCurrent.className = 'feed-item active';
+        liCurrent.innerHTML = `<span>▶ NOW</span> <span>${currentText}</span>`;
+        feedList.appendChild(liCurrent);
+
+        // Build Rows 3-5: Next Tracks up in the shuffle deck
+        for (let i = 0; i < 3; i++) {
+            const liNext = document.createElement('li');
+            liNext.className = 'feed-item';
+            
+            // If the pool runs low near the end of the playlist, use placeholders
+            const nextText = nextTracks[i] ? `ID: ${nextTracks[i]}` : "---";
+            liNext.innerHTML = `<span>⏭ NEXT [${i + 1}]</span> <span>${nextText}</span>`;
+            
+            feedList.appendChild(liNext);
+        }
+
+        // 3. SYNC WITH PIXEL 10 OS MEDIA CONTROLLER
+        if ('mediaSession' in navigator) {
             navigator.mediaSession.metadata = new MediaMetadata({
                 title: `Track ${history.length} of ${masterList.length}`,
                 artist: 'ARI AT EVERYTHING',
                 album: 'Custom Shuffler',
                 artwork: [
-                    { 
-                        src: `https://img.youtube.com/vi/${currentVideoId}/maxresdefault.jpg`, 
-                        sizes: '1280x720', 
-                        type: 'image/jpeg' 
-                    }
+                    { src: `https://img.youtube.com/vi/${currentId}/maxresdefault.jpg`, sizes: '1280x720', type: 'image/jpeg' }
                 ]
             });
 
-            navigator.mediaSession.setActionHandler('nexttrack', () => {
-                nextTrack();
-            });
-
-            navigator.mediaSession.setActionHandler('previoustrack', () => {
-                prevTrack();
-            });
-
-            navigator.mediaSession.setActionHandler('play', () => {
-                player.playVideo();
-            });
-            navigator.mediaSession.setActionHandler('pause', () => {
-                player.pauseVideo();
-            });
+            navigator.mediaSession.setActionHandler('nexttrack', () => { nextTrack(); });
+            navigator.mediaSession.setActionHandler('previoustrack', () => { prevTrack(); });
+            navigator.mediaSession.setActionHandler('play', () => { player.playVideo(); });
+            navigator.mediaSession.setActionHandler('pause', () => { player.pauseVideo(); });
         }
     }
 </script>
