@@ -1464,7 +1464,7 @@ function playCurrentTrack() {
             updateFeedUI();
         }
 
-    function onPlayerStateChange(event) {
+function onPlayerStateChange(event) {
             const silentAudio = document.getElementById('silent-audio-track');
 
             if (event.data == YT.PlayerState.PLAYING) {
@@ -1475,19 +1475,42 @@ function playCurrentTrack() {
                 if ('mediaSession' in navigator) {
                     navigator.mediaSession.playbackState = "playing";
                     
-                    if (typeof navigator.mediaSession.setPositionState === 'function') {
-                        try {
-                            navigator.mediaSession.setPositionState({
-                                duration: player.getDuration() || 180,
-                                playbackRate: 1.0,
-                                position: player.getCurrentTime() || 0
-                            });
-                        } catch (e) {
-                            console.log("Timeline sync skipped.");
-                        }
+                    try {
+                        navigator.mediaSession.setActionHandler('nexttrack', () => { 
+                            nextTrack(); 
+                        });
+                        navigator.mediaSession.setActionHandler('previoustrack', () => { 
+                            prevTrack(); 
+                        });
+                        navigator.mediaSession.setActionHandler('play', () => { 
+                            if (silentAudio) silentAudio.play().catch(() => {});
+                            if (player && typeof player.playVideo === 'function') player.playVideo(); 
+                            navigator.mediaSession.playbackState = "playing";
+                        });
+                        navigator.mediaSession.setActionHandler('pause', () => { 
+                            if (silentAudio) silentAudio.pause();
+                            if (player && typeof player.pauseVideo === 'function') player.pauseVideo(); 
+                            navigator.mediaSession.playbackState = "paused";
+                        });
+                    } catch (e) {
+                        console.log("Mobile media session configuration skipped.");
                     }
                 }
             }
+            
+            if (event.data == YT.PlayerState.PAUSED || event.data == YT.PlayerState.ENDED) {
+                if (silentAudio) {
+                    silentAudio.pause();
+                }
+                if ('mediaSession' in navigator && event.data == YT.PlayerState.PAUSED) {
+                    navigator.mediaSession.playbackState = "paused";
+                }
+            }
+
+            if (event.data == YT.PlayerState.ENDED) {
+                nextTrack();
+            }
+        }
             
             if (event.data == YT.PlayerState.PAUSED || event.data == YT.PlayerState.ENDED) {
                 if (silentAudio) {
