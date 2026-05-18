@@ -1515,14 +1515,12 @@ function onPlayerStateChange(event) {
         if ('mediaSession' in navigator) {
             navigator.mediaSession.playbackState = "playing";
         }
-    } else if (event.data == YT.PlayerState.PAUSED || event.data == YT.PlayerState.ENDED) {
+    } else if (event.data == YT.PlayerState.PAUSED) {
         if ('mediaSession' in navigator) {
             navigator.mediaSession.playbackState = "paused";
         }
-        
-        if (event.data == YT.PlayerState.ENDED) {
-            nextTrack();
-        }
+    } else if (event.data == YT.PlayerState.ENDED) {
+        nextTrack();
     }
 }
     
