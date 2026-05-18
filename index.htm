@@ -1453,24 +1453,32 @@ function playTrackAtCurrentIndex() {
         }
     
 function playCurrentTrack() {
-            const videoId = pool[currentIndex];
-            if (!videoId) return;
+    const videoId = pool[currentIndex];
+    if (!videoId) return;
 
-            if (currentTrackTitle) {
-                lastPlayedTitle = currentTrackTitle;
-            }
+    if (currentTrackTitle) {
+        lastPlayedTitle = currentTrackTitle;
+    }
+    
+    currentTrackTitle = masterTrackMap[videoId] || `Track ID: ${videoId}`;
+    document.getElementById('info').innerText = `Track ${currentIndex + 1} of ${pool.length}`;
 
-            currentTrackTitle = masterTrackMap[videoId] || `Track ID: ${videoId}`;
-            document.getElementById('info').innerText = `Track ${currentIndex + 1} of ${pool.length}`;
+    if (player && typeof player.loadVideoById === 'function') {
+        player.loadVideoById({ videoId: videoId });
+    } else {
+        console.log("Player not fully initialized yet.");
+    }
 
-            if (player && typeof player.loadVideoById === 'function') {
-                player.loadVideoById(videoId);
-            } else {
-                console.log("Player not fully initialized yet.");
-            }
-            
-            updateFeedUI();
-        }
+    updateFeedUI();
+
+    if ('mediaSession' in navigator) {
+        navigator.mediaSession.metadata = new MediaMetadata({
+            title: currentTrackTitle,
+            artist: "ARIatHOME",
+            album: "ARI AT EVERYTHING Custom Shuffler"
+        });
+    }
+}
 
         function onYouTubeIframeAPIReady() {
             shufflePool();
