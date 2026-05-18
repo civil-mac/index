@@ -222,8 +222,37 @@ function onYouTubeIframeAPIReady() {
         }
     }
 
-    function updateStatus() {
-        document.getElementById('info').innerText = `Track ${history.length || 1} of ${masterList.length}`;
+function updateStatus() {
+        document.getElementById('info').innerText = `Track ${history.length} of ${masterList.length}`;
+
+        // MEDIA SESSION API: This connects to your phone's hardware buttons
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.metadata = new MediaMetadata({
+                title: `Track ${history.length}`,
+                artist: 'ARI AT EVERYTHING',
+                album: 'Custom Shuffler',
+                artwork: [
+                    { src: 'https://img.youtube.com/vi/' + history[history.length-1] + '/maxresdefault.jpg', sizes: '1280x720', type: 'image/jpeg' }
+                ]
+            });
+
+            // These lines tell the phone what to do when you hit the buttons
+            navigator.mediaSession.setActionHandler('nexttrack', () => {
+                nextTrack();
+            });
+
+            navigator.mediaSession.setActionHandler('previoustrack', () => {
+                prevTrack();
+            });
+
+            navigator.mediaSession.setActionHandler('play', () => {
+                player.playVideo();
+            });
+
+            navigator.mediaSession.setActionHandler('pause', () => {
+                player.pauseVideo();
+            });
+        }
     }
 </script>
 </body>
