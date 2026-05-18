@@ -1510,23 +1510,39 @@ function updateStatus() {
             feedList.appendChild(liNext);
         }
 
-        if ('mediaSession' in navigator && currentId) {
-            navigator.mediaSession.metadata = new MediaMetadata({
-                title: currentText,
-                artist: 'ARI AT EVERYTHING',
-                album: 'Custom Shuffler',
-                artwork: [
-                    { src: `https://img.youtube.com/vi/${currentId}/maxresdefault.jpg`, sizes: '1280x720', type: 'image/jpeg' }
-                ]
-            });
+if ('mediaSession' in navigator) {
+    navigator.mediaSession.playbackState = "playing";
 
-            navigator.mediaSession.setActionHandler('nexttrack', () => { nextTrack(); });
-            navigator.mediaSession.setActionHandler('previoustrack', () => { prevTrack(); });
-            navigator.mediaSession.setActionHandler('play', () => { player.playVideo(); });
-            navigator.mediaSession.setActionHandler('pause', () => { player.pauseVideo(); });
-        }
-    }
+    navigator.mediaSession.metadata = new MediaMetadata({
+        title: currentTrackTitle,
+        artist: "Ari @Home",
+        album: "Stream Archive Shuffler",
+        artwork: [
+            { src: 'https://civil-mac.github.io/index/icon-512x512.png', sizes: '512x512', type: 'image/png' }
+        ]
+    });
 }
+
+        if ('mediaSession' in navigator) {
+    navigator.mediaSession.setActionHandler('pause', () => {
+        yourPauseFunction();
+        navigator.mediaSession.playbackState = "paused";
+    });
+
+    navigator.mediaSession.setActionHandler('play', () => {
+        yourPlayFunction(); 
+        navigator.mediaSession.playbackState = "playing";
+    });
+
+    navigator.mediaSession.setActionHandler('nexttrack', () => {
+        yourNextTrackFunction(); 
+    });
+
+    navigator.mediaSession.setActionHandler('previoustrack', () => {
+        yourPreviousTrackFunction(); 
+    });
+}
+        
 </script>
 </body>
 </html>
