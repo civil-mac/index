@@ -1393,7 +1393,6 @@ const masterTrackMap = {
         let player = null;
         let currentTrackTitle = "";
 
-        // 1. CHOOSE NEXT RANDOM TRACK VIA SHUFFLE
         function nextTrack() {
             if (pool.length === 0) return;
             currentIndex++;
@@ -1404,7 +1403,6 @@ const masterTrackMap = {
             playCurrentTrack();
         }
 
-        // 2. BACKTRACK LOGIC
         function prevTrack() {
             if (pool.length === 0) return;
             if (currentIndex > 0) {
@@ -1412,8 +1410,7 @@ const masterTrackMap = {
                 playCurrentTrack();
             }
         }
-
-        // 3. INITIAL SHUFFLE POOL GENERATOR
+    
         function shufflePool() {
             pool = [...masterList];
             for (let i = pool.length - 1; i > 0; i--) {
@@ -1421,13 +1418,11 @@ const masterTrackMap = {
                 [pool[i], pool[j]] = [pool[j], pool[i]];
             }
         }
-
-        // 4. INJECT VIDEO DIRECTLY INTO YOUTUBE API PLAYER
-        function playCurrentTrack() {
+    
+    function playCurrentTrack() {
             const videoId = pool[currentIndex];
             if (!videoId) return;
 
-            // Before overriding currentTrackTitle, save the old one to the history slot
             if (currentTrackTitle) {
                 lastPlayedTitle = currentTrackTitle;
             }
@@ -1443,7 +1438,6 @@ const masterTrackMap = {
             updateFeedUI();
         }
 
-        // 5. YOUTUBE FRAMEWORK LIFECYCLE CALLBACKS
         function onYouTubeIframeAPIReady() {
             shufflePool();
             const firstVideoId = pool[currentIndex];
@@ -1475,30 +1469,27 @@ const masterTrackMap = {
             }
         }
 
-let lastPlayedTitle = "---"; // Persistent placeholder for when the page first loads
+        let lastPlayedTitle = "---";
 
         function updateFeedUI() {
             const feedList = document.getElementById('feed-list');
             if (!feedList) return;
             feedList.innerHTML = '';
 
-            // 1. EXACTLY ONE "LAST PLAYED" (Top Slot)
             const liPrev = document.createElement('li');
             liPrev.className = 'feed-item history-item';
             liPrev.innerHTML = `<span>Last Played</span> <span style="text-align:right; max-width:70%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${lastPlayedTitle}</span>`;
             feedList.appendChild(liPrev);
 
-            // 2. EXACTLY ONE "PLAYING" (Middle Slot)
             const liCurrent = document.createElement('li');
             liCurrent.className = 'feed-item current-item active';
             const currentText = currentTrackTitle || "---";
             liCurrent.innerHTML = `<span>Playing</span> <span style="text-align:right; font-weight:bold; max-width:70%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#38bdf8;">${currentText}</span>`;
             feedList.appendChild(liCurrent);
 
-            // 3. EXACTLY THREE "NEXT" ITEMS (Bottom Slots)
-            for (let i = 1; i <= 3; i++) {
+            for (let i = 1; i <= 5; i++) {
                 const nextIdx = currentIndex + i;
-                let nextText = "---"; // Fallback placeholder if queue ends
+                let nextText = "---";
                 
                 if (nextIdx < pool.length) {
                     const nextId = pool[nextIdx];
@@ -1511,7 +1502,6 @@ let lastPlayedTitle = "---"; // Persistent placeholder for when the page first l
                 feedList.appendChild(liNext);
             }
 
-            // SAFELY HAND IDENTIFIER DATA TO LOCK SCREEN CONTROLS DYNAMICALLY
             if ('mediaSession' in navigator && window.MediaMetadata) {
                 try {
                     navigator.mediaSession.metadata = new MediaMetadata({
@@ -1524,36 +1514,16 @@ let lastPlayedTitle = "---"; // Persistent placeholder for when the page first l
                     });
                     navigator.mediaSession.playbackState = "playing";
                 } catch (e) {
-                    console.log("MediaSession sync deferred.");
+                    console.log("MediaSession metadata update deferred.");
                 }
             }
         }
 
-            // SAFELY HAND INDENTIFIER DATA TO LOCK SCREEN CONTROLS DYNAMICALLY
-            if ('mediaSession' in navigator && window.MediaMetadata) {
-                try {
-                    navigator.mediaSession.metadata = new MediaMetadata({
-                        title: currentTrackTitle || "Ari Shuffler Track",
-                        artist: "Ari @Home",
-                        album: "Stream Archive Shuffler",
-                        artwork: [
-                            { src: 'https://civil-mac.github.io/index/icon-512x512.png', sizes: '512x512', type: 'image/png' }
-                        ]
-                    });
-                    navigator.mediaSession.playbackState = "playing";
-                } catch (e) {
-                    console.log("MediaSession sync deferred until playback begins.");
-                }
-            }
-        }
-
-        // LOAD THE NATIVE YOUTUBE IFRAME SCRIPT TAG ASYNCHRONOUSLY
         const tag = document.createElement('script');
         tag.src = "https://www.youtube.com/iframe_api";
         const firstScriptTag = document.getElementsByTagName('script')[0];
         firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
-        // SAFELY REGISTRATION OF CONTROLS WITHOUT CRASHING INITIAL BOOT
         if ('mediaSession' in navigator) {
             try {
                 navigator.mediaSession.setActionHandler('pause', () => {
