@@ -1523,23 +1523,28 @@ if ('mediaSession' in navigator) {
     });
 }
 
-        if ('mediaSession' in navigator) {
+if ('mediaSession' in navigator) {
+    
     navigator.mediaSession.setActionHandler('pause', () => {
-        yourPauseFunction();
+        if (player && typeof player.pauseVideo === 'function') {
+            player.pauseVideo();
+        }
         navigator.mediaSession.playbackState = "paused";
     });
 
     navigator.mediaSession.setActionHandler('play', () => {
-        yourPlayFunction(); 
+        if (player && typeof player.playVideo === 'function') {
+            player.playVideo();
+        }
         navigator.mediaSession.playbackState = "playing";
     });
 
     navigator.mediaSession.setActionHandler('nexttrack', () => {
-        yourNextTrackFunction(); 
+        nextTrack(); 
     });
 
     navigator.mediaSession.setActionHandler('previoustrack', () => {
-        yourPreviousTrackFunction(); 
+        prevTrack();
     });
 }
         
