@@ -1427,6 +1427,11 @@ const masterTrackMap = {
             const videoId = pool[currentIndex];
             if (!videoId) return;
 
+            // Before overriding currentTrackTitle, save the old one to the history slot
+            if (currentTrackTitle) {
+                lastPlayedTitle = currentTrackTitle;
+            }
+
             currentTrackTitle = masterTrackMap[videoId] || `Track ID: ${videoId}`;
             document.getElementById('info').innerText = `Track ${currentIndex + 1} of ${pool.length}`;
 
@@ -1470,42 +1475,59 @@ const masterTrackMap = {
             }
         }
 
-        // 6. POPULATE THE LIVE ACTIVITY QUEUE GRAPHICALLY
+let lastPlayedTitle = "---"; // Persistent placeholder for when the page first loads
+
         function updateFeedUI() {
             const feedList = document.getElementById('feed-list');
             if (!feedList) return;
             feedList.innerHTML = '';
 
-            const historyLimit = 3;
-            const startHistory = Math.max(0, currentIndex - historyLimit);
-            for (let i = startHistory; i < currentIndex; i++) {
-                const liPrev = document.createElement('li');
-                liPrev.className = 'feed-item history-item';
-                const prevId = pool[i];
-                const prevText = prevId ? (masterTrackMap[prevId] || `Track ID: ${prevId}`) : "---";
-                liPrev.innerHTML = `<span>History</span> <span style="text-align:right; max-width:70%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${prevText}</span>`;
-                feedList.appendChild(liPrev);
-            }
+            // 1. EXACTLY ONE "LAST PLAYED" (Top Slot)
+            const liPrev = document.createElement('li');
+            liPrev.className = 'feed-item history-item';
+            liPrev.innerHTML = `<span>Last Played</span> <span style="text-align:right; max-width:70%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${lastPlayedTitle}</span>`;
+            feedList.appendChild(liPrev);
 
+            // 2. EXACTLY ONE "PLAYING" (Middle Slot)
             const liCurrent = document.createElement('li');
             liCurrent.className = 'feed-item current-item active';
             const currentText = currentTrackTitle || "---";
-            liCurrent.innerHTML = `<span>Playing</span> <span style="text-align:right; font-weight:bold; max-width:70%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#6366f1;">${currentText}</span>`;
+            liCurrent.innerHTML = `<span>Playing</span> <span style="text-align:right; font-weight:bold; max-width:70%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#38bdf8;">${currentText}</span>`;
             feedList.appendChild(liCurrent);
 
-            const queueLimit = 5;
-            const startIndex = currentIndex + 1;
-            const endIndex = Math.min(pool.length, startIndex + queueLimit);
-            for (let i = startHistory; i < (endIndex - startIndex); i++) {
-                const idx = startIndex + i;
-                if (idx >= pool.length) break;
+            // 3. EXACTLY THREE "NEXT" ITEMS (Bottom Slots)
+            for (let i = 1; i <= 3; i++) {
+                const nextIdx = currentIndex + i;
+                let nextText = "---"; // Fallback placeholder if queue ends
+                
+                if (nextIdx < pool.length) {
+                    const nextId = pool[nextIdx];
+                    nextText = nextId ? (masterTrackMap[nextId] || `Track ID: ${nextId}`) : "---";
+                }
+
                 const liNext = document.createElement('li');
                 liNext.className = 'feed-item';
-                const nextId = pool[idx];
-                const nextText = nextId ? (masterTrackMap[nextId] || `Track ID: ${nextId}`) : "---";
-                liNext.innerHTML = `<span>Next [${i + 1}]</span> <span style="text-align:right; max-width:70%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${nextText}</span>`;
+                liNext.innerHTML = `<span>Next [${i}]</span> <span style="text-align:right; max-width:70%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${nextText}</span>`;
                 feedList.appendChild(liNext);
             }
+
+            // SAFELY HAND IDENTIFIER DATA TO LOCK SCREEN CONTROLS DYNAMICALLY
+            if ('mediaSession' in navigator && window.MediaMetadata) {
+                try {
+                    navigator.mediaSession.metadata = new MediaMetadata({
+                        title: currentTrackTitle || "Ari Shuffler Track",
+                        artist: "Ari @Home",
+                        album: "Stream Archive Shuffler",
+                        artwork: [
+                            { src: 'https://civil-mac.github.io/index/icon-512x512.png', sizes: '512x512', type: 'image/png' }
+                        ]
+                    });
+                    navigator.mediaSession.playbackState = "playing";
+                } catch (e) {
+                    console.log("MediaSession sync deferred.");
+                }
+            }
+        }
 
             // SAFELY HAND INDENTIFIER DATA TO LOCK SCREEN CONTROLS DYNAMICALLY
             if ('mediaSession' in navigator && window.MediaMetadata) {
