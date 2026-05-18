@@ -1467,13 +1467,16 @@ function onPlayerStateChange(event) {
             const silentAudio = document.getElementById('silent-gap-killer');
 
             if (event.data == YT.PlayerState.PLAYING) {
-
                 if (silentAudio) {
-                    silentAudio.play().catch(e => console.log("Audio kickstart deferred until interaction."));
+                    silentAudio.play().catch(e => console.log("Audio focus kickstart deferred."));
                 }
-        
+                
                 if ('mediaSession' in navigator) {
                     navigator.mediaSession.playbackState = "playing";
+                    navigator.mediaSession.setActionHandler('nexttrack', () => { nextTrack(); });
+                    navigator.mediaSession.setActionHandler('previoustrack', () => { prevTrack(); });
+                    navigator.mediaSession.setActionHandler('play', () => { player.playVideo(); });
+                    navigator.mediaSession.setActionHandler('pause', () => { player.pauseVideo(); });
                 }
             }
             
