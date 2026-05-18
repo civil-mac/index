@@ -1393,21 +1393,62 @@ const masterTrackMap = {
         let player = null;
         let currentTrackTitle = "";
 
-        function nextTrack() {
-            if (pool.length === 0) return;
-            currentIndex++;
-            if (currentIndex >= pool.length) {
-                shufflePool();
-                currentIndex = 0;
+function nextTrack() {
+            const silentAudio = document.getElementById('silent-audio-track');
+            if (silentAudio) {
+                silentAudio.play().then(() => {
+                    if ('mediaSession' in navigator) {
+                        navigator.mediaSession.playbackState = "playing";
+                        
+                        const currentVideoId = masterList[currentIndex];
+                        const currentTrackName = masterTrackMap[currentVideoId] || "ARI AT EVERYTHING - Live Shuffler";
+
+                        navigator.mediaSession.metadata = new MediaMetadata({
+                            title: currentTrackName,
+                            artist: "ARIatHOME",
+                            album: "1,100+ Live Tracks Pool"
+                        });
+                    }
+                }).catch(e => console.log("Focus deferred."));
             }
-            playCurrentTrack();
+
+            if (shuffledIndices.length === 0) {
+                generateShufflePool();
+            }
+            historyIndex++;
+            if (historyIndex < historyList.length) {
+                currentIndex = historyList[historyIndex];
+            } else {
+                currentIndex = shuffledIndices.pop();
+                historyList.push(currentIndex);
+                historyIndex = historyList.length - 1;
+            }
+            loadVideo(masterList[currentIndex]);
         }
 
         function prevTrack() {
-            if (pool.length === 0) return;
-            if (currentIndex > 0) {
-                currentIndex--;
-                playCurrentTrack();
+            const silentAudio = document.getElementById('silent-audio-track');
+            if (silentAudio) {
+                silentAudio.play().then(() => {
+                    if ('mediaSession' in navigator) {
+                        navigator.mediaSession.playbackState = "playing";
+                        
+                        const currentVideoId = masterList[currentIndex];
+                        const currentTrackName = masterTrackMap[currentVideoId] || "ARI AT EVERYTHING - Live Shuffler";
+
+                        navigator.mediaSession.metadata = new MediaMetadata({
+                            title: currentTrackName,
+                            artist: "ARIatHOME",
+                            album: "1,100+ Live Tracks Pool"
+                        });
+                    }
+                }).catch(e => console.log("Focus deferred."));
+            }
+
+            if (historyIndex > 0) {
+                historyIndex--;
+                currentIndex = historyList[historyIndex];
+                loadVideo(masterList[currentIndex]);
             }
         }
     
