@@ -1448,7 +1448,38 @@ function playCurrentTrack() {
         });
     }
 }
+  
+let positionTimer = null;
 
+function startPositionHeartbeat() {
+    stopPositionHeartbeat();
+    positionTimer = setInterval(() => {
+        if (!player || typeof player.getCurrentTime !== 'function') return;
+        if (player.getPlayerState() !== YT.PlayerState.PLAYING) return;
+        if (!('mediaSession' in navigator) || !navigator.mediaSession.setPositionState) return;
+
+        const position = player.getCurrentTime();
+        const duration = player.getDuration();
+
+        if (duration > 0) {
+            try {
+                navigator.mediaSession.setPositionState({
+                    duration: duration,
+                    playbackRate: 1,
+                    position: Math.min(position, duration)
+                });
+            } catch(e) {}
+        }
+    }, 5000);
+}
+
+function stopPositionHeartbeat() {
+    if (positionTimer) {
+        clearInterval(positionTimer);
+        positionTimer = null;
+    }
+}
+  
 function onYouTubeIframeAPIReady() {
     shufflePool();
     const firstVideoId = pool[0];
@@ -1463,18 +1494,21 @@ function onYouTubeIframeAPIReady() {
                 updateFeedUI();
                 updatePrevButton();
             },
-            onStateChange: function(e) {
-                if (e.data === YT.PlayerState.PLAYING) {
-                    keepSilentAudioAlive();
-                    if ('mediaSession' in navigator)
-                        navigator.mediaSession.playbackState = 'playing';
-                } else if (e.data === YT.PlayerState.PAUSED) {
-                    if ('mediaSession' in navigator)
-                        navigator.mediaSession.playbackState = 'paused';
-                } else if (e.data === YT.PlayerState.ENDED) {
-                    nextTrack();
-                }
-            }
+onStateChange: function(e) {
+    if (e.data === YT.PlayerState.PLAYING) {
+        keepSilentAudioAlive();
+        startPositionHeartbeat();          // ← add this
+        if ('mediaSession' in navigator)
+            navigator.mediaSession.playbackState = 'playing';
+    } else if (e.data === YT.PlayerState.PAUSED) {
+        stopPositionHeartbeat();           // ← add this
+        if ('mediaSession' in navigator)
+            navigator.mediaSession.playbackState = 'paused';
+    } else if (e.data === YT.PlayerState.ENDED) {
+        stopPositionHeartbeat();           // ← add this
+        nextTrack();
+    }
+}
         }
     });
 }
