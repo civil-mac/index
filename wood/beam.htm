@@ -98,15 +98,15 @@
                     <input type="number" id="prop-fv" step="1" oninput="calculateBeam()">
                 </div>
                 <div class="form-group" style="margin-bottom:0;">
-                    <label>Ft (ksi)</label>
+                    <label>Ft (psi)</label>
                     <input type="number" id="prop-ft" step="1" oninput="calculateBeam()">
                 </div>
                 <div class="form-group" style="margin-bottom:0;">
-                    <label>Fc || (ksi)</label>
+                    <label>Fc || (psi)</label>
                     <input type="number" id="prop-fcpar" step="1" oninput="calculateBeam()">
                 </div>
                 <div class="form-group" style="margin-bottom:0;">
-                    <label>Fc _|_ (ksi)</label>
+                    <label>Fc _|_ (psi)</label>
                     <input type="number" id="prop-fcper" step="1" oninput="calculateBeam()">
                 </div>
                 <div class="form-group" style="margin-bottom:0;">
@@ -127,7 +127,7 @@
                 <div class="form-group">
                     <label>Span Length</label>
                     <div class="unit-container">
-                        <input type="number" id="input-span" value="6" min="0.01" step="0.01" oninput="calculateBeam()">
+                        <input type="number" id="input-span" value="10" min="0.01" step="0.01" oninput="calculateBeam()">
                         <span class="unit-label">ft</span>
                     </div>
                 </div>
@@ -150,7 +150,7 @@
             <div class="form-row">
                 <div class="form-group">
                     <label>L.L. Limit (L/)</label>
-                    <input type="number" id="input-ll-lim" value="480" min="1" step="1" oninput="calculateBeam()">
+                    <input type="number" id="input-ll-lim" value="240" min="1" step="1" oninput="calculateBeam()">
                 </div>
                 <div class="form-group">
                     <label>T.L. Limit (L/)</label>
@@ -225,9 +225,9 @@
 <script>
     // Exact structural database specs reflecting full significant figures
     const structuralLibrary = {
-        "SPF No. 2": { fb: 875, fv: 135, e: 1400, emin: 510, density: 26.22 },
-        "Versa-Lam 2.0E 2600 (LVL)": { fb: 2600, fv: 285, e: 2000, emin: 1016.535, density: 42.01 },
-        "Parallam PSL": { fb: 2900, fv: 290, e: 2000, emin: 1016.535, density: 45.07 }
+        "SPF No. 2": { fb: 875, fv: 135, ft: 450, fcpar: 1150, fcper: 425, e: 1400, emin: 510, density: 26.22 },
+        "Versa-Lam 2.0E 2600 (LVL)": { fb: 2600, fv: 285, ft: 1200, fcpar: 2500, fcper: 750, e: 2000, emin: 1016.535, density: 42.01 },
+        "Parallam PSL": { fb: 2900, fv: 290, ft: 1650, fcpar: 2200, fcper: 625, e: 2000, emin: 1016.535, density: 45.07 }
     };
 
     function initSelectors() {
@@ -246,8 +246,8 @@
         document.getElementById('prop-fb').value = props.fb;
         document.getElementById('prop-fv').value = props.fv;
         document.getElementById('prop-ft').value = props.ft;
-        document.getElementById('prop-fcpar').value=props.fcpar;
-        document.getElementById('prop-fcper').value=props.fcper;
+        document.getElementById('prop-fcpar').value = props.fcpar;
+        document.getElementById('prop-fcper').value = props.fcper;
         document.getElementById('prop-e').value = props.e;
         document.getElementById('prop-emin').value = props.emin;
         document.getElementById('prop-density').value = props.density;
@@ -267,7 +267,6 @@
         // Exact Property Extraction
         const F_b_base = parseFloat(document.getElementById('prop-fb').value) || 0;
         const F_v_base = parseFloat(document.getElementById('prop-fv').value) || 0;
-        const F_t_base = parseFloat(document.getElementById('prop-ft').value) || 0;
         const E_psi = (parseFloat(document.getElementById('prop-e').value) || 0) * 1000;
         const Emin_psi = (parseFloat(document.getElementById('prop-emin').value) || 0) * 1000;
 
