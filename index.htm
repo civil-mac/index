@@ -1387,23 +1387,29 @@ const masterTrackMap = {
     "rn4mVQswfNg": "Self Care",
     "6SGpdb8T-q4": "Waiting for Hasan (But He Won't Respond)"
 };
-    
-const masterList = Object.keys(masterTrackMap); 
-let pool = []; 
+const masterTrackMap = { 
+    "dQw4w9WgXcQ": "Test Live Track 1",
+    "fH6D_fOnB8A": "Test Live Track 2"
+};
+
+const masterList = Object.keys(masterTrackMap);
+
+let pool = [];
 let currentIndex = 0;
 let currentTrackTitle = "";
 let player = null;
 
-// Fisher-Yates Shuffle Logic
 function shufflePool() {
+ 
     pool = [...masterList];
+    
     for (let i = pool.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [pool[i], pool[j]] = [pool[j], pool[i]];
     }
     currentIndex = 0;
-}
-
+}    
+    
 function nextTrack() {
     if (!pool || pool.length === 0) return;
 
@@ -1464,10 +1470,11 @@ function onYouTubeIframeAPIReady() {
     shufflePool(); 
     
     const firstVideoId = pool[currentIndex];
+ 
     currentTrackTitle = masterTrackMap[firstVideoId] || `Track ID: ${firstVideoId}`;
     
     player = new YT.Player('player', {
-        videoId: firstVideoId,
+        videoId: firstVideoId, 
         playerVars: {
             'autoplay': 1,
             'controls': 1,
