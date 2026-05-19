@@ -1396,13 +1396,11 @@ const masterTrackMap = {
 function nextTrack() {
     if (!pool || pool.length === 0) return;
 
-    // Advance forward linearly
     currentIndex = (currentIndex + 1) % pool.length;
 
-    // Keep Android background privileges awake
     const silentAudio = document.getElementById('silent-audio-track');
     if (silentAudio && silentAudio.paused) {
-        silentAudio.play().catch(e => console.log("Background audio wake failed:", e));
+        silentAudio.play().catch(e => console.log("Wake-lock fail:", e));
     }
 
     playCurrentTrack();
@@ -1411,18 +1409,17 @@ function nextTrack() {
 function prevTrack() {
     if (!pool || pool.length === 0) return;
 
-    // Strict boundary block: do not roll back past the first song
     if (currentIndex === 0) return;
 
-    // Step backward linearly
     currentIndex = currentIndex - 1;
 
-    // Keep Android background privileges awake
     const silentAudio = document.getElementById('silent-audio-track');
     if (silentAudio && silentAudio.paused) {
-        silentAudio.play().catch(e => console.log("Background audio wake failed:", e));
+        silentAudio.play().catch(e => console.log("Wake-lock fail:", e));
     }
 
+    playCurrentTrack();
+}
     playCurrentTrack();
 }
 
@@ -1437,11 +1434,9 @@ function playCurrentTrack() {
         player.loadVideoById({ videoId: videoId });
     }
 
-    // Refresh layout states
     updateFeedUI();
     updateButtonStates();
 
-    // Broadcast track info to mobile lock screens
     if ('mediaSession' in navigator) {
         navigator.mediaSession.metadata = new MediaMetadata({
             title: currentTrackTitle,
@@ -1449,6 +1444,7 @@ function playCurrentTrack() {
             album: "ARI AT EVERYTHING Custom Shuffler"
         });
     }
+}
 }
 
 function playTrackAtCurrentIndex() {
@@ -1558,14 +1554,14 @@ function updateFeedUI() {
     const liPrev = document.createElement('li');
     liPrev.className = 'feed-item';
     
-    let displayPrevText = "----"; 
+    let displayPrevText = "----";
     if (currentIndex > 0) {
+
         const prevVideoId = pool[currentIndex - 1];
         if (prevVideoId) {
             displayPrevText = masterTrackMap[prevVideoId] || `Track ID: ${prevVideoId}`;
         }
     }
-    
     liPrev.innerHTML = `<span>Previous:</span> <span style="max-width:70%; text-align:right; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${displayPrevText}</span>`;
     feedList.appendChild(liPrev);
 
