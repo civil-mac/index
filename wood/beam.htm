@@ -98,6 +98,18 @@
                     <input type="number" id="prop-fv" step="1" oninput="calculateBeam()">
                 </div>
                 <div class="form-group" style="margin-bottom:0;">
+                    <label>Ft (ksi)</label>
+                    <input type="number" id="prop-ft" step="1" oninput="calculateBeam()">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Fc || (ksi)</label>
+                    <input type="number" id="prop-fcpar" step="1" oninput="calculateBeam()">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Fc _|_ (ksi)</label>
+                    <input type="number" id="prop-fcper" step="1" oninput="calculateBeam()">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
                     <label>E (ksi)</label>
                     <input type="number" id="prop-e" step="0.01" oninput="calculateBeam()">
                 </div>
@@ -233,6 +245,9 @@
         
         document.getElementById('prop-fb').value = props.fb;
         document.getElementById('prop-fv').value = props.fv;
+        document.getElementById('prop-ft').value = props.ft;
+        document.getElementById('prop-fcpar').value=props.fcpar;
+        document.getElementById('prop-fcper').value=props.fcper;
         document.getElementById('prop-e').value = props.e;
         document.getElementById('prop-emin').value = props.emin;
         document.getElementById('prop-density').value = props.density;
@@ -252,6 +267,7 @@
         // Exact Property Extraction
         const F_b_base = parseFloat(document.getElementById('prop-fb').value) || 0;
         const F_v_base = parseFloat(document.getElementById('prop-fv').value) || 0;
+        const F_t_base = parseFloat(document.getElementById('prop-ft').value) || 0;
         const E_psi = (parseFloat(document.getElementById('prop-e').value) || 0) * 1000;
         const Emin_psi = (parseFloat(document.getElementById('prop-emin').value) || 0) * 1000;
 
