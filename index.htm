@@ -1,10 +1,10 @@
 <html lang="en">
 <head>
     
-    <meta charset="UTF-8">
-    <title>ARI AT EVERYTHING - Custom Playlist Shuffler</title>
-    <meta name="description" content="Stream over 1,100 tracks of 100% live improvised music, freestyle rap, and custom Ableton beats created completely on the spot by ARIatHOME.">
-    <script type="application/ld+json">
+<meta charset="UTF-8">
+<title>ARI AT EVERYTHING - Custom Playlist Shuffler</title>
+<meta name="description" content="Stream over 1,100 tracks of 100% live improvised music, freestyle rap, and custom Ableton beats created completely on the spot by ARIatHOME.">
+<script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "MusicPlaylist",
@@ -19,15 +19,15 @@
 }
 </script>
     
-    <link rel="manifest" href="/manifest.json">
+<link rel="manifest" href="/manifest.json">
     
-    <script>
+<script>
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/sw.js');
-      }
-    </script>
-    <style>
-    body { 
+}
+</script>
+<style>
+body { 
     background: #0b0f1a; 
         color: #e2e8f0; 
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
@@ -175,18 +175,18 @@
         padding-left: 5px;
         font-weight: bold;
     }
-    </style>
+</style>
 </head>
 <body>
 <audio id="silent-audio-track" src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAAAA" loop preload="auto"></audio>
 <div id="header">
-    <span class="playlist-label">Improv Music Playlist Shuffler</span>
+<span class="playlist-label">Improv Music Playlist Shuffler</span>
     
-    <h1>ARI AT EVERYTHING</h1>
+<h1>ARI AT EVERYTHING</h1>
     
-    <p class="description">
-            All music is by ARIatHOME and is fully improvised on the spot. Playlist content is hand-picked by @civil_mac. Compiled from youtube.com/@civil_mac, youtube.com/@ariathome2 (2026), youtube.com/@ARIatHOMEUnofficial (2021-2025), youtube.com/@ARIatHOMEMusic and others, featuring fan-edited unofficial "song releases", and other unedited IRL and "@Home" content from previous ARIatHOME streams.
-    </p>
+<p class="description">
+    All music is by ARIatHOME and is fully improvised on the spot. Playlist content is hand-picked by @civil_mac. Compiled from youtube.com/@civil_mac, youtube.com/@ariathome2 (2026), youtube.com/@ARIatHOMEUnofficial (2021-2025), youtube.com/@ARIatHOMEMusic and others, featuring fan-edited unofficial "song releases", and other unedited IRL and "@Home" content from previous ARIatHOME streams.
+</p>
 </div>
     
 <div id="container">
@@ -1388,39 +1388,47 @@ const masterTrackMap = {
     "6SGpdb8T-q4": "Waiting for Hasan (But He Won't Respond)"
 };
     
- let pool = [];
-        let currentIndex = 0;
-        let player = null;
-        let currentTrackTitle = "";
+const masterList = Object.keys(masterTrackMap);
+    
+let pool = [];
+let currentIndex = 0;
+let currentTrackTitle = "";
+let player = null;
 
-        function nextTrack() {
-            if (pool.length === 0) return;
-            currentIndex++;
-            if (currentIndex >= pool.length) {
-                shufflePool();
-                currentIndex = 0;
-            }
-            playCurrentTrack();
-        }
+function nextTrack() {
+    if (!pool || pool.length === 0) return;
 
-        function prevTrack() {
-            if (pool.length === 0) return;
-            if (currentIndex > 0) {
-                currentIndex--;
-                playCurrentTrack();
-            }
-        }
+    currentIndex = (currentIndex + 1) % pool.length;
 
-        function shufflePool() {
-            pool = [...masterList];
-            for (let i = pool.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [pool[i], pool[j]] = [pool[j], pool[i]];
-            }
-        }
-    }
+    keepBackgroundAudioAlive();
+    playCurrentTrack();
 }
 
+function prevTrack() {
+    if (!pool || pool.length === 0) return;
+
+    if (currentIndex === 0) return;
+    
+    currentIndex = currentIndex - 1;
+
+    keepBackgroundAudioAlive();
+    playCurrentTrack();
+}
+
+function shufflePool() {
+    if (!masterList || masterList.length === 0) return;
+    
+    pool = [...masterList];
+    
+    for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    
+    currentIndex = 0;
+    console.log("Timeline successfully mixed. Tracks loaded:", pool.length);
+}
+    
 function playTrackAtCurrentIndex() {
     const trackKey = masterList[shuffledIndices[currentTrackIndex]];
     const track = masterTrackMap[trackKey];
@@ -1436,191 +1444,171 @@ function playTrackAtCurrentIndex() {
             navigator.mediaSession.metadata = new MediaMetadata({
                 title: track.title || "Unknown Track",
                 artist: "ARIatHOME",
-                album: "ARI AT EVERYTHING Custom Shuffler"
+                album: " "
             });
         }
     }
 }
+
+function keepBackgroundAudioAlive() {
+    const silentAudio = document.getElementById('silent-audio-track');
+    if (silentAudio && silentAudio.paused) {
+        silentAudio.play().catch(e => console.log("Background wake-lock deferred:", e));
+    }
+}
     
 function playCurrentTrack() {
-            const videoId = pool[currentIndex];
-            if (!videoId) return;
+    const videoId = pool[currentIndex];
+    if (!videoId) return;
+    
+    currentTrackTitle = masterTrackMap[videoId] || `Track ID: ${videoId}`;
+    
+    const infoEl = document.getElementById('info');
+    if (infoEl) {
+        infoEl.innerText = `Track ${currentIndex + 1} of ${pool.length}`;
+    }
 
-            if (currentTrackTitle) {
-                lastPlayedTitle = currentTrackTitle;
-            }
+    if (player && typeof player.loadVideoById === 'function') {
+        player.loadVideoById({ videoId: videoId });
+    }
 
-            currentTrackTitle = masterTrackMap[videoId] || `Track ID: ${videoId}`;
-            document.getElementById('info').innerText = `Track ${currentIndex + 1} of ${pool.length}`;
+    updateFeedUI();
+    updateButtonStates();
 
-            if (player && typeof player.loadVideoById === 'function') {
-                player.loadVideoById(videoId);
-            } else {
-                console.log("Player not fully initialized yet.");
-            }
-            updateFeedUI();
-        }
+    if ('mediaSession' in navigator && window.MediaMetadata) {
+        navigator.mediaSession.metadata = new MediaMetadata({
+            title: currentTrackTitle,
+            artist: "ARIatHOME",
+            album: " "
+        });
+    }
+}
     
 function onYouTubeIframeAPIReady() {
-            shufflePool();
-            const firstVideoId = pool[currentIndex];
-            currentTrackTitle = masterTrackMap[firstVideoId] || `Track ID: ${firstVideoId}`;
-
-            player = new YT.Player('player', {
-                videoId: firstVideoId,
-                playerVars: {
-                    'autoplay': 1,
-                    'controls': 1,
-                    'modestbranding': 1,
-                    'rel': 0
-                },
-                events: {
-                    'onReady': onPlayerReady,
-                    'onStateChange': onPlayerStateChange
-                }
-            });
+    shufflePool();
+    
+    const firstVideoId = pool[currentIndex];
+    currentTrackTitle = masterTrackMap[firstVideoId] || `Track ID: ${firstVideoId}`;
+    
+    player = new YT.Player('player', {
+        videoId: firstVideoId,
+        playerVars: {
+            'autoplay': 1,
+            'controls': 1,
+            'modestbranding': 1,
+            'rel': 0
+        },
+        events: {
+            'onReady': onPlayerReady,
+            'onStateChange': onPlayerStateChange
         }
+    });
+}
 
-        function onPlayerReady(event) {
-            event.target.playVideo();
-            updateFeedUI();
-        }
+function onPlayerReady(event) {
+    event.target.playVideo();
+    updateFeedUI();
+    updateButtonStates();
+}
 
 function onPlayerStateChange(event) {
-            const silentAudio = document.getElementById('silent-audio-track');
-
-            if (event.data == YT.PlayerState.PLAYING) {
-                if (silentAudio) {
-                    silentAudio.play().catch(e => console.log("Audio focus kickstart deferred."));
-                }
-            }
-            
-            if (event.data == YT.PlayerState.PAUSED || event.data == YT.PlayerState.ENDED) {
-                if (silentAudio) {
-                    silentAudio.pause();
-                }
-            }
-
-            if (event.data == YT.PlayerState.ENDED) {
-                nextTrack();
-            }
+    const silentAudio = document.getElementById('silent-audio-track');
+    if (event.data == YT.PlayerState.PLAYING) {
+        if (silentAudio && silentAudio.paused) {
+            silentAudio.play().catch(() => {});
         }
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.playbackState = "playing";
+        }
+    } else if (event.data == YT.PlayerState.PAUSED) {
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.playbackState = "paused";
+        }
+    } else if (event.data == YT.PlayerState.ENDED) {
+        nextTrack();
+    }
+}
     
         let lastPlayedTitle = "---";
 
-let lastPlayedTitle = "---"; // Keeps track of exactly one past song
+function updateFeedUI() {
+    const feedList = document.getElementById('feed-list');
+    if (!feedList) return; 
+    feedList.innerHTML = '';
 
-        function updateFeedUI() {
-            const feedList = document.getElementById('feed-list');
-            if (!feedList) return;
-            feedList.innerHTML = '';
-
-            // 1. EXACTLY ONE "LAST PLAYED" (Top Slot)
-            const liPrev = document.createElement('li');
-            liPrev.className = 'feed-item history-item';
-            liPrev.innerHTML = `<span>Last Played</span> <span style="text-align:right; max-width:70%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${lastPlayedTitle}</span>`;
-            feedList.appendChild(liPrev);
-
-            // 2. EXACTLY ONE "PLAYING" (Middle Slot)
-            const liCurrent = document.createElement('li');
-            liCurrent.className = 'feed-item current-item active';
-            const currentText = currentTrackTitle || "---";
-            liCurrent.innerHTML = `<span>Playing</span> <span style="text-align:right; font-weight:bold; max-width:70%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#38bdf8;">${currentText}</span>`;
-            feedList.appendChild(liCurrent);
-
-            // 3. EXACTLY THREE "NEXT" ITEMS (Bottom Slots)
-            for (let i = 1; i <= 3; i++) {
-                const nextIdx = currentIndex + i;
-                let nextText = "---";
-                
-                if (nextIdx < pool.length) {
-                    const nextId = pool[nextIdx];
-                    nextText = nextId ? (masterTrackMap[nextId] || `Track ID: ${nextId}`) : "---";
-                }
-
-                const liNext = document.createElement('li');
-                liNext.className = 'feed-item';
-                liNext.innerHTML = `<span>Next [${i}]</span> <span style="text-align:right; max-width:70%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${nextText}</span>`;
-                feedList.appendChild(liNext);
-            }
-
-            // SAFELY UPDATE LOCK SCREEN MEDIA CONTROLS
-            if ('mediaSession' in navigator && window.MediaMetadata) {
-                try {
-                    navigator.mediaSession.metadata = new MediaMetadata({
-                        title: currentTrackTitle || "Ari Shuffler Track",
-                        artist: "Ari @Home",
-                        album: "Stream Archive Shuffler",
-                        artwork: [
-                            { src: 'https://civil-mac.github.io/index/icon-512x512.png', sizes: '512x512', type: 'image/png' }
-                        ]
-                    });
-                    navigator.mediaSession.playbackState = "playing";
-                } catch (e) {
-                    console.log("MediaSession metadata update deferred.");
-                }
-            }
-        }
+    const liPrev = document.createElement('li');
+    liPrev.className = 'feed-item';
     
-        const tag = document.createElement('script');
-        tag.src = "https://www.youtube.com/iframe_api";
-        const firstScriptTag = document.getElementsByTagName('script')[0];
-        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+    let displayPrevText = "----"; 
+    if (currentIndex > 0) {
+        const prevVideoId = pool[currentIndex - 1];
+        if (prevVideoId) {
+            displayPrevText = masterTrackMap[prevVideoId] || `Track ID: ${prevVideoId}`;
+        }
+    }
+    liPrev.innerHTML = `<span>Previous:</span> <span style="max-width:70%; text-align:right; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${displayPrevText}</span>`;
+    feedList.appendChild(liPrev);
+
+    const currentText = currentTrackTitle ? currentTrackTitle : "Loading...";
+    const liCurrent = document.createElement('li');
+    liCurrent.className = 'feed-item active';
+    liCurrent.innerHTML = `<span>Now Playing:</span> <span style="max-width:70%; text-align:right; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#38bdf8;">${currentText}</span>`;
+    feedList.appendChild(liCurrent);
+
+    for (let i = 1; i <= 5; i++) {
+        const nextIdx = currentIndex + i;
+        let nextText = "---";
+        if (nextIdx < pool.length) {
+            const nextId = pool[nextIdx];
+            nextText = nextId ? (masterTrackMap[nextId] || `Track ID: ${nextId}`) : "---";
+        }
+        const liNext = document.createElement('li');
+        liNext.className = 'feed-item';
+        liNext.innerHTML = `<span>Next [${i}]:</span> <span style="max-width:70%; text-align:right; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${nextText}</span>`;
+        feedList.appendChild(liNext);
+    }
+}
+
+function updateButtonStates() {
+    const prevButton = document.querySelector("button[onclick='prevTrack()']");
+    if (prevButton) {
+        if (currentIndex === 0) {
+            prevButton.style.opacity = "0.3";
+            prevButton.style.cursor = "not-allowed";
+        } else {
+            prevButton.style.opacity = "1.0";
+            prevButton.style.cursor = "pointer";
+        }
+    }
+}
+    
+const tag = document.createElement('script');
+tag.src = "https://www.youtube.com/iframe_api";
+const firstScriptTag = document.getElementsByTagName('script')[0];
+firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
 if ('mediaSession' in navigator && window.MediaMetadata) {
-                try {
-                    navigator.mediaSession.metadata = new MediaMetadata({
-                        title: currentTrackTitle || "Ari Shuffler Track",
-                        artist: "Ari @Home",
-                        album: " ",
-                        artwork: [
-                            { src: 'https://civil-mac.github.io/index/icon-512x512.png', sizes: '512x512', type: 'image/png' }
-                        ]
-                    });
-                    navigator.mediaSession.playbackState = "playing";
-                } catch (e) {
-                    console.log("MediaSession metadata update deferred.");
-                }
-            }
-        }
+    try {
+        navigator.mediaSession.setActionHandler('pause', () => {
+            const silentAudio = document.getElementById('silent-audio-track');
+            if (silentAudio) silentAudio.pause();
+            if (player && typeof player.pauseVideo === 'function') player.pauseVideo();
+            navigator.mediaSession.playbackState = "paused";
+        });
 
-        const tag = document.createElement('script');
-        tag.src = "https://www.youtube.com/iframe_api";
-        const firstScriptTag = document.getElementsByTagName('script')[0];
-        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+        navigator.mediaSession.setActionHandler('play', () => {
+            const silentAudio = document.getElementById('silent-audio-track');
+            if (silentAudio) silentAudio.play().catch(() => {});
+            if (player && typeof player.playVideo === 'function') player.playVideo();
+            navigator.mediaSession.playbackState = "playing";
+        });
 
-if ('mediaSession' in navigator) {
-            try {
-                navigator.mediaSession.setActionHandler('pause', () => {
-                    const silentAudio = document.getElementById('silent-audio-track');
-                    if (silentAudio) silentAudio.pause();
-                    if (player && typeof player.pauseVideo === 'function') {
-                        player.pauseVideo();
-                    }
-                    navigator.mediaSession.playbackState = "paused";
-                });
-
-                navigator.mediaSession.setActionHandler('play', () => {
-                    const silentAudio = document.getElementById('silent-audio-track');
-                    if (silentAudio) silentAudio.play().catch(() => {});
-                    if (player && typeof player.playVideo === 'function') {
-                        player.playVideo();
-                    }
-                    navigator.mediaSession.playbackState = "playing";
-                });
-
-                navigator.mediaSession.setActionHandler('nexttrack', () => {
-                    nextTrack();
-                });
-
-                navigator.mediaSession.setActionHandler('previoustrack', () => {
-                    prevTrack();
-                });
-            } catch (e) {
-                console.log("Hardware media control mapping skipped.");
-            }
-        }
-        
+        navigator.mediaSession.setActionHandler('nexttrack', () => { nextTrack(); });
+        navigator.mediaSession.setActionHandler('previoustrack', () => { prevTrack(); });
+    } catch (e) {
+        console.log("Hardware media control integration deferred.");
+    }
+}
 </script>
 </body>
 </html>
