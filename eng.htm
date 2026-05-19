@@ -207,20 +207,19 @@
     <div class="section-label">Material:</div>
 
     <div class="material-row">
-        <button class="mat-btn active" data-mat="wood">🪵 Wood</button>
+        <button class="mat-btn" data-mat="wood">🪵 Wood</button>
         <button class="mat-btn" data-mat="steel">🦾 Steel</button>
-        <button class="mat-btn" data-mat="concrete">🪨 Concrete</button>
-        <button class="mat-btn" data-mat="masonry">🧱 Masonry</button>
+        <button class="mat-btn" data-mat="concrete">🧱 Concrete</button>
+        <button class="mat-btn" data-mat="masonry">🪨 Masonry</button>
         <button class="mat-btn" data-mat="composite">⚡ Composite</button>
     </div>
 
-    <h2 class="section-title" id="active-title" style="color: var(--accent-wood);">Wood</h2>
+    <h2 class="section-title" id="active-title" style="color: var(--text-muted);">Select a Material</h2>
     <div class="module-grid" id="module-container">
         </div>
 </div>
 
 <script>
-    // System Data Matrix aligned precisely to the procedural scope of work
     const moduleDatabase = {
         wood: [
             { title: "Beam Analysis", desc: "Flexure, shear...", badge: "Ready", link: "wood/beam.htm" },
@@ -248,7 +247,7 @@
             { title: "Combined Stresses", desc: "TMS 402 out-of-plane masonry section interaction under combined axial and lateral wind/seismic loads.", badge: "Placeholder", link: "#" },
             { title: "Connection Design", desc: "Anchor bolt pullout, edge breakout, shear loops, and reinforcement development in grouted cells.", badge: "Placeholder", link: "#" }
         ],
-        composite: [] // Intentionally blank per blueprint instructions
+        composite: [] 
     };
 
     const colorMap = {
@@ -266,13 +265,11 @@
     function renderModules(material) {
         container.innerHTML = '';
         
-        // Update Title System
         activeTitle.innerText = material.charAt(0).toUpperCase() + material.slice(1);
         activeTitle.style.color = colorMap[material];
 
         const modules = moduleDatabase[material];
 
-        // Handle completely empty grids gracefully (e.g. Composite)
         if (modules.length === 0) {
             container.innerHTML = `
                 <div style="grid-column: 1 / -1; color: var(--text-muted); font-size: 0.9rem; font-style: italic; padding: 2rem 0;">
@@ -281,7 +278,6 @@
             return;
         }
 
-        // Populate Cards
         modules.forEach(mod => {
             const card = document.createElement('a');
             card.className = 'module-card';
@@ -303,7 +299,14 @@
         });
     }
 
-    // Interactive Selector Matrix Controller
+    // Set up default initial screen state (Empty Welcome Mode)
+    function initWelcomeState() {
+        container.innerHTML = `
+            <div style="grid-column: 1 / -1; color: var(--text-muted); font-size: 0.95rem; font-style: italic; padding: 3rem 0; text-align: center; border: 1px dashed var(--border-color); border-radius: 16px;">
+                Please select a construction material above to view specialized verification tools.
+            </div>`;
+    }
+
     buttons.forEach(btn => {
         btn.addEventListener('click', () => {
             buttons.forEach(b => b.classList.remove('active'));
@@ -312,8 +315,8 @@
         });
     });
 
-    // Initialize Default View Space
-    renderModules('wood');
+    // Execute empty dashboard loop on page paint
+    initWelcomeState();
 </script>
 
 </body>
