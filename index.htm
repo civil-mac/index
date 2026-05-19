@@ -1418,29 +1418,7 @@ const masterTrackMap = {
                 [pool[i], pool[j]] = [pool[j], pool[i]];
             }
         }
-
-function playCurrentTrack() {
-    const videoId = pool[currentIndex];
-    if (!videoId) return;
-    
-    currentTrackTitle = masterTrackMap[videoId] || `Track ID: ${videoId}`;
-    document.getElementById('info').innerText = `Track ${currentIndex + 1} of ${pool.length}`;
-
-    if (player && typeof player.loadVideoById === 'function') {
-        player.loadVideoById({ videoId: videoId });
     }
-
-    updateFeedUI();
-    updateButtonStates();
-
-    if ('mediaSession' in navigator) {
-        navigator.mediaSession.metadata = new MediaMetadata({
-            title: currentTrackTitle,
-            artist: "ARIatHOME",
-            album: "ARI AT EVERYTHING Custom Shuffler"
-        });
-    }
-}
 }
 
 function playTrackAtCurrentIndex() {
@@ -1464,19 +1442,10 @@ function playTrackAtCurrentIndex() {
     }
 }
     
-        function shufflePool() {
-            pool = [...masterList];
-            for (let i = pool.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [pool[i], pool[j]] = [pool[j], pool[i]];
-            }
-        }
-    
 function playCurrentTrack() {
             const videoId = pool[currentIndex];
             if (!videoId) return;
 
-            // Save current track to history before updating it
             if (currentTrackTitle) {
                 lastPlayedTitle = currentTrackTitle;
             }
@@ -1492,7 +1461,7 @@ function playCurrentTrack() {
             updateFeedUI();
         }
     
-        function onYouTubeIframeAPIReady() {
+function onYouTubeIframeAPIReady() {
             shufflePool();
             const firstVideoId = pool[currentIndex];
             currentTrackTitle = masterTrackMap[firstVideoId] || `Track ID: ${firstVideoId}`;
