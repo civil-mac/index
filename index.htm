@@ -68,13 +68,10 @@ body {
 
 h1 {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: clamp(2.4rem, 10vw, 3.8rem);
+    font-size: clamp(1.8rem, 7vw, 2.8rem);
     letter-spacing: 0.06em;
     line-height: 1;
-    background: linear-gradient(135deg, #fff 0%, var(--accent2) 60%, var(--accent) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: #ffffff;
 }
 
 /* ── PLAYER ──────────────────────────────────────────────────────────────── */
@@ -253,10 +250,10 @@ h1 {
 }
 
 /* Marquee container */
-.marquee-wrap {
-    flex: 1;
-    overflow: hidden;
-    position: relative;
+.marquee-wrap.short .marquee-inner {
+    animation: none;
+    padding-left: 0;
+    color: #ffffff; 
 }
 
 .marquee-wrap::before,
@@ -284,7 +281,7 @@ h1 {
     white-space: nowrap;
     font-size: 0.82rem;
     font-weight: 500;
-    color: var(--now);
+    color: #ffffff; 
     animation: marquee-scroll 18s linear infinite;
     padding-left: 100%;
 }
