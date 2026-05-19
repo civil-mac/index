@@ -1409,35 +1409,6 @@ function shufflePool() {
     }
     currentIndex = 0;
 }    
-    
-function nextTrack() {
-    if (!pool || pool.length === 0) return;
-
-    if (currentIndex < pool.length - 1) {
-        currentIndex++;
-    } else {
-        currentIndex = 0;
-    }
-    keepBackgroundAudioAlive();
-    playCurrentTrack();
-}
-
-function prevTrack() {
-    if (!pool || pool.length === 0) return;
-
-    if (currentIndex > 0) {
-        currentIndex--;
-        keepBackgroundAudioAlive();
-        playCurrentTrack();
-    }
-}
-
-function keepBackgroundAudioAlive() {
-    const silentAudio = document.getElementById('silent-audio-track');
-    if (silentAudio && silentAudio.paused) {
-        silentAudio.play().catch(e => console.log("Background wake-lock deferred:", e));
-    }
-}
 
 function playCurrentTrack() {
     if (masterList.length === 0) return;
