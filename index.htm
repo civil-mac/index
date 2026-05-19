@@ -1395,38 +1395,31 @@ let currentIndex = 0;
 let currentTrackTitle = "";
 let player = null;
 
-function nextTrack() {
-    if (!pool || pool.length === 0) return;
-
-    currentIndex = (currentIndex + 1) % pool.length;
-
-    keepBackgroundAudioAlive();
-    playCurrentTrack();
-}
-
-function prevTrack() {
-    if (!pool || pool.length === 0) return;
-
-    if (currentIndex === 0) return;
-    
-    currentIndex = currentIndex - 1;
-
-    keepBackgroundAudioAlive();
-    playCurrentTrack();
-}
-
+// Fisher-Yates Shuffle Logic
 function shufflePool() {
-    if (!masterList || masterList.length === 0) return;
-    
-    pool = [...masterList];
-    
-    for (let i = pool.length - 1; i > 0; i--) {
+    for (let i = masterList.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
-        [pool[i], pool[j]] = [pool[j], pool[i]];
+        [masterList[i], masterList[j]] = [masterList[j], masterList[i]];
     }
-    
     currentIndex = 0;
-    console.log("Timeline successfully mixed. Tracks loaded:", pool.length);
+}
+
+// Next Track Trigger
+function nextTrack() {
+    if (currentIndex < masterList.length - 1) {
+        currentIndex++;
+    } else {
+        currentIndex = 0; // Loop back to start
+    }
+    playCurrentTrack();
+}
+
+// Previous Track Trigger
+function prevTrack() {
+    if (currentIndex > 0) {
+        currentIndex--;
+        playCurrentTrack();
+    }
 }
     
 function playTrackAtCurrentIndex() {
@@ -1458,40 +1451,22 @@ function keepBackgroundAudioAlive() {
 }
     
 function playCurrentTrack() {
-    const videoId = pool[currentIndex];
-    if (!videoId) return;
-    
-    currentTrackTitle = masterTrackMap[videoId] || `Track ID: ${videoId}`;
-    
-    const infoEl = document.getElementById('info');
-    if (infoEl) {
-        infoEl.innerText = `Track ${currentIndex + 1} of ${pool.length}`;
-    }
-
+    const videoId = masterList[currentIndex];
     if (player && typeof player.loadVideoById === 'function') {
         player.loadVideoById({ videoId: videoId });
     }
 
-    updateFeedUI();
-    updateButtonStates();
-
-    if ('mediaSession' in navigator && window.MediaMetadata) {
-        navigator.mediaSession.metadata = new MediaMetadata({
-            title: currentTrackTitle,
-            artist: "ARIatHOME",
-            album: " "
-        });
+    const infoEl = document.getElementById('info');
+    if (infoEl) {
+        infoEl.innerText = `Track ${currentIndex + 1} of ${masterList.length}`;
     }
 }
     
 function onYouTubeIframeAPIReady() {
-    shufflePool();
-    
-    const firstVideoId = pool[currentIndex];
-    currentTrackTitle = masterTrackMap[firstVideoId] || `Track ID: ${firstVideoId}`;
+    shufflePool(); 
     
     player = new YT.Player('player', {
-        videoId: firstVideoId,
+        videoId: masterList[currentIndex],
         playerVars: {
             'autoplay': 1,
             'controls': 1,
@@ -1499,8 +1474,11 @@ function onYouTubeIframeAPIReady() {
             'rel': 0
         },
         events: {
-            'onReady': onPlayerReady,
-            'onStateChange': onPlayerStateChange
+            'onStateChange': (event) => {
+                if (event.data == YT.PlayerState.ENDED) {
+                    nextTrack(); 
+                }
+            }
         }
     });
 }
@@ -1587,7 +1565,7 @@ tag.src = "https://www.youtube.com/iframe_api";
 const firstScriptTag = document.getElementsByTagName('script')[0];
 firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
-if ('mediaSession' in navigator && window.MediaMetadata) {
+if ('mediaSession' in navigator) {
     try {
         navigator.mediaSession.setActionHandler('pause', () => {
             const silentAudio = document.getElementById('silent-audio-track');
@@ -1606,7 +1584,7 @@ if ('mediaSession' in navigator && window.MediaMetadata) {
         navigator.mediaSession.setActionHandler('nexttrack', () => { nextTrack(); });
         navigator.mediaSession.setActionHandler('previoustrack', () => { prevTrack(); });
     } catch (e) {
-        console.log("Hardware media control integration deferred.");
+        console.log("Hardware media control mapping deferred.");
     }
 }
 </script>
