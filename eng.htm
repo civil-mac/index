@@ -1,8 +1,9 @@
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Custom Calc Book | Engineering Analysis Modules</title>
+    <title>S.E. Calc Book | Engineering Analysis Modules</title>
     <style>
         :root {
             --bg-color: #0f172a;
@@ -56,6 +57,24 @@
             font-size: 0.95rem;
         }
 
+        /* Section Markers styling used for both Section Titles and Material Label */
+        .section-label {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            margin-bottom: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            margin-bottom: 1.25rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 700;
+        }
+
         /* Material Tier Selector (Row 1) */
         .material-row {
             display: grid;
@@ -93,21 +112,10 @@
         .mat-btn.active[data-mat="composite"] { border-color: var(--accent-blue); box-shadow: 0 0 12px rgba(56, 189, 248, 0.2); }
 
         /* Dynamic Module Grid (Row 2) */
-        .section-title {
-            font-size: 1.2rem;
-            color: var(--text-muted);
-            margin-bottom: 1rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
         .module-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-            gap: 1rem;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 1.25rem;
         }
 
         /* Bento-Box Card Styling */
@@ -119,7 +127,7 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            min-height: 160px;
+            min-height: 180px;
             text-decoration: none;
             color: inherit;
             transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
@@ -135,7 +143,7 @@
 
         .module-graphic {
             width: 100%;
-            height: 70px;
+            height: 75px;
             background: #111827;
             border-radius: 8px;
             margin-bottom: 0.75rem;
@@ -148,15 +156,15 @@
         }
 
         .module-info h3 {
-            font-size: 1.05rem;
+            font-size: 1.1rem;
             font-weight: 600;
-            margin-bottom: 0.25rem;
+            margin-bottom: 0.35rem;
         }
 
         .module-info p {
             font-size: 0.8rem;
             color: var(--text-muted);
-            line-height: 1.3;
+            line-height: 1.4;
         }
 
         .status-badge {
@@ -164,11 +172,12 @@
             top: 0.5rem;
             right: 0.5rem;
             font-size: 0.65rem;
-            padding: 0.2rem 0.5rem;
+            padding: 0.2rem 0.6rem;
             border-radius: 20px;
             background: #292524;
             color: #a8a29e;
             border: 1px solid #44403c;
+            font-weight: 600;
         }
 
         .status-badge.ready {
@@ -195,6 +204,8 @@
         <p>Interactive verification modules & reference standards</p>
     </header>
 
+    <div class="section-label">Material:</div>
+
     <div class="material-row">
         <button class="mat-btn active" data-mat="wood">🪵 Wood</button>
         <button class="mat-btn" data-mat="steel">🦾 Steel</button>
@@ -203,46 +214,41 @@
         <button class="mat-btn" data-mat="composite">⚡ Composite</button>
     </div>
 
-    <h2 class="section-title">Active Database: <span id="active-title" style="color: var(--accent-wood);">Wood Modules</span></h2>
+    <h2 class="section-title" id="active-title" style="color: var(--accent-wood);">Wood</h2>
     <div class="module-grid" id="module-container">
         </div>
 </div>
 
 <script>
-    // System Data Matrix containing structured paths, scopes, and validation tags
+    // System Data Matrix aligned precisely to the procedural scope of work
     const moduleDatabase = {
         wood: [
-            { title: "Beam Design", desc: "Flexure, Shear, and Deflection criteria mapping standard NDS rules.", badge: "Placeholder", link: "#" },
-            { title: "Compression Members", desc: "Solid column buckling capacity checking unbraced lengths & Cp.", badge: "Placeholder", link: "#" },
-            { title: "Combined Stresses", desc: "Axial compression interacting with multi-axis flexure calculations.", badge: "Placeholder", link: "#" },
-            { title: "Bearing Capacity", desc: "Compression perpendicular to grain evaluations at support joints.", badge: "Placeholder", link: "#" },
-            { title: "Mechanical Connections", desc: "Tested hardware database, dowel bolts, lag screws, and nails.", badge: "Placeholder", link: "#" }
+            { title: "Beam Analysis", desc: "Flexure, shear, and deflection checks per NDS criteria.", badge: "Placeholder", link: "#" },
+            { title: "Compression", desc: "Solid column capacity evaluating buckling, stability factors, shear, and deflection.", badge: "Placeholder", link: "#" },
+            { title: "Tension Members", desc: "Tension parallel-to-grain capacity checks factoring net section cuts.", badge: "Placeholder", link: "#" },
+            { title: "Combined Stresses", desc: "Multi-axis bending interacting with axial tension or compression forces.", badge: "Placeholder", link: "#" },
+            { title: "Connection Design", desc: "Tested light-gauge hardware parameters, dowel bolts, screws, and nails.", badge: "Placeholder", link: "#" }
         ],
         steel: [
-            { title: "Flexural Members", desc: "AISC Chapter F checks including LTB, FLB, and Web local yield limits.", badge: "Placeholder", link: "#" },
-            { title: "Compression (Columns)", desc: "AISC Chapter E elastic and inelastic torsional/flexural buckling loops.", badge: "Placeholder", link: "#" },
-            { title: "Combined Axial & Bending", desc: "AISC Chapter H interaction profile equations for HSS and W-shapes.", badge: "Placeholder", link: "#" },
-            { title: "Weld Design Matrix", desc: "Fillet and groove weld pattern capacity via elastic/IC solutions.", badge: "Placeholder", link: "#" },
-            { title: "Bolted Connection Engine", desc: "Bolt group shear vectors, plate tearout, bearing, and block shear.", badge: "Placeholder", link: "#" }
+            { title: "Beam Analysis", desc: "Flexure capacity (LTB, FLB, Local Yielding), shear design, and deflection bounds.", badge: "Placeholder", link: "#" },
+            { title: "Compression", desc: "Column axial design evaluating elastic, inelastic, torsional, and flexural buckling limit states.", badge: "Placeholder", link: "#" },
+            { title: "Tension Members", desc: "Yielding on gross section vs. rupture on net effective section calculations.", badge: "Placeholder", link: "#" },
+            { title: "Combined Stresses", desc: "AISC Chapter H interaction limits for axial compression paired with bending forces.", badge: "Placeholder", link: "#" },
+            { title: "Connection Design", desc: "Weld design, single bolt/bolt groups, and plate design for block shear, local bending, and bearing.", badge: "Placeholder", link: "#" }
         ],
         concrete: [
-            { title: "Flexural Reinforcement", desc: "Singly/doubly reinforced rectangular beam structural bending limit controls.", badge: "Placeholder", link: "#" },
-            { title: "Short/Slender Columns", desc: "P-M interaction tracking paths matching ACI tied/spiral shapes.", badge: "Placeholder", link: "#" },
-            { title: "Spread Footings", desc: "Soil bearing distribution pressure balances and punching shear planes.", badge: "Placeholder", link: "#" },
-            { title: "Cantilever Retaining Walls", desc: "Overturning moments, sliding friction factor checks, heel/toe bending.", badge: "Placeholder", link: "#" },
-            { title: "Anchor Bolt Groups", desc: "ACI 318 Ch. 17 concrete breakout, pryout, side-face blowout, pullout.", badge: "Placeholder", link: "#" },
-            { title: "Rebar Development", desc: "Tension/compression development lengths, lap splices, hooked anchors.", badge: "Placeholder", link: "#" }
+            { title: "Beam Analysis", desc: "Bending reinforcement capacity checks, concrete shear limits, and deflection calculations.", badge: "Placeholder", link: "#" },
+            { title: "Compression", desc: "Tied or spiral column axial compression capacity including buckling checks.", badge: "Placeholder", link: "#" },
+            { title: "Combined Stresses", desc: "P-M interaction tracking paths matching ACI flexure-axial load boundaries.", badge: "Placeholder", link: "#" },
+            { title: "Connection Design", desc: "Anchor pullout, pryout, side shear, rebar development length, and anchor bolt groups.", badge: "Placeholder", link: "#" }
         ],
         masonry: [
-            { title: "Flexural Walls", desc: "TMS 402 out-of-plane wind/seismic masonry panel bending tracking.", badge: "Placeholder", link: "#" },
-            { title: "Axial Columns", desc: "Bearing constraints and tie reinforcement requirements for masonry pilasters.", badge: "Placeholder", link: "#" },
-            { title: "Lintel Analysis", desc: "Arching action load mapping over openings for reinforced masonry beams.", badge: "Placeholder", link: "#" },
-            { title: "Anchor Bolt Pullout", desc: "Edge distance breakouts and embedment checks in grout-filled cells.", badge: "Placeholder", link: "#" }
+            { title: "Beam Analysis", desc: "Reinforced masonry lintel capacity checks covering flexure, shear, and deflection rules.", badge: "Placeholder", link: "#" },
+            { title: "Compression", desc: "Axial wall or pilaster bearing constraints and slender column buckling equations.", badge: "Placeholder", link: "#" },
+            { title: "Combined Stresses", desc: "TMS 402 out-of-plane masonry section interaction under combined axial and lateral wind/seismic loads.", badge: "Placeholder", link: "#" },
+            { title: "Connection Design", desc: "Anchor bolt pullout, edge breakout, shear loops, and reinforcement development in grouted cells.", badge: "Placeholder", link: "#" }
         ],
-        composite: [
-            { title: "Composite Beams", desc: "Placeholder: Steel shape transformed section calculations with concrete decks.", badge: "Placeholder", link: "#" },
-            { title: "Concrete-Filled HSS", desc: "Placeholder: Axial and composite column buckling strength combinations.", badge: "Placeholder", link: "#" }
-        ]
+        composite: [] // Intentionally blank per blueprint instructions
     };
 
     const colorMap = {
@@ -258,15 +264,25 @@
     const buttons = document.querySelectorAll('.mat-btn');
 
     function renderModules(material) {
-        // Clear old view
         container.innerHTML = '';
         
-        // Update Title Color System
-        activeTitle.innerText = `${material.charAt(0).toUpperCase() + material.slice(1)} Modules`;
+        // Update Title System
+        activeTitle.innerText = material.charAt(0).toUpperCase() + material.slice(1);
         activeTitle.style.color = colorMap[material];
 
-        // Populate Bento Cards
-        moduleDatabase[material].forEach(mod => {
+        const modules = moduleDatabase[material];
+
+        // Handle completely empty grids gracefully (e.g. Composite)
+        if (modules.length === 0) {
+            container.innerHTML = `
+                <div style="grid-column: 1 / -1; color: var(--text-muted); font-size: 0.9rem; font-style: italic; padding: 2rem 0;">
+                    No modules loaded yet. Framework pipeline ready for expansion.
+                </div>`;
+            return;
+        }
+
+        // Populate Cards
+        modules.forEach(mod => {
             const card = document.createElement('a');
             card.className = 'module-card';
             card.href = mod.link;
@@ -276,7 +292,7 @@
             card.innerHTML = `
                 <div class="status-badge ${badgeClass}">${mod.badge}</div>
                 <div class="module-graphic">
-                    ⚡ [Graphic Frame]
+                    📐 [Graphic Frame]
                 </div>
                 <div class="module-info">
                     <h3>${mod.title}</h3>
@@ -287,7 +303,7 @@
         });
     }
 
-    // Interactive Input Event Loop
+    // Interactive Selector Matrix Controller
     buttons.forEach(btn => {
         btn.addEventListener('click', () => {
             buttons.forEach(b => b.classList.remove('active'));
@@ -296,7 +312,7 @@
         });
     });
 
-    // Run Initial State
+    // Initialize Default View Space
     renderModules('wood');
 </script>
 
