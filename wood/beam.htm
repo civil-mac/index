@@ -25,15 +25,14 @@
         header h1 { font-size: 1.6rem; font-weight: 700; color: var(--text-main); }
         header p { color: var(--text-muted); font-size: 0.9rem; }
 
-        .bento-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
-        @media (max-width: 768px) { .bento-layout { grid-template-columns: 1fr; } }
+        .bento-layout { display: grid; grid-template-columns: 1.2fr 1fr; gap: 1.5rem; }
+        @media (max-width: 900px) { .bento-layout { grid-template-columns: 1fr; } }
 
         .panel { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 1.5rem; }
         .panel-title { font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 1.25rem; font-weight: 600; }
 
-        /* Form Controls */
         .form-group { margin-bottom: 1.25rem; position: relative; }
-        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1rem; }
         label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.4rem; font-weight: 500; }
         select, input { width: 100%; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-main); padding: 0.75rem; font-size: 1rem; transition: border 0.2s; }
         select:focus, input:focus { outline: none; border-color: var(--accent-wood); }
@@ -42,17 +41,18 @@
         .unit-label { position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.85rem; pointer-events: none; }
         input[type="number"] { padding-right: 2.5rem; }
 
-        /* Real-Time Report Matrix */
-        .report-row { display: flex; justify-content: space-between; align-items: center; padding: 0.85rem; border-bottom: 1px solid var(--border-color); font-size: 0.95rem; }
+        /* Editable Material Grid */
+        .property-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-top: 0.75rem; background: #111827; padding: 1rem; border-radius: 12px; border: 1px dashed var(--border-color); }
+
+        /* Report Matrix */
+        .report-row { display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-bottom: 1px solid var(--border-color); font-size: 0.95rem; }
         .report-row:last-child { border-bottom: none; }
-        .report-values { font-weight: 600; }
+        .report-values { font-weight: 600; font-size: 1.1rem; margin-right: 0.5rem; }
         .status-pill { padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
         .status-pill.pass { background: #064e3b; color: var(--accent-green); }
         .status-pill.fail { background: #7f1d1d; color: var(--accent-red); }
-
         .sub-math { font-size: 0.75rem; color: var(--text-muted); display: block; margin-top: 0.2rem; font-family: monospace; }
 
-        /* Live Canvas Block */
         .canvas-container { margin-top: 1.25rem; background: #111827; border-radius: 12px; border: 1px dashed var(--border-color); padding: 1rem; display: flex; justify-content: center; }
         canvas { width: 100%; max-width: 450px; height: 120px; }
     </style>
@@ -62,33 +62,59 @@
 <div class="container">
     <header>
         <h1>Wood Beam Analysis Module</h1>
-        <p>Simple Span (Pin-Pin) Member Verification under Uniform Load | ASD Design Basis</p>
+        <p>Simple Span (Pin-Pin) Member Verification | NDS ASD Design Basis</p>
     </header>
 
     <div class="bento-layout">
         <div class="panel">
             <h2 class="panel-title">Design Parameters</h2>
             
-            <div class="form-row">
+            <div class="form-row" style="grid-template-columns: 2fr 1fr;">
                 <div class="form-group">
-                    <label>Wood Species</label>
-                    <select id="input-species" onchange="calculateBeam()"></select>
+                    <label>Material Specification</label>
+                    <select id="input-material" onchange="loadMaterialProperties()"></select>
                 </div>
                 <div class="form-group">
-                    <label>Commercial Grade</label>
-                    <select id="input-grade" onchange="calculateBeam()"></select>
+                    <label>Lateral Bracing</label>
+                    <select id="input-bracing" onchange="calculateBeam()">
+                        <option value="unbraced">Unbraced</option>
+                        <option value="braced">Fully Braced</option>
+                    </select>
                 </div>
             </div>
 
-            <div class="form-group">
-                <label>Span Length</label>
-                <div class="unit-container">
-                    <input type="number" id="input-span" value="12" min="0.1" step="0.1" oninput="calculateBeam()">
-                    <span class="unit-label">ft</span>
+            <label style="margin-bottom: -0.25rem;">Active Design Values (Fully Editable)</label>
+            <div class="property-grid">
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Fb+ (psi)</label>
+                    <input type="number" id="prop-fb" oninput="calculateBeam()">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Fv (psi)</label>
+                    <input type="number" id="prop-fv" oninput="calculateBeam()">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Ebend (ksi)</label>
+                    <input type="number" id="prop-e" oninput="calculateBeam()">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Emin (ksi)</label>
+                    <input type="number" id="prop-emin" oninput="calculateBeam()">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Density (pcf)</label>
+                    <input type="number" id="prop-density" oninput="calculateBeam()">
                 </div>
             </div>
 
-            <div class="form-row">
+            <div class="form-row" style="margin-top: 1.25rem;">
+                <div class="form-group">
+                    <label>Span Length</label>
+                    <div class="unit-container">
+                        <input type="number" id="input-span" value="6" min="0.1" step="0.1" oninput="calculateBeam()">
+                        <span class="unit-label">ft</span>
+                    </div>
+                </div>
                 <div class="form-group">
                     <label>Nominal Width (b)</label>
                     <div class="unit-container">
@@ -99,7 +125,7 @@
                 <div class="form-group">
                     <label>Nominal Depth (d)</label>
                     <div class="unit-container">
-                        <input type="number" id="input-d" value="8" min="2" step="1" oninput="calculateBeam()">
+                        <input type="number" id="input-d" value="10" min="2" step="1" oninput="calculateBeam()">
                         <span class="unit-label">in</span>
                     </div>
                 </div>
@@ -120,27 +146,26 @@
                         <span class="unit-label">L /</span>
                     </div>
                 </div>
-            </div>
-
-            <div class="form-group">
-                <label>Uniform Design Load (w)</label>
-                <div class="unit-container">
-                    <input type="number" id="input-load" value="150" min="0" step="1" oninput="calculateBeam()">
-                    <span class="unit-label">plf</span>
+                <div class="form-group">
+                    <label>Uniform Load (w)</label>
+                    <div class="unit-container">
+                        <input type="number" id="input-load" value="73.333" min="0" step="0.001" oninput="calculateBeam()">
+                        <span class="unit-label">plf</span>
+                    </div>
                 </div>
             </div>
         </div>
 
         <div class="panel" style="display: flex; flex-direction: column; justify-content: space-between;">
             <div>
-                <h2 class="panel-title">ASD Evaluation Matrix</h2>
+                <h2 class="panel-title">Verification Matrix</h2>
                 
                 <div class="report-row">
                     <div>
                         <span>Flexural Bending Capacity</span>
-                        <span class="sub-math" id="math-flexure">fb = 0 psi vs F'b = 0 psi</span>
+                        <span class="sub-math" id="math-flexure">--</span>
                     </div>
-                    <div style="text-align: right;">
+                    <div style="text-align: right; display: flex; align-items: center; justify-content: flex-end;">
                         <span class="report-values" id="ratio-flexure">0.00</span>
                         <span class="status-pill" id="pill-flexure">Pass</span>
                     </div>
@@ -149,9 +174,9 @@
                 <div class="report-row">
                     <div>
                         <span>Shear Verification</span>
-                        <span class="sub-math" id="math-shear">fv = 0 psi vs F'v = 0 psi</span>
+                        <span class="sub-math" id="math-shear">--</span>
                     </div>
-                    <div style="text-align: right;">
+                    <div style="text-align: right; display: flex; align-items: center; justify-content: flex-end;">
                         <span class="report-values" id="ratio-shear">0.00</span>
                         <span class="status-pill" id="pill-shear">Pass</span>
                     </div>
@@ -159,12 +184,23 @@
 
                 <div class="report-row">
                     <div>
-                        <span>Deflection Bounds</span>
-                        <span class="sub-math" id="math-defl">Δact = 0.00 in vs Δall = 0.00 in</span>
+                        <span>Live Load Deflection</span>
+                        <span class="sub-math" id="math-ll-defl">--</span>
                     </div>
-                    <div style="text-align: right;">
-                        <span class="report-values" id="ratio-defl">0.00</span>
-                        <span class="status-pill" id="pill-defl">Pass</span>
+                    <div style="text-align: right; display: flex; align-items: center; justify-content: flex-end;">
+                        <span class="report-values" id="ratio-ll-defl">0.00</span>
+                        <span class="status-pill" id="pill-ll-defl">Pass</span>
+                    </div>
+                </div>
+
+                <div class="report-row">
+                    <div>
+                        <span>Total Load Deflection</span>
+                        <span class="sub-math" id="math-tl-defl">--</span>
+                    </div>
+                    <div style="text-align: right; display: flex; align-items: center; justify-content: flex-end;">
+                        <span class="report-values" id="ratio-tl-defl">0.00</span>
+                        <span class="status-pill" id="pill-tl-defl">Pass</span>
                     </div>
                 </div>
             </div>
@@ -177,206 +213,170 @@
 </div>
 
 <script>
-    // 1. The Structured Local Library Dataset for Wood Species (NDS Base References)
-    const ndsSpeciesLibrary = {
-        "Douglas Fir-Larch": {
-            "No.1": { fb: 1000, fv: 180, e: 1700000, emin: 620000 },
-            "No.2": { fb: 900,  fv: 180, e: 1600000, emin: 580000 },
-            "Select Structural": { fb: 1500, fv: 180, e: 1900000, emin: 690000 }
-        },
-        "Southern Pine": {
-            "No.1": { fb: 1350, fv: 175, e: 1600000, emin: 580000 },
-            "No.2": { fb: 1150, fv: 175, e: 1400000, emin: 510000 },
-            "Select Structural": { fb: 1850, fv: 175, e: 1800000, emin: 660000 }
-        },
-        "Hem-Fir": {
-            "No.1": { fb: 975,  fv: 150, e: 1400000, emin: 510000 },
-            "No.2": { fb: 850,  fv: 150, e: 1300000, emin: 470000 }
-        }
+    // 1. Regional Maine Custom Material Dataset Spec Arrays
+    const structuralLibrary = {
+        "SPF No. 2": { fb: 875, fv: 135, e: 1400, emin: 510, density: 26.22, type: "sawn" },
+        "Versa-Lam 2.0E 2600 (LVL)": { fb: 2600, fv: 285, e: 2000, emin: 1016.535, density: 42.01, type: "engineered" },
+        "Parallam PSL (Column Class)": { fb: 2900, fv: 290, e: 2000, emin: 1016.535, density: 45.07, type: "engineered" }
     };
 
-    // Initialize UI drop-down selectors dynamically from Database Architecture
-    function initDatabaseSelectors() {
-        const speciesSel = document.getElementById('input-species');
-        const gradeSel = document.getElementById('input-grade');
-        
-        speciesSel.innerHTML = '';
-        Object.keys(ndsSpeciesLibrary).forEach(sp => {
-            speciesSel.options[speciesSel.options.length] = new Option(sp, sp);
+    function initSelectors() {
+        const matSel = document.getElementById('input-material');
+        matSel.innerHTML = '';
+        Object.keys(structuralLibrary).forEach(mat => {
+            matSel.options[matSel.options.length] = new Option(mat, mat);
         });
-
-        function populateGrades() {
-            gradeSel.innerHTML = '';
-            const activeSpecies = speciesSel.value;
-            Object.keys(ndsSpeciesLibrary[activeSpecies]).forEach(gr => {
-                gradeSel.options[gradeSel.options.length] = new Option(gr, gr);
-            });
-        }
-
-        speciesSel.onchange = () => { populateGrades(); calculateBeam(); };
-        populateGrades();
+        loadMaterialProperties();
     }
 
-    // 2. Continuous Processing Engine & Verification Equations Loop
+    function loadMaterialProperties() {
+        const matName = document.getElementById('input-material').value;
+        const props = structuralLibrary[matName];
+        
+        document.getElementById('prop-fb').value = props.fb;
+        document.getElementById('prop-fv').value = props.fv;
+        document.getElementById('prop-e').value = props.e;
+        document.getElementById('prop-emin').value = props.emin;
+        document.getElementById('prop-density').value = props.density;
+        
+        calculateBeam();
+    }
+
+    // 2. Math Execution Pipeline Aligned with Enercalc Conditions
     function calculateBeam() {
-        // Vetting & Extracting Verified Form State Data
-        const species = document.getElementById('input-species').value;
-        const grade = document.getElementById('input-grade').value;
         const L_ft = Math.max(0.1, parseFloat(document.getElementById('input-span').value) || 0);
         const b_nom = Math.max(1, parseFloat(document.getElementById('input-b').value) || 0);
         const d_nom = Math.max(2, parseFloat(document.getElementById('input-d').value) || 0);
         const ll_lim = Math.max(1, parseFloat(document.getElementById('input-ll-lim').value) || 1);
         const tl_lim = Math.max(1, parseFloat(document.getElementById('input-tl-lim').value) || 1);
         const w_plf = Math.max(0, parseFloat(document.getElementById('input-load').value) || 0);
+        const bracing = document.getElementById('input-bracing').value;
 
-        // Map Dressed Geometric Cross-Section Parameters (Dressed vs Nominal Conversion)
-        const b = b_nom < 8 ? b_nom - 0.5 : b_nom - 0.75;
-        const d = d_nom < 8 ? d_nom - 0.5 : d_nom - 0.75;
+        // Manual Property Overwrites Readout
+        const F_b_base = parseFloat(document.getElementById('prop-fb').value) || 0;
+        const F_v_base = parseFloat(document.getElementById('prop-fv').value) || 0;
+        const E_psi = (parseFloat(document.getElementById('prop-e').value) || 0) * 1000;
+        const Emin_psi = (parseFloat(document.getElementById('prop-emin').value) || 0) * 1000;
+
+        // True Cross Section Dimensional Conversions (Dressed Lumber vs Engineered Rules)
+        const matName = document.getElementById('input-material').value;
+        const isEngineered = structuralLibrary[matName]?.type === "engineered";
+        
+        const b = isEngineered ? b_nom : (b_nom < 8 ? b_nom - 0.5 : b_nom - 0.75);
+        const d = isEngineered ? d_nom : (d_nom < 8 ? d_nom - 0.5 : d_nom - 0.75);
         
         const A = b * d;
         const Sx = (b * d * d) / 6;
         const Ix = (b * d * d * d) / 12;
         const L_in = L_ft * 12;
 
-        // Pull reference limits out of our local NDS structure
-        const props = ndsSpeciesLibrary[species][grade];
-        
-        // --- ANALYSIS ENGINE (DEMAND CALCULATIONS) ---
-        const V_max = (w_plf * L_ft) / 2; 
-        const M_max = (w_plf * L_ft * L_ft) / 8 * 12; // lb-in
-        
-        const f_b = M_max / Sx;
-        const f_v = (1.5 * V_max) / A;
-        const delta_act = (5 * (w_plf / 12) * Math.pow(L_in, 4)) / (384 * props.e * Ix);
-
-        // --- CAPACITY ENGINE (NDS BEAM STABILITY CRITERIA CL LOOP) ---
-        const l_e = (1.63 * L_in) + (3 * d); // Table 3.3.3 simple span uniform distribution
-        const R_B = Math.sqrt((l_e * d) / (b * b));
-        
-        let C_L = 1.0;
-        if (R_B > 0) {
-            const F_bE = (1.20 * props.emin) / (R_B * R_B);
-            const F_b_star = props.fb; // CD, CM, Ct assumed 1.0 here
-            const alpha = F_bE / F_b_star;
-            C_L = (1 + alpha) / 1.9 - Math.sqrt(Math.pow((1 + alpha) / 1.9, 2) - (alpha / 0.95));
-            C_L = Math.min(1.0, Math.max(0, C_L));
+        // --- NDS SIZE FACTOR (Cf) RULE INTEGRATION ---
+        let Cf = 1.0;
+        if (!isEngineered && b_nom === 2) {
+            if (d_nom === 4) Cf = 1.5;
+            else if (d_nom === 6) Cf = 1.3;
+            else if (d_nom === 8) Cf = 1.2;
+            else if (d_nom === 10) Cf = 1.1;
+            else if (d_nom === 12) Cf = 1.0;
         }
 
-        // Apply Adjustment Matrices to Base Yield Boundaries
-        const F_b_prime = props.fb * C_L;
-        const F_v_prime = props.fv; // assuming standard environmental factors are 1.0
-        const delta_all = L_in / tl_lim;
+        // --- DEMAND STRESS CALCULATIONS ---
+        const M_max = (w_plf * L_ft * L_ft) / 8 * 12; // lb-in
+        const f_b = M_max / Sx;
 
-        // --- UTILITY DISPLAY UPDATES ---
-        updateReportRow('flexure', f_b, F_b_prime, `fb = ${Math.round(f_b)} psi vs F'b = ${Math.round(F_b_prime)} psi (C_L = ${C_L.toFixed(2)})`);
-        updateReportRow('shear', f_v, F_v_prime, `fv = ${Math.round(f_v)} psi vs F'v = ${Math.round(F_v_prime)} psi`);
-        updateReportRow('defl', delta_act, delta_all, `Δact = ${delta_act.toFixed(3)} in vs Δall = ${delta_all.toFixed(3)} in`);
+        // Shear calculated at distance "d" away from face of support per NDS 3.4.3.1
+        const d_ft = d / 12;
+        const V_design = Math.max(0, (w_plf * (L_ft - (2 * d_ft))) / 2);
+        const f_v = (1.5 * V_design) / A;
 
-        // Force Graphical Display Loop Redraw
+        // --- BEAM STABILITY CRITERIA (CL) PROFILES ---
+        let C_L = 1.0;
+        if (bracing === "unbraced") {
+            const l_e = (1.63 * L_in) + (3 * d);
+            const R_B = Math.sqrt((l_e * d) / (b * b));
+            if (R_B > 0) {
+                const F_bE = (1.20 * Emin_psi) / (R_B * R_B);
+                const F_b_star = F_b_base * Cf; 
+                const alpha = F_bE / F_b_star;
+                C_L = (1 + alpha) / 1.9 - Math.sqrt(Math.pow((1 + alpha) / 1.9, 2) - (alpha / 0.95));
+                C_L = Math.min(1.0, Math.max(0, C_L));
+            }
+        }
+
+        // Final Capacities
+        const F_b_prime = F_b_base * Cf * C_L;
+        const F_v_prime = F_v_base;
+
+        // Deflection Analysis (Transient and Total Multipliers)
+        const delta_tl = (5 * (w_plf / 12) * Math.pow(L_in, 4)) / (384 * E_psi * Ix);
+        const delta_ll = delta_tl * 0.70; // Pre-allocating standard live/dead load split matrix
+        
+        const ratio_ll_act = delta_ll > 0 ? Math.round(L_in / delta_ll) : 0;
+        const ratio_tl_act = delta_tl > 0 ? Math.round(L_in / delta_tl) : 0;
+
+        // --- DOM MANIPULATION UPDATES ---
+        updateRow('flexure', f_b, F_b_prime, `fb = ${f_b.toFixed(2)} psi vs F'b = ${F_b_prime.toFixed(2)} psi (Cf=${Cf}, CL=${C_L.toFixed(3)})`);
+        updateRow('shear', f_v, F_v_prime, `fv = ${f_v.toFixed(2)} psi vs F'v = ${F_v_prime.toFixed(2)} psi (Checked at distance d)`);
+        
+        // Deflection UI evaluation logic strings
+        updateDeflRow('ll-defl', delta_ll, L_in / ll_lim, `Δll = ${delta_ll.toFixed(3)} in (Ratio: L/${ratio_ll_act})`, ll_lim, ratio_ll_act);
+        updateDeflRow('tl-defl', delta_tl, L_in / tl_lim, `Δtl = ${delta_tl.toFixed(3)} in (Ratio: L/${ratio_tl_act})`, tl_lim, ratio_tl_act);
+
         drawBeamGraphic(L_ft, w_plf);
     }
 
-    function updateReportRow(id, actual, allowable, mathText) {
+    function updateRow(id, actual, allowable, mathText) {
         const ratio = allowable > 0 ? (actual / allowable) : 0;
         const ratioEl = document.getElementById(`ratio-${id}`);
         const pillEl = document.getElementById(`pill-${id}`);
-        const mathEl = document.getElementById(`math-${id}`);
+        document.getElementById(`math-${id}`).innerText = mathText;
 
-        ratioEl.innerText = ratio.toFixed(2);
-        mathEl.innerText = mathText;
-
+        ratioEl.innerText = ratio.toFixed(3);
         if (ratio <= 1.0) {
-            pillEl.innerText = "Pass";
-            pillEl.className = "status-pill pass";
-            ratioEl.style.color = "var(--accent-green)";
+            pillEl.innerText = "Pass"; pillEl.className = "status-pill pass"; ratioEl.style.color = "var(--accent-green)";
         } else {
-            pillEl.innerText = "Fail";
-            pillEl.className = "status-pill fail";
-            ratioEl.style.color = "var(--accent-red)";
+            pillEl.innerText = "Fail"; pillEl.className = "status-pill fail"; ratioEl.style.color = "var(--accent-red)";
         }
     }
 
-    // 3. Native Screen Render Vector Graphics Engine
+    function updateDeflRow(id, actual, allowable, mathText, limitCode, actualRatio) {
+        const ratioEl = document.getElementById(`ratio-${id}`);
+        const pillEl = document.getElementById(`pill-${id}`);
+        document.getElementById(`math-${id}`).innerText = mathText;
+
+        const ucRatio = actual / allowable;
+        ratioEl.innerText = ucRatio.toFixed(3);
+
+        if (actualRatio >= limitCode || actual === 0) {
+            pillEl.innerText = "Pass"; pillEl.className = "status-pill pass"; ratioEl.style.color = "var(--accent-green)";
+        } else {
+            pillEl.innerText = "Fail"; pillEl.className = "status-pill fail"; ratioEl.style.color = "var(--accent-red)";
+        }
+    }
+
     function drawBeamGraphic(span, load) {
         const canvas = document.getElementById('beamCanvas');
         const ctx = canvas.getContext('2d');
-        
-        // Clear back-buffer bounds
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // Setup internal resolution boundaries
-        canvas.width = canvas.offsetWidth;
-        canvas.height = canvas.offsetHeight;
+        canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight;
+        const w = canvas.width; const h = canvas.height;
+        const padding = 40; const beamY = h - 40; const beamLength = w - (padding * 2);
 
-        const w = canvas.width;
-        const h = canvas.height;
+        ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 6;
+        ctx.beginPath(); ctx.moveTo(padding, beamY); ctx.lineTo(w - padding, beamY); ctx.stroke();
 
-        // Render Configuration Grid Metrics
-        const padding = 40;
-        const beamY = h - 40;
-        const beamLength = w - (padding * 2);
+        ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(padding, beamY); ctx.lineTo(padding-8, beamY+12); ctx.lineTo(padding+8, beamY+12); ctx.closePath(); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(w-padding, beamY); ctx.lineTo(w-padding-8, beamY+12); ctx.lineTo(w-padding+8, beamY+12); ctx.closePath(); ctx.stroke();
 
-        // Draw Member Core Line
-        ctx.strokeStyle = '#fbbf24';
-        ctx.lineWidth = 6;
-        ctx.beginPath();
-        ctx.moveTo(padding, beamY);
-        ctx.lineTo(w - padding, beamY);
-        ctx.stroke();
-
-        // Draw Left Pinned Support Connection Triangle
-        ctx.strokeStyle = '#94a3b8';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(padding, beamY);
-        ctx.lineTo(padding - 8, beamY + 12);
-        ctx.lineTo(padding + 8, beamY + 12);
-        ctx.closePath();
-        ctx.stroke();
-
-        // Draw Right Sliding Support Base Connection
-        ctx.beginPath();
-        ctx.moveTo(w - padding, beamY);
-        ctx.lineTo(w - padding - 8, beamY + 12);
-        ctx.lineTo(w - padding + 8, beamY + 12);
-        ctx.closePath();
-        ctx.stroke();
-
-        // Draw Uniform Load Vector Profile Block (If structural load is active)
         if (load > 0) {
-            ctx.strokeStyle = '#f87171';
-            ctx.fillStyle = 'rgba(248, 113, 113, 0.15)';
-            ctx.lineWidth = 1.5;
-
-            const loadHeight = 25;
-            const loadTopY = beamY - loadHeight;
-
-            // Render continuous distribution box boundary
-            ctx.fillRect(padding, loadTopY, beamLength, loadHeight);
-            ctx.strokeRect(padding, loadTopY, beamLength, loadHeight);
-
-            // Stamp down structural indicator ticks across length step
-            const totalTicks = 8;
-            for (let i = 0; i <= totalTicks; i++) {
-                const x = padding + (beamLength * (i / totalTicks));
-                ctx.beginPath();
-                ctx.moveTo(x, loadTopY);
-                ctx.lineTo(x, beamY - 3);
-                // Arrowhead check
-                ctx.lineTo(x - 3, beamY - 7);
-                ctx.moveTo(x, beamY - 3);
-                ctx.lineTo(x + 3, beamY - 7);
-                ctx.stroke();
-            }
+            ctx.strokeStyle = '#f87171'; ctx.fillStyle = 'rgba(248, 113, 113, 0.15)'; ctx.lineWidth = 1.5;
+            ctx.fillRect(padding, beamY - 25, beamLength, 25);
+            ctx.strokeRect(padding, beamY - 25, beamLength, 25);
         }
     }
 
-    // Document Ready entry point execution state
-    window.onload = () => {
-        initDatabaseSelectors();
-        calculateBeam();
-    };
+    window.onload = () => { initSelectors(); };
 </script>
-
 </body>
 </html>
