@@ -1,0 +1,304 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Calc Book | Engineering Analysis Modules</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --accent-blue: #38bdf8;
+            --accent-wood: #fbbf24;
+            --accent-steel: #94a3b8;
+            --accent-concrete: #cbd5e1;
+            --accent-masonry: #f87171;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: #334155;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            padding: 1.5rem;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header Layout */
+        header {
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1.5rem;
+        }
+
+        header h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            letter-spacing: -0.05em;
+            color: var(--text-main);
+            margin-bottom: 0.25rem;
+        }
+
+        header p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        /* Material Tier Selector (Row 1) */
+        .material-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .mat-btn {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 1rem;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .mat-btn:hover {
+            transform: translateY(-2px);
+            border-color: var(--accent-blue);
+        }
+
+        .mat-btn.active[data-mat="wood"] { border-color: var(--accent-wood); box-shadow: 0 0 12px rgba(251, 191, 36, 0.2); }
+        .mat-btn.active[data-mat="steel"] { border-color: var(--accent-steel); box-shadow: 0 0 12px rgba(148, 163, 184, 0.2); }
+        .mat-btn.active[data-mat="concrete"] { border-color: var(--accent-concrete); box-shadow: 0 0 12px rgba(203, 213, 225, 0.2); }
+        .mat-btn.active[data-mat="masonry"] { border-color: var(--accent-masonry); box-shadow: 0 0 12px rgba(248, 113, 113, 0.2); }
+        .mat-btn.active[data-mat="composite"] { border-color: var(--accent-blue); box-shadow: 0 0 12px rgba(56, 189, 248, 0.2); }
+
+        /* Dynamic Module Grid (Row 2) */
+        .section-title {
+            font-size: 1.2rem;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .module-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 1rem;
+        }
+
+        /* Bento-Box Card Styling */
+        .module-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 160px;
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .module-card:hover {
+            transform: scale(1.02);
+            border-color: var(--accent-blue);
+            background: #243146;
+        }
+
+        .module-graphic {
+            width: 100%;
+            height: 70px;
+            background: #111827;
+            border-radius: 8px;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #475569;
+            font-size: 0.8rem;
+            border: 1px dashed #334155;
+        }
+
+        .module-info h3 {
+            font-size: 1.05rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .module-info p {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            line-height: 1.3;
+        }
+
+        .status-badge {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            font-size: 0.65rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 20px;
+            background: #292524;
+            color: #a8a29e;
+            border: 1px solid #44403c;
+        }
+
+        .status-badge.ready {
+            background: #064e3b;
+            color: #34d399;
+            border: 1px solid #047857;
+        }
+
+        /* Mobile Adjustments */
+        @media (max-width: 480px) {
+            body { padding: 1rem; }
+            .material-row { grid-template-columns: repeat(3, 1fr); }
+            .material-row .mat-btn:nth-child(4), 
+            .material-row .mat-btn:nth-child(5) { grid-column: span 1; }
+            .module-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Structural Calc Book</h1>
+        <p>Interactive verification modules & reference standards</p>
+    </header>
+
+    <div class="material-row">
+        <button class="mat-btn active" data-mat="wood">🪵 Wood</button>
+        <button class="mat-btn" data-mat="steel">🦾 Steel</button>
+        <button class="mat-btn" data-mat="concrete">🧱 Concrete</button>
+        <button class="mat-btn" data-mat="masonry">🪨 Masonry</button>
+        <button class="mat-btn" data-mat="composite">⚡ Composite</button>
+    </div>
+
+    <h2 class="section-title">Active Database: <span id="active-title" style="color: var(--accent-wood);">Wood Modules</span></h2>
+    <div class="module-grid" id="module-container">
+        </div>
+</div>
+
+<script>
+    // System Data Matrix containing structured paths, scopes, and validation tags
+    const moduleDatabase = {
+        wood: [
+            { title: "Beam Design", desc: "Flexure, Shear, and Deflection criteria mapping standard NDS rules.", badge: "Placeholder", link: "#" },
+            { title: "Compression Members", desc: "Solid column buckling capacity checking unbraced lengths & Cp.", badge: "Placeholder", link: "#" },
+            { title: "Combined Stresses", desc: "Axial compression interacting with multi-axis flexure calculations.", badge: "Placeholder", link: "#" },
+            { title: "Bearing Capacity", desc: "Compression perpendicular to grain evaluations at support joints.", badge: "Placeholder", link: "#" },
+            { title: "Mechanical Connections", desc: "Tested hardware database, dowel bolts, lag screws, and nails.", badge: "Placeholder", link: "#" }
+        ],
+        steel: [
+            { title: "Flexural Members", desc: "AISC Chapter F checks including LTB, FLB, and Web local yield limits.", badge: "Placeholder", link: "#" },
+            { title: "Compression (Columns)", desc: "AISC Chapter E elastic and inelastic torsional/flexural buckling loops.", badge: "Placeholder", link: "#" },
+            { title: "Combined Axial & Bending", desc: "AISC Chapter H interaction profile equations for HSS and W-shapes.", badge: "Placeholder", link: "#" },
+            { title: "Weld Design Matrix", desc: "Fillet and groove weld pattern capacity via elastic/IC solutions.", badge: "Placeholder", link: "#" },
+            { title: "Bolted Connection Engine", desc: "Bolt group shear vectors, plate tearout, bearing, and block shear.", badge: "Placeholder", link: "#" }
+        ],
+        concrete: [
+            { title: "Flexural Reinforcement", desc: "Singly/doubly reinforced rectangular beam structural bending limit controls.", badge: "Placeholder", link: "#" },
+            { title: "Short/Slender Columns", desc: "P-M interaction tracking paths matching ACI tied/spiral shapes.", badge: "Placeholder", link: "#" },
+            { title: "Spread Footings", desc: "Soil bearing distribution pressure balances and punching shear planes.", badge: "Placeholder", link: "#" },
+            { title: "Cantilever Retaining Walls", desc: "Overturning moments, sliding friction factor checks, heel/toe bending.", badge: "Placeholder", link: "#" },
+            { title: "Anchor Bolt Groups", desc: "ACI 318 Ch. 17 concrete breakout, pryout, side-face blowout, pullout.", badge: "Placeholder", link: "#" },
+            { title: "Rebar Development", desc: "Tension/compression development lengths, lap splices, hooked anchors.", badge: "Placeholder", link: "#" }
+        ],
+        masonry: [
+            { title: "Flexural Walls", desc: "TMS 402 out-of-plane wind/seismic masonry panel bending tracking.", badge: "Placeholder", link: "#" },
+            { title: "Axial Columns", desc: "Bearing constraints and tie reinforcement requirements for masonry pilasters.", badge: "Placeholder", link: "#" },
+            { title: "Lintel Analysis", desc: "Arching action load mapping over openings for reinforced masonry beams.", badge: "Placeholder", link: "#" },
+            { title: "Anchor Bolt Pullout", desc: "Edge distance breakouts and embedment checks in grout-filled cells.", badge: "Placeholder", link: "#" }
+        ],
+        composite: [
+            { title: "Composite Beams", desc: "Placeholder: Steel shape transformed section calculations with concrete decks.", badge: "Placeholder", link: "#" },
+            { title: "Concrete-Filled HSS", desc: "Placeholder: Axial and composite column buckling strength combinations.", badge: "Placeholder", link: "#" }
+        ]
+    };
+
+    const colorMap = {
+        wood: "var(--accent-wood)",
+        steel: "var(--accent-steel)",
+        concrete: "var(--accent-concrete)",
+        masonry: "var(--accent-masonry)",
+        composite: "var(--accent-blue)"
+    };
+
+    const container = document.getElementById('module-container');
+    const activeTitle = document.getElementById('active-title');
+    const buttons = document.querySelectorAll('.mat-btn');
+
+    function renderModules(material) {
+        // Clear old view
+        container.innerHTML = '';
+        
+        // Update Title Color System
+        activeTitle.innerText = `${material.charAt(0).toUpperCase() + material.slice(1)} Modules`;
+        activeTitle.style.color = colorMap[material];
+
+        // Populate Bento Cards
+        moduleDatabase[material].forEach(mod => {
+            const card = document.createElement('a');
+            card.className = 'module-card';
+            card.href = mod.link;
+
+            const badgeClass = mod.badge === 'Ready' ? 'status-badge ready' : 'status-badge';
+
+            card.innerHTML = `
+                <div class="status-badge ${badgeClass}">${mod.badge}</div>
+                <div class="module-graphic">
+                    ⚡ [Graphic Frame]
+                </div>
+                <div class="module-info">
+                    <h3>${mod.title}</h3>
+                    <p>${mod.desc}</p>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    // Interactive Input Event Loop
+    buttons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            buttons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderModules(btn.getAttribute('data-mat'));
+        });
+    });
+
+    // Run Initial State
+    renderModules('wood');
+</script>
+
+</body>
+</html>
