@@ -1493,24 +1493,6 @@ function onPlayerReady(event) {
     updateFeedUI();
     updateButtonStates();
 }
-
-function onPlayerStateChange(event) {
-    const silentAudio = document.getElementById('silent-audio-track');
-    if (event.data == YT.PlayerState.PLAYING) {
-        if (silentAudio && silentAudio.paused) {
-            silentAudio.play().catch(() => {});
-        }
-        if ('mediaSession' in navigator) {
-            navigator.mediaSession.playbackState = "playing";
-        }
-    } else if (event.data == YT.PlayerState.PAUSED) {
-        if ('mediaSession' in navigator) {
-            navigator.mediaSession.playbackState = "paused";
-        }
-    } else if (event.data == YT.PlayerState.ENDED) {
-        nextTrack();
-    }
-}
     
         let lastPlayedTitle = "---";
 
@@ -1572,6 +1554,24 @@ firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
 if ('mediaSession' in navigator) {
     try {
+        // Core Setup Function to bind meta and sync native platform states
+        window.updateMediaSessionState = function() {
+            if (!masterList || masterList.length === 0) return;
+            
+            // Extract current track reference cleanly without breaking indexes
+            const currentVideoId = masterList[currentIndex];
+            
+            navigator.mediaSession.metadata = new MediaMetadata({
+                title: "Live Improvised Track (" + currentVideoId + ")",
+                artist: "ARIatHOME",
+                album: "ARI AT EVERYTHING Shuffler",
+                artwork: [
+                    { src: 'https://img.youtube.com/vi/' + currentVideoId + '/maxresdefault.jpg', sizes: '1280x720', type: 'image/jpeg' }
+                ]
+            });
+        };
+
+        // Hardware Action Bindings mapped to your existing internal global routing
         navigator.mediaSession.setActionHandler('pause', () => {
             const silentAudio = document.getElementById('silent-audio-track');
             if (silentAudio) silentAudio.pause();
@@ -1581,15 +1581,50 @@ if ('mediaSession' in navigator) {
 
         navigator.mediaSession.setActionHandler('play', () => {
             const silentAudio = document.getElementById('silent-audio-track');
-            if (silentAudio) silentAudio.play().catch(() => {});
+            if (silentAudio) {
+                silentAudio.play().then(() => {
+                    navigator.mediaSession.playbackState = "playing";
+                }).catch(() => {});
+            }
             if (player && typeof player.playVideo === 'function') player.playVideo();
-            navigator.mediaSession.playbackState = "playing";
         });
 
-        navigator.mediaSession.setActionHandler('nexttrack', () => { nextTrack(); });
-        navigator.mediaSession.setActionHandler('previoustrack', () => { prevTrack(); });
+        navigator.mediaSession.setActionHandler('nexttrack', () => {
+            nextTrack(); 
+        });
+
+        navigator.mediaSession.setActionHandler('previoustrack', () => {
+            prevTrack(); 
+        });
+
     } catch (e) {
-        console.log("Hardware media control mapping deferred.");
+        console.log("Hardware media session framework failed to initialize:", e);
+    }
+}
+
+// Hook into the YouTube Player State changes to handle track switching natively
+function onPlayerStateChange(event) {
+    const silentAudio = document.getElementById('silent-audio-track');
+    
+    // Video Playing (YT API State 1)
+    if (event.data === 1) {
+        if (silentAudio && silentAudio.paused) {
+            // Attempt to keep background execution alive
+            silentAudio.play().catch(() => {});
+        }
+        if (window.updateMediaSessionState) window.updateMediaSessionState();
+        navigator.mediaSession.playbackState = "playing";
+    }
+    
+    // Video Paused (YT API State 2)
+    if (event.data === 2) {
+        if (silentAudio) silentAudio.pause();
+        navigator.mediaSession.playbackState = "paused";
+    }
+
+    // Video Ended (YT API State 0)
+    if (event.data === 0) {
+        nextTrack();
     }
 }
 </script>
