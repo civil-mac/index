@@ -1396,16 +1396,13 @@ const masterTrackMap = {
 function nextTrack() {
     if (!pool || pool.length === 0) return;
 
-    const currentVideoId = pool[currentIndex];
-    if (currentVideoId) {
-        lastPlayedTitle = masterTrackMap[currentVideoId] || `Track ID: ${currentVideoId}`;
-    }
-
+    // Advance forward linearly
     currentIndex = (currentIndex + 1) % pool.length;
 
+    // Keep Android background privileges awake
     const silentAudio = document.getElementById('silent-audio-track');
     if (silentAudio && silentAudio.paused) {
-        silentAudio.play().catch(e => console.log("Background audio refresh failed:", e));
+        silentAudio.play().catch(e => console.log("Background audio wake failed:", e));
     }
 
     playCurrentTrack();
@@ -1414,20 +1411,16 @@ function nextTrack() {
 function prevTrack() {
     if (!pool || pool.length === 0) return;
 
+    // Strict boundary block: do not roll back past the first song
     if (currentIndex === 0) return;
 
+    // Step backward linearly
     currentIndex = currentIndex - 1;
 
-    if (currentIndex === 0) {
-        lastPlayedTitle = "";
-    } else {
-        const prevVideoId = pool[currentIndex - 1];
-        lastPlayedTitle = prevVideoId ? (masterTrackMap[prevVideoId] || `Track ID: ${prevVideoId}`) : "";
-    }
-
+    // Keep Android background privileges awake
     const silentAudio = document.getElementById('silent-audio-track');
     if (silentAudio && silentAudio.paused) {
-        silentAudio.play().catch(e => console.log("Background audio refresh failed:", e));
+        silentAudio.play().catch(e => console.log("Background audio wake failed:", e));
     }
 
     playCurrentTrack();
@@ -1436,10 +1429,6 @@ function prevTrack() {
 function playCurrentTrack() {
     const videoId = pool[currentIndex];
     if (!videoId) return;
-
-    if (currentTrackTitle) {
-        lastPlayedTitle = currentTrackTitle;
-    }
     
     currentTrackTitle = masterTrackMap[videoId] || `Track ID: ${videoId}`;
     document.getElementById('info').innerText = `Track ${currentIndex + 1} of ${pool.length}`;
@@ -1448,14 +1437,16 @@ function playCurrentTrack() {
         player.loadVideoById({ videoId: videoId });
     }
 
+    // Refresh layout states
     updateFeedUI();
-    
     updateButtonStates();
 
+    // Broadcast track info to mobile lock screens
     if ('mediaSession' in navigator) {
         navigator.mediaSession.metadata = new MediaMetadata({
             title: currentTrackTitle,
             artist: "ARIatHOME",
+            album: "ARI AT EVERYTHING Custom Shuffler"
         });
     }
 }
@@ -1566,7 +1557,15 @@ function updateFeedUI() {
 
     const liPrev = document.createElement('li');
     liPrev.className = 'feed-item';
-    const displayPrevText = lastPlayedTitle ? lastPlayedTitle : "----";
+    
+    let displayPrevText = "----"; 
+    if (currentIndex > 0) {
+        const prevVideoId = pool[currentIndex - 1];
+        if (prevVideoId) {
+            displayPrevText = masterTrackMap[prevVideoId] || `Track ID: ${prevVideoId}`;
+        }
+    }
+    
     liPrev.innerHTML = `<span>Previous:</span> <span style="max-width:70%; text-align:right; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${displayPrevText}</span>`;
     feedList.appendChild(liPrev);
 
@@ -1595,7 +1594,7 @@ function updateFeedUI() {
                     navigator.mediaSession.metadata = new MediaMetadata({
                         title: currentTrackTitle || "Ari Shuffler Track",
                         artist: "Ari @Home",
-                        album: "Stream Archive Shuffler",
+                        album: " ",
                         artwork: [
                             { src: 'https://civil-mac.github.io/index/icon-512x512.png', sizes: '512x512', type: 'image/png' }
                         ]
