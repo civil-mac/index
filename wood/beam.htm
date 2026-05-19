@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>S.E. Calc Book | Wood Beam Analysis</title>
+    <title>Calc Book | Wood Beam Analysis</title>
     <style>
         :root {
             --bg-color: #0f172a;
@@ -21,9 +21,12 @@
         body { background-color: var(--bg-color); color: var(--text-main); padding: 1.5rem; min-height: 100vh; }
         .container { max-width: 1100px; margin: 0 auto; }
         
-        header { margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-color); }
+        header { margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-color); position: relative; }
+        .nav-back { display: inline-flex; align-items: center; color: var(--text-muted); text-decoration: none; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.75rem; transition: color 0.2s; text-transform: uppercase; letter-spacing: 0.05em; }
+        .nav-back:hover { color: var(--accent-wood); }
+        .nav-back span { margin-right: 0.35rem; font-size: 1.1rem; line-height: 1; }
         header h1 { font-size: 1.6rem; font-weight: 700; color: var(--text-main); }
-        header p { color: var(--text-muted); font-size: 0.9rem; }
+        header p { color: var(--text-muted); font-size: 0.9rem; margin-top: 0.15rem; }
 
         .bento-layout { display: grid; grid-template-columns: 1.2fr 1fr; gap: 1.5rem; }
         @media (max-width: 900px) { .bento-layout { grid-template-columns: 1fr; } }
@@ -62,7 +65,7 @@
 <div class="container">
     <header>
         <h1>Wood Beam Analysis Module</h1>
-        <p>Simple Span Member Verification | Exact Dimension ASD Solver</p>
+        <p>Simple Span Beam</p>
     </header>
 
     <div class="bento-layout">
