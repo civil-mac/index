@@ -1388,17 +1388,15 @@ const masterTrackMap = {
     "6SGpdb8T-q4": "Waiting for Hasan (But He Won't Respond)"
 };
     
-const masterList = Object.keys(masterTrackMap);
-    
-let pool = Object.keys(masterTrackMap); 
+const masterList = Object.keys(masterTrackMap); 
+let pool = []; 
 let currentIndex = 0;
 let currentTrackTitle = "";
 let player = null;
 
 // Fisher-Yates Shuffle Logic
 function shufflePool() {
-    pool = Object.keys(masterTrackMap);
-    
+    pool = [...masterList];
     for (let i = pool.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [pool[i], pool[j]] = [pool[j], pool[i]];
