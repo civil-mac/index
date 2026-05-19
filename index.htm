@@ -1390,56 +1390,41 @@ const masterTrackMap = {
     
 const masterList = Object.keys(masterTrackMap);
     
-let pool = [];
+let pool = Object.keys(masterTrackMap); 
 let currentIndex = 0;
 let currentTrackTitle = "";
 let player = null;
 
 // Fisher-Yates Shuffle Logic
 function shufflePool() {
-    for (let i = masterList.length - 1; i > 0; i--) {
+    pool = Object.keys(masterTrackMap);
+    
+    for (let i = pool.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
-        [masterList[i], masterList[j]] = [masterList[j], masterList[i]];
+        [pool[i], pool[j]] = [pool[j], pool[i]];
     }
     currentIndex = 0;
 }
 
-// Next Track Trigger
 function nextTrack() {
-    if (currentIndex < masterList.length - 1) {
+    if (!pool || pool.length === 0) return;
+
+    if (currentIndex < pool.length - 1) {
         currentIndex++;
     } else {
-        currentIndex = 0; // Loop back to start
+        currentIndex = 0;
     }
+    keepBackgroundAudioAlive();
     playCurrentTrack();
 }
 
-// Previous Track Trigger
 function prevTrack() {
+    if (!pool || pool.length === 0) return;
+
     if (currentIndex > 0) {
         currentIndex--;
+        keepBackgroundAudioAlive();
         playCurrentTrack();
-    }
-}
-    
-function playTrackAtCurrentIndex() {
-    const trackKey = masterList[shuffledIndices[currentTrackIndex]];
-    const track = masterTrackMap[trackKey];
-
-    if (track && player && typeof player.loadVideoById === 'function') {
-        player.loadVideoById({
-            videoId: track.id
-        });
-        
-        updateActivityFeed();
-        
-        if ('mediaSession' in navigator) {
-            navigator.mediaSession.metadata = new MediaMetadata({
-                title: track.title || "Unknown Track",
-                artist: "ARIatHOME",
-                album: " "
-            });
-        }
     }
 }
 
@@ -1449,24 +1434,42 @@ function keepBackgroundAudioAlive() {
         silentAudio.play().catch(e => console.log("Background wake-lock deferred:", e));
     }
 }
-    
+
 function playCurrentTrack() {
-    const videoId = masterList[currentIndex];
+    const videoId = pool[currentIndex];
+    if (!videoId) return;
+
+    currentTrackTitle = masterTrackMap[videoId] || `Track ID: ${videoId}`;
+
     if (player && typeof player.loadVideoById === 'function') {
         player.loadVideoById({ videoId: videoId });
     }
 
     const infoEl = document.getElementById('info');
     if (infoEl) {
-        infoEl.innerText = `Track ${currentIndex + 1} of ${masterList.length}`;
+        infoEl.innerText = `Track ${currentIndex + 1} of ${pool.length}`;
+    }
+
+    updateFeedUI();
+    updateButtonStates();
+
+    if ('mediaSession' in navigator) {
+        navigator.mediaSession.metadata = new MediaMetadata({
+            title: currentTrackTitle,
+            artist: "ARIatHOME",
+            album: "ARI AT EVERYTHING Custom Shuffler"
+        });
     }
 }
     
 function onYouTubeIframeAPIReady() {
     shufflePool(); 
     
+    const firstVideoId = pool[currentIndex];
+    currentTrackTitle = masterTrackMap[firstVideoId] || `Track ID: ${firstVideoId}`;
+    
     player = new YT.Player('player', {
-        videoId: masterList[currentIndex],
+        videoId: firstVideoId,
         playerVars: {
             'autoplay': 1,
             'controls': 1,
@@ -1474,11 +1477,8 @@ function onYouTubeIframeAPIReady() {
             'rel': 0
         },
         events: {
-            'onStateChange': (event) => {
-                if (event.data == YT.PlayerState.ENDED) {
-                    nextTrack(); 
-                }
-            }
+            'onReady': onPlayerReady,
+            'onStateChange': onPlayerStateChange
         }
     });
 }
@@ -1559,7 +1559,7 @@ function updateButtonStates() {
         }
     }
 }
-    
+
 const tag = document.createElement('script');
 tag.src = "https://www.youtube.com/iframe_api";
 const firstScriptTag = document.getElementsByTagName('script')[0];
