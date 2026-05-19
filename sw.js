@@ -10,3 +10,10 @@ self.addEventListener('fetch', (e) => {
         fetch(e.request).catch(() => caches.match(e.request))
     );
 });
+
+self.addEventListener('activate', event => {
+    event.waitUntil(self.clients.claim());
+    setInterval(() => {
+        console.log("Keep-alive baseline pulse verified.");
+    }, 25000);
+});
