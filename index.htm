@@ -1440,110 +1440,92 @@ function keepBackgroundAudioAlive() {
 }
 
 function playCurrentTrack() {
-    const videoId = pool[currentIndex];
-    if (!videoId) return;
-
-    currentTrackTitle = masterTrackMap[videoId] || `Track ID: ${videoId}`;
-
+    if (masterList.length === 0) return;
+    const videoId = masterList[currentIndex];
     if (player && typeof player.loadVideoById === 'function') {
-        player.loadVideoById({ videoId: videoId });
+        player.loadVideoById(videoId);
     }
-
-    const infoEl = document.getElementById('info');
-    if (infoEl) {
-        infoEl.innerText = `Track ${currentIndex + 1} of ${pool.length}`;
-    }
-
-    updateFeedUI();
-    updateButtonStates();
-
+    updateUI();
     if ('mediaSession' in navigator) {
         navigator.mediaSession.metadata = new MediaMetadata({
-            title: currentTrackTitle,
+            title: "Live Improvised Track (" + (currentIndex + 1) + ")",
             artist: "ARIatHOME",
-            album: "ARI AT EVERYTHING Custom Shuffler"
+            album: "ARI AT EVERYTHING Shuffler",
+            artwork: [
+                { src: 'https://img.youtube.com/vi/' + videoId + '/maxresdefault.jpg', sizes: '1280x720', type: 'image/jpeg' }
+            ]
         });
     }
 }
-    
-function onYouTubeIframeAPIReady() {
-    shufflePool(); 
-    
-    const firstVideoId = pool[currentIndex];
- 
-    currentTrackTitle = masterTrackMap[firstVideoId] || `Track ID: ${firstVideoId}`;
-    
-    player = new YT.Player('player', {
-        videoId: firstVideoId, 
-        playerVars: {
-            'autoplay': 1,
-            'controls': 1,
-            'modestbranding': 1,
-            'rel': 0
-        },
-        events: {
-            'onReady': onPlayerReady,
-            'onStateChange': onPlayerStateChange
-        }
-    });
-}
 
 function onPlayerReady(event) {
-    event.target.playVideo();
-    updateFeedUI();
-    updateButtonStates();
+    isInitialLoad = false;
+    playCurrentTrack();
 }
-    
-        let lastPlayedTitle = "---";
 
-function updateFeedUI() {
-    const feedList = document.getElementById('feed-list');
-    if (!feedList) return; 
-    feedList.innerHTML = '';
+function onPlayerStateChange(event) {
+    if (event.data === YT.PlayerState.ENDED) {
+        nextTrack();
+    } else if (event.data === YT.PlayerState.PLAYING) {
+        const silentAudio = document.getElementById('silent-audio-track');
+        if (silentAudio && silentAudio.paused) {
+            silentAudio.play().catch(() => {});
+        }
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.playbackState = "playing";
+        }
+    } else if (event.data === YT.PlayerState.PAUSED) {
+        const silentAudio = document.getElementById('silent-audio-track');
+        if (silentAudio) {
+            silentAudio.pause();
+        }
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.playbackState = "paused";
+        }
+    }
+}
 
-    const liPrev = document.createElement('li');
-    liPrev.className = 'feed-item';
-    
-    let displayPrevText = "----"; 
+function nextTrack() {
+    if (currentIndex < masterList.length - 1) {
+        currentIndex++;
+        playCurrentTrack();
+    }
+}
+
+function prevTrack() {
     if (currentIndex > 0) {
-        const prevVideoId = pool[currentIndex - 1];
-        if (prevVideoId) {
-            displayPrevText = masterTrackMap[prevVideoId] || `Track ID: ${prevVideoId}`;
-        }
-    }
-    liPrev.innerHTML = `<span>Previous:</span> <span style="max-width:70%; text-align:right; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${displayPrevText}</span>`;
-    feedList.appendChild(liPrev);
-
-    const currentText = currentTrackTitle ? currentTrackTitle : "Loading...";
-    const liCurrent = document.createElement('li');
-    liCurrent.className = 'feed-item active';
-    liCurrent.innerHTML = `<span>Now Playing:</span> <span style="max-width:70%; text-align:right; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#38bdf8;">${currentText}</span>`;
-    feedList.appendChild(liCurrent);
-
-    for (let i = 1; i <= 5; i++) {
-        const nextIdx = currentIndex + i;
-        let nextText = "---";
-        if (nextIdx < pool.length) {
-            const nextId = pool[nextIdx];
-            nextText = nextId ? (masterTrackMap[nextId] || `Track ID: ${nextId}`) : "---";
-        }
-        const liNext = document.createElement('li');
-        liNext.className = 'feed-item';
-        liNext.innerHTML = `<span>Next [${i}]:</span> <span style="max-width:70%; text-align:right; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${nextText}</span>`;
-        feedList.appendChild(liNext);
+        currentIndex--;
+        playCurrentTrack();
     }
 }
 
-function updateButtonStates() {
-    const prevButton = document.querySelector("button[onclick='prevTrack()']");
-    if (prevButton) {
-        if (currentIndex === 0) {
-            prevButton.style.opacity = "0.3";
-            prevButton.style.cursor = "not-allowed";
-        } else {
-            prevButton.style.opacity = "1.0";
-            prevButton.style.cursor = "pointer";
+function updateUI() {
+    const info = document.getElementById('info');
+    if (info) {
+        info.textContent = `Track ${currentIndex + 1} of ${masterList.length}`;
+    }
+    renderFeed();
+}
+
+function renderFeed() {
+    const feedList = document.getElementById('feed-list');
+    if (!feedList) return;
+    feedList.innerHTML = '';
+    const start = Math.max(0, currentIndex - 2);
+    const end = Math.min(masterList.length - 1, currentIndex + 2);
+    for (let i = start; i <= end; i++) {
+        const li = document.createElement('li');
+        li.className = 'feed-item';
+        if (i === currentIndex) {
+            li.classList.add('active');
         }
+        const spanTrack = document.createElement('span');
+        spanTrack.textContent = `Track #${i + 1}`;
+        const spanId = document.createElement('span');
+        spanId.textContent = masterList[i];
+        li.appendChild(spanTrack);
+        li.appendChild(spanId);
+        feedList.appendChild(li);
     }
 }
 
@@ -1552,26 +1534,27 @@ tag.src = "https://www.youtube.com/iframe_api";
 const firstScriptTag = document.getElementsByTagName('script')[0];
 firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
+function onYouTubeIframeAPIReady() {
+    player = new YT.Player('player', {
+        height: '100%',
+        width: '100%',
+        videoId: masterList[currentIndex],
+        playerVars: {
+            'autoplay': 1,
+            'controls': 1,
+            'rel': 0,
+            'modestbranding': 1,
+            'playsinline': 1
+        },
+        events: {
+            'onReady': onPlayerReady,
+            'onStateChange': onPlayerStateChange
+        }
+    });
+}
+
 if ('mediaSession' in navigator) {
     try {
-        // Core Setup Function to bind meta and sync native platform states
-        window.updateMediaSessionState = function() {
-            if (!masterList || masterList.length === 0) return;
-            
-            // Extract current track reference cleanly without breaking indexes
-            const currentVideoId = masterList[currentIndex];
-            
-            navigator.mediaSession.metadata = new MediaMetadata({
-                title: "Live Improvised Track (" + currentVideoId + ")",
-                artist: "ARIatHOME",
-                album: "ARI AT EVERYTHING Shuffler",
-                artwork: [
-                    { src: 'https://img.youtube.com/vi/' + currentVideoId + '/maxresdefault.jpg', sizes: '1280x720', type: 'image/jpeg' }
-                ]
-            });
-        };
-
-        // Hardware Action Bindings mapped to your existing internal global routing
         navigator.mediaSession.setActionHandler('pause', () => {
             const silentAudio = document.getElementById('silent-audio-track');
             if (silentAudio) silentAudio.pause();
@@ -1581,50 +1564,15 @@ if ('mediaSession' in navigator) {
 
         navigator.mediaSession.setActionHandler('play', () => {
             const silentAudio = document.getElementById('silent-audio-track');
-            if (silentAudio) {
-                silentAudio.play().then(() => {
-                    navigator.mediaSession.playbackState = "playing";
-                }).catch(() => {});
-            }
+            if (silentAudio) silentAudio.play().catch(() => {});
             if (player && typeof player.playVideo === 'function') player.playVideo();
+            navigator.mediaSession.playbackState = "playing";
         });
 
-        navigator.mediaSession.setActionHandler('nexttrack', () => {
-            nextTrack(); 
-        });
-
-        navigator.mediaSession.setActionHandler('previoustrack', () => {
-            prevTrack(); 
-        });
-
+        navigator.mediaSession.setActionHandler('nexttrack', () => { nextTrack(); });
+        navigator.mediaSession.setActionHandler('previoustrack', () => { prevTrack(); });
     } catch (e) {
         console.log("Hardware media session framework failed to initialize:", e);
-    }
-}
-
-// Hook into the YouTube Player State changes to handle track switching natively
-function onPlayerStateChange(event) {
-    const silentAudio = document.getElementById('silent-audio-track');
-    
-    // Video Playing (YT API State 1)
-    if (event.data === 1) {
-        if (silentAudio && silentAudio.paused) {
-            // Attempt to keep background execution alive
-            silentAudio.play().catch(() => {});
-        }
-        if (window.updateMediaSessionState) window.updateMediaSessionState();
-        navigator.mediaSession.playbackState = "playing";
-    }
-    
-    // Video Paused (YT API State 2)
-    if (event.data === 2) {
-        if (silentAudio) silentAudio.pause();
-        navigator.mediaSession.playbackState = "paused";
-    }
-
-    // Video Ended (YT API State 0)
-    if (event.data === 0) {
-        nextTrack();
     }
 }
 </script>
