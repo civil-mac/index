@@ -61,6 +61,10 @@
 
         .canvas-container { margin-top: 1.25rem; background: #111827; border-radius: 12px; border: 1px dashed var(--border-color); padding: 1rem; display: flex; justify-content: center; }
         canvas { width: 100%; max-width: 450px; height: 120px; }
+
+        .form-group-sub input:focus {
+        border-color: var(--accent-wood);
+        }
     </style>
 </head>
 <body>
@@ -193,35 +197,36 @@
                 </div>
             </div>
 
-           <label style="margin-bottom: 0.4rem; display: block; font-size: 0.85rem; font-weight: 500; color: var(--text-muted);">
-                Superimposed Design Loads (plf)
-            </label>
-            <div class="loads-grid-container">
-                <div class="form-group-sub">
-                    <label>Dead</label>
-                    <input type="number" id="load-d" value="200" min="0" step="1" oninput="calculateBeam()">
+        <div style="margin-top: 1.25rem;">
+                <label style="margin-bottom: 0.4rem; display: block; font-size: 0.85rem; font-weight: 500; color: var(--text-muted);">
+                    Superimposed Design Loads (plf)
+                </label>
+                <div class="loads-grid-container">
+                    <div class="form-group-sub">
+                        <label>Dead</label>
+                        <input type="number" id="load-d" value="100" min="0" step="1" oninput="calculateBeam()">
+                    </div>
+                    <div class="form-group-sub">
+                        <label>Live</label>
+                        <input type="number" id="load-l" value="200" min="0" step="1" oninput="calculateBeam()">
+                    </div>
+                    <div class="form-group-sub">
+                        <label>Snow</label>
+                        <input type="number" id="load-s" value="0" min="0" step="1" oninput="calculateBeam()">
+                    </div>
+                    <div class="form-group-sub">
+                        <label>Wind</label>
+                        <input type="number" id="load-w" value="0" min="0" step="1" oninput="calculateBeam()">
+                    </div>
+                    <div class="form-group-sub">
+                        <label>Seismic</label>
+                        <input type="number" id="load-e" value="0" min="0" step="1" oninput="calculateBeam()">
+                    </div>
                 </div>
-                <div class="form-group-sub">
-                    <label>Live</label>
-                    <input type="number" id="load-l" value="500" min="0" step="1" oninput="calculateBeam()">
-                </div>
-                <div class="form-group-sub">
-                    <label>Snow</label>
-                    <input type="number" id="load-s" value="0" min="0" step="1" oninput="calculateBeam()">
-                </div>
-                <div class="form-group-sub">
-                    <label>Wind</label>
-                    <input type="number" id="load-w" value="0" min="0" step="1" oninput="calculateBeam()">
-                </div>
-                <div class="form-group-sub">
-                    <label>Seismic</label>
-                    <input type="number" id="load-e" value="0" min="0" step="1" oninput="calculateBeam()">
+                <div class="envelope-status-bar" id="controlling-comb-display">
+                    Controlling Combination: --
                 </div>
             </div>
-            <div class="envelope-status-bar" id="controlling-comb-display">
-                Controlling Combination: --
-            </div>
-        </div>
 
         <div class="panel" style="display: flex; flex-direction: column; justify-content: space-between;">
             <div>
@@ -389,7 +394,7 @@ function calculateBeam() {
         }
     }
 
-    function drawBeamGraphic(span, load) {
+    drawBeamGraphic(span, maxLoad);
         const canvas = document.getElementById('beamCanvas');
         const ctx = canvas.getContext('2d');
         ctx.clearRect(0, 0, canvas.width, canvas.height);
