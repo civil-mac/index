@@ -532,86 +532,107 @@ function calculateBeam() {
 
     if (L_ft <= 0) return;
 
-    // 2. Pull Raw Superimposed Components (plf)
+    // 2. Extract Multi-Channel Superimposed Components (plf)
     const raw_D = parseFloat(document.getElementById('load-d').value) || 0;
     const L = parseFloat(document.getElementById('load-l').value) || 0;
     const S = parseFloat(document.getElementById('load-s').value) || 0;
     const W = parseFloat(document.getElementById('load-w').value) || 0;
     const E = parseFloat(document.getElementById('load-e').value) || 0;
 
-    // CRITICAL: Beam structural self-weight belongs strictly inside the total Dead Load channel
+    // Beam permanent self-weight maps directly to Dead Load
     const D = raw_D + beam_weight;
 
-    // 3. Define the ASCE 7 Allowable Stress Design (ASD) Load Combinations Matrix
+    // 3. ASCE 7 Allowable Stress Design (ASD) Combinations Matrix
     const combos = {
-        "Comb 1: D": D,
-        "Comb 2: D + L": D + L,
-        "Comb 3: D + S": D + S,
-        "Comb 4: D + 0.75L + 0.75S": D + (0.75 * L) + (0.75 * S),
-        "Comb 5 (Wind): D + 0.6W": D + (0.6 * W),
-        "Comb 5 (Seismic): D + 0.7E": D + (0.7 * E),
-        "Comb 6a: D + 0.75L + 0.75(0.6W) + 0.75S": D + (0.75 * L) + (0.75 * 0.6 * W) + (0.75 * S),
-        "Comb 6b: D + 0.75L + 0.75(0.7E) + 0.75S": D + (0.75 * L) + (0.75 * 0.7 * E) + (0.75 * S),
-        "Comb 7: 0.6D + 0.6W": (0.6 * D) + (0.6 * W),
-        "Comb 8: 0.6D + 0.7E": (0.6 * D) + (0.7 * E)
+        "D Only": D,
+        "D + L": D + L,
+        "D + S": D + S,
+        "D + 0.75L + 0.75S": D + (0.75 * L) + (0.75 * S),
+        "D + 0.6W": D + (0.6 * W),
+        "D + 0.7E": D + (0.7 * E),
+        "D + 0.75L + 0.75(0.6W) + 0.75S": D + (0.75 * L) + (0.75 * 0.6 * W) + (0.75 * S),
+        "D + 0.75L + 0.75(0.7E) + 0.75S": D + (0.75 * L) + (0.75 * 0.7 * E) + (0.75 * S),
+        "0.6D + 0.6W": (0.6 * D) + (0.6 * W),
+        "0.6D + 0.7E": (0.6 * D) + (0.7 * E)
     };
 
-    // 4. Run the Structural Envelope Processing Loop
+    // 4. Structural Design Envelope Processing
     let max_w_plf = 0;
     let controlling_comb_name = "";
 
-    Object.keys(combos).forEach(combName => {
-        const comb_load = combos[combName];
-        // We evaluate absolute magnitude for maximum downward gravity/uplift stress states
-        if (Math.abs(comb_load) > Math.abs(max_w_plf)) {
-            max_w_plf = comb_load;
-            controlling_comb_name = combName;
+    Object.keys(combos).forEach(name => {
+        const value = combos[name];
+        if (Math.abs(value) > Math.abs(max_w_plf)) {
+            max_w_plf = value;
+            controlling_comb_name = name;
         }
     });
 
-    // Output controlling combination name back to the user interface panel
     document.getElementById('controlling-comb-display').innerText = `Controlling Combination: ${controlling_comb_name}`;
 
-    // 5. Downstream Demand Calculations (Using the controlling max_w_plf)
+    // 5. Calculate Demands from the controlling load combo
     const M_max_lbft = (max_w_plf * L_ft * L_ft) / 8;
     const M_demand_kft = M_max_lbft / 1000;
 
-    // ... Keep your existing plastic capacity flexure checks exactly the same ...
+    const V_demand_kips = (max_w_plf * L_ft) / 2 / 1000;
+
+    // 6. AISC Steel Design Code Evaluation (Compact / Fully Braced Assumption)
     const Mn_kips_ft = (Fy * zx) / 12;
-    const Allowable_Mn_kft = Mn_kips_ft / 1.67;
+    const Allowable_Mn_kft = Mn_kips_ft / 1.67; // ASD Omega = 1.67
     const flexure_ratio = M_demand_kft / Allowable_Mn_kft;
 
-    const V_demand_kips = (max_w_plf * L_ft) / 2 / 1000;
-    const Allowable_Vn_kips = (0.6 * Fy * (d * tw)) / 1.50;
+    const Aw = d * tw;
+    const Vn_kips = 0.6 * Fy * Aw;
+    const Allowable_Vn_kips = Vn_kips / 1.50; // ASD Omega_v = 1.50
     const shear_ratio = V_demand_kips / Allowable_Vn_kips;
 
-    // 6. Precision Serviceability Engine (Deflections)
+    // 7. Precise Serviceability Analysis (Deflections)
     const E_mod = 29000; // ksi
     const L_in = L_ft * 12;
     const ll_lim = parseFloat(document.getElementById('input-ll-lim').value) || 240;
     const tl_lim = parseFloat(document.getElementById('input-tl-lim').value) || 360;
 
-    // Serviceability Check Alignment:
-    // Live Load deflection isolates the pure transient Live Load component (L)
+    // Live Load deflection isolates pure transient live input
     const w_ll_kips_in = L / 12 / 1000;
     const delta_ll = (5 * w_ll_kips_in * Math.pow(L_in, 4)) / (384 * E_mod * ix);
     const allow_delta_ll = L_in / ll_lim;
     const ll_defl_ratio = delta_ll / allow_delta_ll;
 
-    // Total Load deflection checks the combined Dead + Live service state (D + L)
-    const service_tl_plf = D + L; 
+    // Total Load deflection evaluates immediate permanent dead + transient live layout
+    const service_tl_plf = D + L;
     const w_tl_kips_in = service_tl_plf / 12 / 1000;
     const delta_tl = (5 * w_tl_kips_in * Math.pow(L_in, 4)) / (384 * E_mod * ix);
     const allow_delta_tl = L_in / tl_lim;
     const tl_defl_ratio = delta_tl / allow_delta_tl;
 
-    // 7. Push Results to UI Matrix Panels & Canvas Graphic Renderer
+    // 8. Update UI Elements
     updateMatrixRow('flexure', M_demand_kft.toFixed(3) + ' k-ft', Allowable_Mn_kft.toFixed(3) + ' k-ft', flexure_ratio);
     updateMatrixRow('shear', V_demand_kips.toFixed(3) + ' kips', Allowable_Vn_kips.toFixed(3) + ' kips', shear_ratio);
     updateMatrixRow('ll-defl', delta_ll.toFixed(3) + ' in', allow_delta_ll.toFixed(3) + ' in', ll_defl_ratio);
     updateMatrixRow('tl-defl', delta_tl.toFixed(3) + ' in', allow_delta_tl.toFixed(3) + ' in', tl_defl_ratio);
 
     drawBeamGraphic(L_ft, max_w_plf);
+}
+
+function updateMatrixRow(id, demandStr, capacityStr, ratio) {
+    const ratioEl = document.getElementById(`ratio-${id}`);
+    const mathEl = document.getElementById(`math-${id}`);
+    const pillEl = document.getElementById(`pill-${id}`);
+
+    if (!ratioEl || !mathEl || !pillEl) return;
+
+    ratioEl.innerText = ratio.toFixed(3);
+    mathEl.innerText = `Demand: ${demandStr} | Allowable: ${capacityStr}`;
+
+    if (ratio <= 1.0005) {
+        pillEl.innerText = "Pass";
+        pillEl.className = "status-pill pass";
+        ratioEl.style.color = "var(--accent-green)";
+    } else {
+        pillEl.innerText = "Fail";
+        pillEl.className = "status-pill fail";
+        ratioEl.style.color = "var(--accent-red)";
+    }
 }
 
 function updateMatrixRow(id, demandStr, capacityStr, ratio) {
