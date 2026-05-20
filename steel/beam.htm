@@ -28,33 +28,45 @@
         header h1 { font-size: 1.6rem; font-weight: 700; color: var(--text-main); }
         header p { color: var(--text-muted); font-size: 0.9rem; margin-top: 0.15rem; }
 
-        .bento-layout {
-            display: grid;
-            grid-template-columns: 1.1fr 0.9fr;
-            gap: 1.5rem;
-            align-items: start; /* Lets cards have their natural heights symmetrically */
+        .card { background-color: var(--card-bg); border-radius: 12px; padding: 1.5rem; border: 1px solid var(--border-color); }
+        .bento-layout { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 1.5rem; align-items: stretch; }
+        
+        @media (max-width: 900px) { 
+            .bento-layout { grid-template-columns: 1fr; } 
         }
 
-        @media (max-width: 900px) {
-            .bento-layout { grid-template-columns: 1fr; }
-        }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+        .form-group { display: flex; flex-direction: column; }
+        .form-group label { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.35rem; }
+        
+        .unit-container { position: relative; display: flex; align-items: center; }
+        .unit-container input { width: 100%; }
+        .unit-label { position: absolute; right: 0.75rem; color: var(--text-muted); font-size: 0.85rem; pointer-events: none; }
 
-        .canvas-container {
-            margin-top: 1.5rem;
-            background: #111827;
-            border-radius: 12px;
-            border: 1px solid var(--border-color);
-            padding: 1rem;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
+        input, select { background-color: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-main); padding: 0.6rem 0.75rem; border-radius: 6px; font-size: 0.95rem; outline: none; width: 100%; }
+        input:focus, select:focus { border-color: var(--accent-steel); }
 
-        #beamCanvas {
-            width: 100%;
-            height: 120px; /* Locks the canvas height exactly like the wood tool */
-            display: block;
-        }
+        /* Multi-Load Input Grid */
+        .loads-grid-container { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.5rem; background: #111827; padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 0.5rem; }
+        .form-group-sub { display: flex; flex-direction: column; text-align: center; }
+        .form-group-sub label { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem; font-weight: 600; }
+        .form-group-sub input { padding: 0.5rem 0.25rem; text-align: center; font-size: 0.9rem; }
+        
+        .envelope-status-bar { font-size: 0.75rem; font-family: monospace; color: var(--text-muted); padding: 0.25rem 0; }
+
+        /* Output Matrix styles matching Wood Module exactly */
+        .matrix-container { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.5rem; }
+        .matrix-row { background-color: rgba(15, 23, 42, 0.4); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.85rem 1rem; position: relative; }
+        .matrix-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem; }
+        .matrix-label { font-size: 0.95rem; font-weight: 600; }
+        .matrix-math { font-size: 0.8rem; color: var(--text-muted); font-family: monospace; }
+        
+        .status-pill { padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+        .status-pill.pass { background-color: rgba(52, 211, 153, 0.15); color: var(--accent-green); }
+        .status-pill.fail { background-color: rgba(248, 113, 113, 0.15); color: var(--accent-red); }
+
+        .canvas-container { background: #111827; border-radius: 8px; border: 1px solid var(--border-color); padding: 0.75rem; display: flex; justify-content: center; align-items: center; }
+        #beamCanvas { width: 100%; height: 110px; display: block; }
 
         .panel { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 1.5rem; }
         .panel-title { font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 1.25rem; font-weight: 600; }
@@ -165,90 +177,24 @@
 <div class="bento-layout">
         
         <div class="card">
-            </div>
-
-        <div class="card">
-                <h3 style="margin-bottom: 1rem; color: var(--accent-steel);">Analysis Results</h3>
-                <div class="matrix-container">
-                </div>
+            <h3 style="margin-bottom: 1.25rem; color: var(--accent-steel);">Beam Parameters</h3>
             
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Select Section Profile</label>
+                    <select id="matSel" onchange="updateMatProps(); calculateBeam();">
+                        </select>
                 </div>
-
-                </div> <div class="canvas-container">
-                <canvas id="beamCanvas"></canvas>
-                </div>
-                </div>
-            </div>
-
-            <label style="margin-bottom: -0.25rem;">Active Section Properties (AISC Table 1-1)</label>
-            <div class="property-grid">
-                <div class="form-group" style="margin-bottom:0;">
-                    <label>d (in)</label>
-                    <input type="number" id="prop-d" step="0.01" oninput="calculateBeam()">
-                </div>
-                <div class="form-group" style="margin-bottom:0;">
-                    <label>tw (in)</label>
-                    <input type="number" id="prop-tw" step="0.001" oninput="calculateBeam()">
-                </div>
-                <div class="form-group" style="margin-bottom:0;">
-                    <label>BF (in)</label>
-                    <input type="number" id="prop-bf" step="0.01" oninput="calculateBeam()">
-                </div>
-                <div class="form-group" style="margin-bottom:0;">
-                    <label>tf (in)</label>
-                    <input type="number" id="prop-tf" step="0.001" oninput="calculateBeam()">
-                </div>
-                <div class="form-group" style="margin-bottom:0;">
-                    <label>Ixx (in⁴)</label>
-                    <input type="number" id="prop-ix" step="0.1" oninput="calculateBeam()">
-                </div>
-                <div class="form-group" style="margin-bottom:0;">
-                    <label>Sxx (in³)</label>
-                    <input type="number" id="prop-sx" step="0.1" oninput="calculateBeam()">
-                </div>
-                <div class="form-group" style="margin-bottom:0;">
-                    <label>Zxx (in³)</label>
-                    <input type="number" id="prop-zx" step="0.1" oninput="calculateBeam()">
-                </div>
-                <div class="form-group" style="margin-bottom:0;">
-                    <label>RTS (in)</label>
-                    <input type="number" id="prop-rts" step="0.01" oninput="calculateBeam()">
-                </div>
-                <div class="form-group" style="margin-bottom:0;">
-                    <label>J (in⁴)</label>
-                    <input type="number" id="prop-j" step="0.001" oninput="calculateBeam()">
-                </div>
-                <div class="form-group" style="margin-bottom:0;">
-                    <label>Cw (in⁶)</label>
-                    <input type="number" id="prop-cw" step="0.1" oninput="calculateBeam()">
-                </div>
-                <div class="form-group" style="margin-bottom:0;">
-                    <label>ho (in)</label>
-                    <input type="number" id="prop-ho" step="0.01" oninput="calculateBeam()">
-                </div>
-                <div class="form-group" style="margin-bottom:0;">
-                    <label>Weight (plf)</label>
-                    <input type="number" id="prop-weight" step="0.1" oninput="calculateBeam()">
+                <div class="form-group">
+                    <label>Steel Yield Strength</label>
+                    <div class="unit-container">
+                        <input type="number" id="prop-fy" value="50" oninput="calculateBeam()">
+                        <span class="unit-label">ksi</span>
+                    </div>
                 </div>
             </div>
 
-            <div class="panel-subtitle">AISC ASD Safety Factors</div>
-            <div class="factors-grid">
-                <div>
-                    <label style="text-align:center; margin-bottom: 0.25rem;">Bending Safety Factor (Ωb)</label>
-                    <div class="read-only-box">1.67</div>
-                </div>
-                <div>
-                    <label style="text-align:center; margin-bottom: 0.25rem;">Shear Safety Factor (Ωv)</label>
-                    <div class="read-only-box">1.50</div>
-                </div>
-            </div>
-            <div class="engineering-notes">
-                <strong>AISC Constant Applied:</strong> Modulus of Elasticity E = 29,000 ksi and Shear Modulus G = 11,200 ksi. Global default system assumes uniform moment modification factor (Cb= 1.14).
-            </div>
-
-            <div class="panel-subtitle">Boundary Layout & Demands</div>
-            <div class="form-row" style="margin-top: 1.25rem;">
+            <div class="form-row">
                 <div class="form-group">
                     <label>Span Length</label>
                     <div class="unit-container">
@@ -267,11 +213,11 @@
 
             <div class="form-row">
                 <div class="form-group">
-                    <label>L.L. Limit (L/)</label>
+                    <label>L.L. Defl Limit (L/)</label>
                     <input type="number" id="input-ll-lim" value="240" min="1" step="1" oninput="calculateBeam()">
                 </div>
                 <div class="form-group">
-                    <label>T.L. Limit (L/)</label>
+                    <label>T.L. Defl Limit (L/)</label>
                     <input type="number" id="input-tl-lim" value="360" min="1" step="1" oninput="calculateBeam()">
                 </div>
             </div>
@@ -281,79 +227,75 @@
             </label>
             <div class="loads-grid-container">
                 <div class="form-group-sub">
-                    <label>Dead (D)</label>
+                    <label>Dead</label>
                     <input type="number" id="load-d" value="200" min="0" step="1" oninput="calculateBeam()">
                 </div>
                 <div class="form-group-sub">
-                    <label>Live (L)</label>
+                    <label>Live</label>
                     <input type="number" id="load-l" value="500" min="0" step="1" oninput="calculateBeam()">
                 </div>
                 <div class="form-group-sub">
-                    <label>Snow (S/R)</label>
+                    <label>Snow</label>
                     <input type="number" id="load-s" value="0" min="0" step="1" oninput="calculateBeam()">
                 </div>
                 <div class="form-group-sub">
-                    <label>Wind (W)</label>
+                    <label>Wind</label>
                     <input type="number" id="load-w" value="0" min="0" step="1" oninput="calculateBeam()">
                 </div>
                 <div class="form-group-sub">
-                    <label>Seismic (E)</label>
+                    <label>Seismic</label>
                     <input type="number" id="load-e" value="0" min="0" step="1" oninput="calculateBeam()">
                 </div>
             </div>
-
             <div class="envelope-status-bar" id="controlling-comb-display">
                 Controlling Combination: --
             </div>
-                </div>
+
             </div>
-        </div>
 
-        <div class="panel" style="display: flex; flex-direction: column; justify-content: space-between;">
+        <div class="card" style="display: flex; flex-direction: column; justify-content: space-between;">
             <div>
-                <h2 class="panel-title">Code Check Matrix</h2>
-                
-                <div class="report-row">
-                    <div>
-                        <span>Flexural Bending Capacity (Chapter F)</span>
-                        <span class="sub-math" id="math-flexure">--</span>
+                <h3 style="margin-bottom: 1.25rem; color: var(--accent-steel);">Analysis Results</h3>
+                <div class="matrix-container">
+                    <div class="matrix-row">
+                        <div class="matrix-header">
+                            <span class="matrix-label">Flexural Strength (Bending)</span>
+                            <span class="status-pill pass" id="pill-flexure">Pass</span>
+                        </div>
+                        <div class="matrix-header">
+                            <span class="matrix-math" id="math-flexure">Demand: -- | Allowable: --</span>
+                            <span class="matrix-label" id="ratio-flexure" style="font-family: monospace;">0.000</span>
+                        </div>
                     </div>
-                    <div style="text-align: right; display: flex; align-items: center; justify-content: flex-end;">
-                        <span class="report-values" id="ratio-flexure">0.000</span>
-                        <span class="status-pill" id="pill-flexure">Pass</span>
+                    <div class="matrix-row">
+                        <div class="matrix-header">
+                            <span class="matrix-label">Shear Strength V<sub>x</sub></span>
+                            <span class="status-pill pass" id="pill-shear">Pass</span>
+                        </div>
+                        <div class="matrix-header">
+                            <span class="matrix-math" id="math-shear">Demand: -- | Allowable: --</span>
+                            <span class="matrix-label" id="ratio-shear" style="font-family: monospace;">0.000</span>
+                        </div>
                     </div>
-                </div>
-
-                <div class="report-row">
-                    <div>
-                        <span>Web Shear Verification (Chapter G)</span>
-                        <span class="sub-math" id="math-shear">--</span>
+                    <div class="matrix-row">
+                        <div class="matrix-header">
+                            <span class="matrix-label">Live Load Deflection</span>
+                            <span class="status-pill pass" id="pill-ll-defl">Pass</span>
+                        </div>
+                        <div class="matrix-header">
+                            <span class="matrix-math" id="math-ll-defl">Demand: -- | Allowable: --</span>
+                            <span class="matrix-label" id="ratio-ll-defl" style="font-family: monospace;">0.000</span>
+                        </div>
                     </div>
-                    <div style="text-align: right; display: flex; align-items: center; justify-content: flex-end;">
-                        <span class="report-values" id="ratio-shear">0.000</span>
-                        <span class="status-pill" id="pill-shear">Pass</span>
-                    </div>
-                </div>
-
-                <div class="report-row">
-                    <div>
-                        <span>Live Load Deflection</span>
-                        <span class="sub-math" id="math-ll-defl">--</span>
-                    </div>
-                    <div style="text-align: right; display: flex; align-items: center; justify-content: flex-end;">
-                        <span class="report-values" id="ratio-ll-defl">0.000</span>
-                        <span class="status-pill" id="pill-ll-defl">Pass</span>
-                    </div>
-                </div>
-
-                <div class="report-row">
-                    <div>
-                        <span>Total Load Deflection (Inc. Self-Wt)</span>
-                        <span class="sub-math" id="math-tl-defl">--</span>
-                    </div>
-                    <div style="text-align: right; display: flex; align-items: center; justify-content: flex-end;">
-                        <span class="report-values" id="ratio-tl-defl">0.000</span>
-                        <span class="status-pill" id="pill-tl-defl">Pass</span>
+                    <div class="matrix-row">
+                        <div class="matrix-header">
+                            <span class="matrix-label">Total Load Deflection</span>
+                            <span class="status-pill pass" id="pill-tl-defl">Pass</span>
+                        </div>
+                        <div class="matrix-header">
+                            <span class="matrix-math" id="math-tl-defl">Demand: -- | Allowable: --</span>
+                            <span class="matrix-label" id="ratio-tl-defl" style="font-family: monospace;">0.000</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -364,7 +306,6 @@
         </div>
     </div>
 </div>
-
 <script>
 const steelLibrary = {
     "W27x539": { d: 32.50, tw: 1.970, bf: 15.30, tf: 3.540, ix: 25600.0, sx: 1570.0, zx: 1890.0, rts: 4.41, j: 496.000, cw: 443000.0, ho: 28.96, weight: 539.0 },
