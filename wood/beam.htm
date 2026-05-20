@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Calc Book | Wood Beam Analysis</title>
     <style>
-        :root {
+    :root {
             --bg-color: #0f172a;
             --card-bg: #1e293b;
-            --accent-wood: #38bdf8;
+            --accent-wood: #fbbf24;
             --accent-green: #34d399;
             --accent-red: #f87171;
             --text-main: #f8fafc;
@@ -299,7 +299,14 @@
         PSL20: { fb: 2400, fv: 290, ft: 1150, fcpar: 2400, fcper: 750, e: 2000, emin: 1020, density: 45 }
     };
     
-function loadMaterialProperties() {
+function initSelector() {
+        const selector = document.getElementById('input-material');
+        if (selector) {
+            updateProperties();
+        }
+    }
+
+    function updateProperties() {
         const selected = document.getElementById('input-material').value;
         const props = structuralLibrary[selected];
         if (!props) return;
@@ -313,10 +320,10 @@ function loadMaterialProperties() {
         document.getElementById('prop-emin').value = props.emin;
         document.getElementById('prop-density').value = props.density;
 
-        calculateBeam();
+        calculateRatios();
     }
 
-  function calculateBeam() {
+    function calculateRatios() {
         const span = parseFloat(document.getElementById('input-span').value) || 0;
         const b = parseFloat(document.getElementById('input-b').value) || 0;
         const d = parseFloat(document.getElementById('input-d').value) || 0;
@@ -347,17 +354,15 @@ function loadMaterialProperties() {
         for (let i = 1; i < combos.length; i++) {
             if (combos[i].w > maxCombo.w) maxCombo = combos[i];
         }
-
         const maxLoad = maxCombo.w;
-        document.getElementById('controlling-comb-display').innerText = `Controlling Combination: ${maxCombo.name} (${maxLoad.toFixed(1)} plf)`;
 
-        // Properties
+        // Active Reference Values
         const Fb = parseFloat(document.getElementById('prop-fb').value) || 0;
         const Fv = parseFloat(document.getElementById('prop-fv').value) || 0;
         const E_ksi = parseFloat(document.getElementById('prop-e').value) || 0;
-        const E_psi = E_ksi * 1000; // E input is in ksi
+        const E_psi = E_ksi * 1000;
 
-        // NDS Adjustments
+        // Adjustment Factors
         const CD = parseFloat(document.getElementById('factor-cd').value) || 1.0;
         const CM = parseFloat(document.getElementById('factor-cm').value) || 1.0;
         const Ct = parseFloat(document.getElementById('factor-ct').value) || 1.0;
@@ -370,45 +375,74 @@ function loadMaterialProperties() {
         const Fb_adj = Fb * CD * CM * Ct * CL * Cf * Ci * Cr;
         const Fv_adj = Fv * CD * CM * Ct * Ci;
 
-        // Section Modulus calculations for dimensional wood
+        // Section Properties
         const Area = b * d;
         const Sx = (b * d * d) / 6;
         const Ix_geom = (b * d * d * d) / 12;
 
-        // Bending check
+        // 1. Flexural Capacity Check
         const M_demand = (maxLoad * span * span) / 8; // lb-ft
         const M_capacity = (Fb_adj * Sx) / 12; // lb-ft
         const r_flexure = M_demand / (M_capacity || 1);
 
-        document.getElementById('math-flexure').innerHTML = `M<sub>max</sub> = ${(M_demand/1000).toFixed(2)} k-ft &nbsp;|&nbsp; M<sub>cap</sub> = ${(M_capacity/1000).toFixed(2)} k-ft`;
-        updateRowStatus('flexure', r_flexure);
-
-        // Shear check at distance 'd'
+        // 2. Shear Capacity Check (at distance d from support face)
         const w_lbs_in = maxLoad / 12;
         const V_max = (maxLoad * span) / 2;
         const V_demand = V_max - (w_lbs_in * d);
         const V_capacity = (2 / 3) * Fv_adj * Area;
         const r_shear = V_demand / (V_capacity || 1);
 
-        document.getElementById('math-shear').innerHTML = `V<sub>d</sub> = ${(V_demand/1000).toFixed(2)} k &nbsp;|&nbsp; V<sub>cap</sub> = ${(V_capacity/1000).toFixed(2)} k`;
-        updateRowStatus('shear', r_shear);
-
-        // Live Load Deflection (5wL^4 / 384EI)
+        // 3. Deflection Checks
         const Δ_ll_demand = (5 * (L / 12) * Math.pow(span * 12, 4)) / (384 * E_psi * Ix_geom);
         const Δ_ll_cap = (span * 12) / llLim;
         const r_ll = Δ_ll_demand / (Δ_ll_cap || 1);
-        document.getElementById('math-ll-defl').innerHTML = `Δ<sub>LL</sub> = ${Δ_ll_demand.toFixed(3)} in &nbsp;|&nbsp; Limit = L/${llLim} (${Δ_ll_cap.toFixed(2)} in)`;
-        updateRowStatus('ll-defl', r_ll);
 
-        // Total Load Deflection
         const wService = D + L + S;
         const Δ_tl_demand = (5 * (wService / 12) * Math.pow(span * 12, 4)) / (384 * E_psi * Ix_geom);
         const Δ_tl_cap = (span * 12) / tlLim;
         const r_tl = Δ_tl_demand / (Δ_tl_cap || 1);
-        document.getElementById('math-tl-defl').innerHTML = `Δ<sub>TL</sub> = ${Δ_tl_demand.toFixed(3)} in &nbsp;|&nbsp; Limit = L/${tlLim} (${Δ_tl_cap.toFixed(2)} in)`;
-        updateRowStatus('tl-defl', r_tl);
 
-        drawBeamGraphic(span, maxLoad);
+        // Push everything out to the screen
+        updateUI({
+            maxComboName: maxCombo.name,
+            maxLoad: maxLoad,
+            M_demand: M_demand,
+            M_capacity: M_capacity,
+            r_flexure: r_flexure,
+            V_demand: V_demand,
+            V_capacity: V_capacity,
+            r_shear: r_shear,
+            Δ_ll_demand: Δ_ll_demand,
+            Δ_ll_cap: Δ_ll_cap,
+            llLim: llLim,
+            r_ll: r_ll,
+            Δ_tl_demand: Δ_tl_demand,
+            Δ_tl_cap: Δ_tl_cap,
+            tlLim: tlLim,
+            r_tl: r_tl,
+            span: span
+        });
+    }
+
+function updateUI(data) {
+        document.getElementById('controlling-comb-display').innerText = `Controlling Combination: ${data.maxComboName} (${data.maxLoad.toFixed(1)} plf)`;
+
+        // Flexure Element Injection
+        document.getElementById('math-flexure').innerHTML = `M<sub>max</sub> = ${(data.M_demand/1000).toFixed(2)} k-ft &nbsp;|&nbsp; M<sub>cap</sub> = ${(data.M_capacity/1000).toFixed(2)} k-ft`;
+        updateRowStatus('flexure', data.r_flexure);
+
+        // Shear Element Injection
+        document.getElementById('math-shear').innerHTML = `V<sub>d</sub> = ${(data.V_demand/1000).toFixed(2)} k &nbsp;|&nbsp; V<sub>cap</sub> = ${(data.V_capacity/1000).toFixed(2)} k`;
+        updateRowStatus('shear', data.r_shear);
+
+        // Deflection Elements Injection
+        document.getElementById('math-ll-defl').innerHTML = `Δ<sub>LL</sub> = ${data.Δ_ll_demand.toFixed(3)} in &nbsp;|&nbsp; Limit = L/${data.llLim} (${data.Δ_ll_cap.toFixed(2)} in)`;
+        updateRowStatus('ll-defl', data.r_ll);
+
+        document.getElementById('math-tl-defl').innerHTML = `Δ<sub>TL</sub> = ${data.Δ_tl_demand.toFixed(3)} in &nbsp;|&nbsp; Limit = L/${data.tlLim} (${data.Δ_tl_cap.toFixed(2)} in)`;
+        updateRowStatus('tl-defl', data.r_tl);
+
+        drawBeamGraphic(data.span, data.maxLoad);
     }
 
     function updateRowStatus(id, ratio) {
@@ -418,13 +452,17 @@ function loadMaterialProperties() {
         ratioEl.innerText = ratio.toFixed(3);
         
         if (ratio <= 1.0) {
-            pillEl.innerText = "Pass"; pillEl.className = "status-pill pass"; ratioEl.style.color = "var(--accent-green)";
+            pillEl.innerText = "Pass"; 
+            pillEl.className = "status-pill pass"; 
+            ratioEl.style.color = "var(--accent-green)";
         } else {
-            pillEl.innerText = "Fail"; pillEl.className = "status-pill fail"; ratioEl.style.color = "var(--accent-red)";
+            pillEl.innerText = "Fail"; 
+            pillEl.className = "status-pill fail"; 
+            ratioEl.style.color = "var(--accent-red)";
         }
     }
 
-    function drawBeamGraphic(span, load) {
+function drawBeamGraphic(span, load) {
         const canvas = document.getElementById('beamCanvas');
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
@@ -440,7 +478,7 @@ function loadMaterialProperties() {
 
         ctx.clearRect(0, 0, w, h);
 
-        // Draw Wood Beam (Yellow Theme Accent)
+        // Warm Amber Beam Accent (#fbbf24)
         ctx.strokeStyle = '#fbbf24'; 
         ctx.lineWidth = 6;
         ctx.beginPath(); 
@@ -448,13 +486,13 @@ function loadMaterialProperties() {
         ctx.lineTo(w - padding, beamY); 
         ctx.stroke();
 
-        // Pin Supports
+        // Standard Supports
         ctx.strokeStyle = '#94a3b8'; 
         ctx.lineWidth = 2;
         ctx.beginPath(); ctx.moveTo(padding, beamY); ctx.lineTo(padding-8, beamY+12); ctx.lineTo(padding+8, beamY+12); ctx.closePath(); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(w-padding, beamY); ctx.lineTo(w-padding-8, beamY+12); ctx.lineTo(w-padding+8, beamY+12); ctx.closePath(); ctx.stroke();
 
-        // Load Diagram
+        // Uniform Distributed Load Diagram
         if (load > 0) {
             ctx.strokeStyle = '#f87171'; 
             ctx.fillStyle = 'rgba(248, 113, 113, 0.15)'; 
@@ -474,12 +512,12 @@ function loadMaterialProperties() {
         ctx.fillText(`${span} ft`, w / 2, beamY + 30);
     }
 
-    window.addEventListener('resize', calculateBeam);
+    window.addEventListener('resize', calculateRatios);
     
-    // Core Fix: Initializing using the actual function name
     window.onload = function() {
-        loadMaterialProperties();
+        initSelector();
     };
+</script>
 </script>
 </body>
 </html>
