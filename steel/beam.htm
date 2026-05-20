@@ -185,13 +185,21 @@
                     <select id="matSel" onchange="updateMatProps(); calculateBeam();">
                         </select>
                 </div>
-                <div class="form-group">
+  <div class="form-group">
                     <label>Steel Yield Strength</label>
                     <div class="unit-container">
                         <input type="number" id="prop-fy" value="50" oninput="calculateBeam()">
                         <span class="unit-label">ksi</span>
                     </div>
                 </div>
+            </div>
+
+            <div id="properties-display" style="margin-top: -0.25rem; margin-bottom: 1rem; background: rgba(15, 23, 42, 0.6); padding: 0.85rem; border-radius: 8px; border: 1px solid var(--border-color); font-family: monospace; font-size: 0.85rem; display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem 1rem;">
+                <div>d: <span id="lbl-d" style="color: var(--accent-steel);">--</span> in</div>
+                <div>tw: <span id="lbl-tw" style="color: var(--accent-steel);">--</span> in</div>
+                <div>Ix: <span id="lbl-ix" style="color: var(--accent-steel);">--</span> in⁴</div>
+                <div>Zx: <span id="lbl-zx" style="color: var(--accent-steel);">--</span> in³</div>
+                <div style="grid-column: span 2;">Weight: <span id="lbl-weight" style="color: var(--accent-steel);">--</span> plf</div>
             </div>
 
             <div class="form-row">
@@ -250,6 +258,13 @@
             <div class="envelope-status-bar" id="controlling-comb-display">
                 Controlling Combination: --
             </div>
+
+            <input type="hidden" id="prop-d" value="12.2">
+            <input type="hidden" id="prop-tw" value="0.23">
+            <input type="hidden" id="prop-ix" value="204">
+            <input type="hidden" id="prop-zx" value="33.4">
+            <input type="hidden" id="prop-weight" value="26">
+        </div>
 
             </div>
 
@@ -709,6 +724,12 @@ function updateMatrixRow(id, demandStr, capacityStr, ratio) {
     }
 
     window.onload = () => { initSelectors(); };
+
+    // Force the UI property display labels to populate immediately on startup
+document.addEventListener("DOMContentLoaded", function() {
+    updateMatProps();
+    calculateBeam();
+});
 </script>
 </body>
 </html>
