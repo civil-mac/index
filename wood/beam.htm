@@ -86,8 +86,8 @@
                 <div class="form-group">
                     <label>Library Presets</label>
                     <select id="input-material" onchange="updateProperties()">
-                        <option value="DF2">Douglas Fir-Larch No. 2</option>
                         <option value="SPF2">S-P-F No. 2</option>
+                        <option value="DF2">Douglas Fir-Larch No. 2</option>
                         <option value="LVL20">Versa-Lam LVL 2.0E</option>
                         <option value="PSL20">Parallam PSL 2.0E</option>
                     </select>
@@ -173,21 +173,21 @@
                 <div class="form-group">
                     <label>Span Length</label>
                     <div class="unit-container">
-                        <input type="number" id="input-span" value="12" min="0.01" step="0.01" oninput="calculateRatios()">
+                        <input type="number" id="input-span" value="10" min="0.01" step="0.25" oninput="calculateRatios()">
                         <span class="unit-label">ft</span>
                     </div>
                 </div>
                 <div class="form-group">
                     <label>Exact Width (b)</label>
                     <div class="unit-container">
-                        <input type="number" id="input-b" value="1.75" min="0.01" step="0.01" oninput="calculateRatios()">
+                        <input type="number" id="input-b" value="1.5" min="0.01" step="0.25" oninput="calculateRatios()">
                         <span class="unit-label">in</span>
                     </div>
                 </div>
                 <div class="form-group">
                     <label>Exact Depth (d)</label>
                     <div class="unit-container">
-                        <input type="number" id="input-d" value="11.25" min="0.01" step="0.01" oninput="calculateRatios()">
+                        <input type="number" id="input-d" value="9.25" min="0.01" step="0.25" oninput="calculateRatios()">
                         <span class="unit-label">in</span>
                     </div>
                 </div>
@@ -210,11 +210,11 @@
             <div class="loads-grid-container">
                 <div class="form-group-sub">
                     <label>Dead</label>
-                    <input type="number" id="load-d" value="200" min="0" step="1" oninput="calculateRatios()">
+                    <input type="number" id="load-d" value="20" min="0" step="1" oninput="calculateRatios()">
                 </div>
                 <div class="form-group-sub">
                     <label>Live</label>
-                    <input type="number" id="load-l" value="500" min="0" step="1" oninput="calculateRatios()">
+                    <input type="number" id="load-l" value="53.333" min="0" step="0.001" oninput="calculateRatios()">
                 </div>
                 <div class="form-group-sub">
                     <label>Snow</label>
@@ -292,8 +292,8 @@
 
 <script>
     const structuralLibrary = {
-        DF2:   { fb: 900,  fv: 180, ft: 575,  fcpar: 1350, fcper: 625, e: 1600, emin: 580,  density: 35 },
         SPF2:  { fb: 875,  fv: 135, ft: 450,  fcpar: 1150, fcper: 425, e: 1400, emin: 510,  density: 28 },
+        DF2:   { fb: 900,  fv: 180, ft: 575,  fcpar: 1350, fcper: 625, e: 1600, emin: 580,  density: 35 },
         LVL20: { fb: 2600, fv: 285, ft: 1200, fcpar: 2500, fcper: 750, e: 2000, emin: 1020, density: 42 },
         PSL20: { fb: 2400, fv: 290, ft: 1150, fcpar: 2400, fcper: 750, e: 2000, emin: 1020, density: 45 }
     };
