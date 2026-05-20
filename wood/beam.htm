@@ -193,35 +193,33 @@
                 </div>
             </div>
 
-            <div style="margin-top: 1.25rem;">
-                <label style="margin-bottom: 0.4rem; display: block; font-size: 0.85rem; font-weight: 500; color: var(--text-muted);">
-                    Superimposed Design Loads (plf)
-                </label>
-                <div class="loads-grid-container">
-                    <div class="form-group-sub">
-                        <label>Dead</label>
-                        <input type="number" id="load-d" value="100" min="0" step="1" oninput="calculateBeam()">
-                    </div>
-                    <div class="form-group-sub">
-                        <label>Live</label>
-                        <input type="number" id="load-l" value="200" min="0" step="1" oninput="calculateBeam()">
-                    </div>
-                    <div class="form-group-sub">
-                        <label>Snow</label>
-                        <input type="number" id="load-s" value="0" min="0" step="1" oninput="calculateBeam()">
-                    </div>
-                    <div class="form-group-sub">
-                        <label>Wind</label>
-                        <input type="number" id="load-w" value="0" min="0" step="1" oninput="calculateBeam()">
-                    </div>
-                    <div class="form-group-sub">
-                        <label>Seismic</label>
-                        <input type="number" id="load-e" value="0" min="0" step="1" oninput="calculateBeam()">
-                    </div>
+           <label style="margin-bottom: 0.4rem; display: block; font-size: 0.85rem; font-weight: 500; color: var(--text-muted);">
+                Superimposed Design Loads (plf)
+            </label>
+            <div class="loads-grid-container">
+                <div class="form-group-sub">
+                    <label>Dead</label>
+                    <input type="number" id="load-d" value="200" min="0" step="1" oninput="calculateBeam()">
                 </div>
-                <div class="envelope-status-bar" id="controlling-comb-display">
-                    Controlling Combination: --
+                <div class="form-group-sub">
+                    <label>Live</label>
+                    <input type="number" id="load-l" value="500" min="0" step="1" oninput="calculateBeam()">
                 </div>
+                <div class="form-group-sub">
+                    <label>Snow</label>
+                    <input type="number" id="load-s" value="0" min="0" step="1" oninput="calculateBeam()">
+                </div>
+                <div class="form-group-sub">
+                    <label>Wind</label>
+                    <input type="number" id="load-w" value="0" min="0" step="1" oninput="calculateBeam()">
+                </div>
+                <div class="form-group-sub">
+                    <label>Seismic</label>
+                    <input type="number" id="load-e" value="0" min="0" step="1" oninput="calculateBeam()">
+                </div>
+            </div>
+            <div class="envelope-status-bar" id="controlling-comb-display">
+                Controlling Combination: --
             </div>
         </div>
 
