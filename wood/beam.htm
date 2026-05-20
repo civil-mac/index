@@ -292,14 +292,30 @@
     </div>
 </div>
 <script>
-    const structuralLibrary = {
  const materialLibrary = {
         DF2:   { fb: 900,  fv: 180, ft: 575,  fcpar: 1350, fcper: 625, e: 1600, emin: 580,  density: 35 },
         SPF2:  { fb: 875,  fv: 135, ft: 450,  fcpar: 1150, fcper: 425, e: 1400, emin: 510,  density: 28 },
         LVL20: { fb: 2600, fv: 285, ft: 1200, fcpar: 2500, fcper: 750, e: 2000, emin: 1020, density: 42 },
         PSL20: { fb: 2400, fv: 290, ft: 1150, fcpar: 2400, fcper: 750, e: 2000, emin: 1020, density: 45 }
     };
+    
+function initSelector() {
+        const selected = document.getElementById('input-material').value;
+        const props = structuralLibrary[selected];
+        if (!props) return;
 
+        document.getElementById('prop-fb').value = props.fb;
+        document.getElementById('prop-fv').value = props.fv;
+        document.getElementById('prop-ft').value = props.ft;
+        document.getElementById('prop-fcpar').value = props.fcpar;
+        document.getElementById('prop-fcper').value = props.fcper;
+        document.getElementById('prop-e').value = props.e;
+        document.getElementById('prop-emin').value = props.emin;
+        document.getElementById('prop-density').value = props.density;
+
+        calculateBeam();
+    }
+    
   function loadMaterialProperties() {
         const selected = document.getElementById('input-material').value;
         const props = materialLibrary[selected];
@@ -317,10 +333,13 @@
         calculateBeam();
     }
 
-    function calculateBeam() {
+   function calculateBeam() {
         const span = parseFloat(document.getElementById('input-span').value) || 0;
-        const b = parseFloat(document.getElementById('input-b').value) || 0;
-        const d = parseFloat(document.getElementById('input-d').value) || 0;
+        const Ix = parseFloat(document.getElementById('prop-ix').value) || 0;
+        const Zx = parseFloat(document.getElementById('prop-zx').value) || 0;
+        const d = parseFloat(document.getElementById('prop-d').value) || 0;
+        const tw = parseFloat(document.getElementById('prop-tw').value) || 0;
+        const Fy = parseFloat(document.getElementById('prop-fy').value) || 50;
 
         const D = parseFloat(document.getElementById('load-d').value) || 0;
         const L = parseFloat(document.getElementById('load-l').value) || 0;
@@ -328,20 +347,17 @@
         const W = parseFloat(document.getElementById('load-w').value) || 0;
         const E = parseFloat(document.getElementById('load-e').value) || 0;
 
-        const llLim = parseFloat(document.getElementById('input-ll-lim').value) || 240;
-        const tlLim = parseFloat(document.getElementById('input-tl-lim').value) || 360;
+        const llLim = parseFloat(document.getElementById('input-ll-lim').value) || 360;
+        const tlLim = parseFloat(document.getElementById('input-tl-lim').value) || 240;
 
-        // Wood ASD Combination Envelopes
+        // ASD Combinations
         const combos = [
-            { name: "D",             w: D },
-            { name: "D + L",         w: D + L },
-            { name: "D + S",         w: D + S },
-            { name: "D + (L or S)",  w: D + Math.max(L, S) },
-            { name: "D + 0.6W",      w: D + 0.6 * W },
-            { name: "D + 0.7E",      w: D + 0.7 * E },
-            { name: "D + L + 0.6W",  w: D + L + 0.6 * W },
-            { name: "D + L + S",     w: D + L + S },
-            { name: "D + L + 0.7E",  w: D + L + 0.7 * E }
+            { name: "D",            w: D },
+            { name: "D + L",        w: D + L },
+            { name: "D + S",        w: D + S },
+            { name: "D + 0.6W",     w: D + 0.6 * W },
+            { name: "D + 0.7E",     w: D + 0.7 * E },
+            { name: "D + L + S",    w: D + L + S }
         ];
 
         let maxCombo = combos[0];
@@ -352,48 +368,26 @@
         const maxLoad = maxCombo.w;
         document.getElementById('controlling-comb-display').innerText = `Controlling Combination: ${maxCombo.name} (${maxLoad.toFixed(1)} plf)`;
 
-        // Properties
-        const Fb = parseFloat(document.getElementById('prop-fb').value) || 0;
-        const Fv = parseFloat(document.getElementById('prop-fv').value) || 0;
-        const E_ksi = parseFloat(document.getElementById('prop-e').value) || 0;
-        const E_psi = E_ksi * 1000 * 1000;
-
-        // Factors
-        const CD = parseFloat(document.getElementById('factor-cd').value) || 1.0;
-        const CM = parseFloat(document.getElementById('factor-cm').value) || 1.0;
-        const Ct = parseFloat(document.getElementById('factor-ct').value) || 1.0;
-        const CL = parseFloat(document.getElementById('factor-cl').value) || 1.0;
-        const Cf = parseFloat(document.getElementById('factor-cf').value) || 1.0;
-        const Cfu = parseFloat(document.getElementById('factor-cfu').value) || 1.0;
-        const Ci = parseFloat(document.getElementById('factor-ci').value) || 1.0;
-        const Cr = parseFloat(document.getElementById('factor-cr').value) || 1.0;
-
-        const Fb_adj = Fb * CD * CM * Ct * CL * Cf * Ci * Cr;
-        const Fv_adj = Fv * CD * CM * Ct * Ci;
-
-        const Area = b * d;
-        const Sx = (b * d * d) / 6;
-        const Ix = (b * d * d * d) / 12;
-
-        // Bending
+        // Flexure Check (ASD Omega = 1.67)
         const M_demand = (maxLoad * span * span) / 8; // lb-ft
-        const M_capacity = (Fb_adj * Sx) / 12; // lb-ft
+        const Mn = (Fy * 1000 * Zx) / 12; // lb-ft
+        const M_capacity = Mn / 1.67; // lb-ft
         const r_flexure = M_demand / (M_capacity || 1);
 
         document.getElementById('math-flexure').innerHTML = `M<sub>max</sub> = ${(M_demand/1000).toFixed(2)} k-ft &nbsp;|&nbsp; M<sub>cap</sub> = ${(M_capacity/1000).toFixed(2)} k-ft`;
         updateRowStatus('flexure', r_flexure);
 
-        // Shear
-        const w_lbs_in = maxLoad / 12;
-        const V_max = (maxLoad * span) / 2;
-        const V_demand = V_max - (w_lbs_in * d);
-        const V_capacity = (2 / 3) * Fv_adj * Area;
+        // Shear Check (ASD Omega = 1.50)
+        const V_demand = (maxLoad * span) / 2; // lbs
+        const Vn = 0.6 * Fy * 1000 * d * tw; // lbs
+        const V_capacity = Vn / 1.50; // lbs
         const r_shear = V_demand / (V_capacity || 1);
 
-        document.getElementById('math-shear').innerHTML = `V<sub>d</sub> = ${(V_demand/1000).toFixed(2)} k &nbsp;|&nbsp; V<sub>cap</sub> = ${(V_capacity/1000).toFixed(2)} k`;
+        document.getElementById('math-shear').innerHTML = `V<sub>max</sub> = ${(V_demand/1000).toFixed(2)} k &nbsp;|&nbsp; V<sub>cap</sub> = ${(V_capacity/1000).toFixed(2)} k`;
         updateRowStatus('shear', r_shear);
 
-        // Deflections
+        // Deflections (E = 29,000 ksi)
+        const E_psi = 29000 * 1000;
         const Δ_ll_demand = (5 * (L / 12) * Math.pow(span * 12, 4)) / (384 * E_psi * Ix);
         const Δ_ll_cap = (span * 12) / llLim;
         const r_ll = Δ_ll_demand / (Δ_ll_cap || 1);
@@ -410,7 +404,7 @@
         drawBeamGraphic(span, maxLoad);
     }
 
-    function updateRowStatus(id, ratio) {
+function updateRowStatus(id, ratio) {
         const ratioEl = document.getElementById(`ratio-${id}`);
         const pillEl = document.getElementById(`pill-${id}`);
         
@@ -423,7 +417,7 @@
         }
     }
 
-    function drawBeamGraphic(span, load) {
+function drawBeamGraphic(span, load) {
         const canvas = document.getElementById('beamCanvas');
         const ctx = canvas.getContext('2d');
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -431,7 +425,7 @@
         const w = canvas.width; const h = canvas.height;
         const padding = 40; const beamY = h - 40; const beamLength = w - (padding * 2);
 
-        ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 6;
+        ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 6;
         ctx.beginPath(); ctx.moveTo(padding, beamY); ctx.lineTo(w - padding, beamY); ctx.stroke();
 
         ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 2;
@@ -454,9 +448,7 @@
     }
 
     window.addEventListener('resize', calculateBeam);
-    
-    // Initialize default preset on load
-    loadMaterialProperties();
+    initSelector();
 </script>
 </body>
 </html>
