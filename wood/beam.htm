@@ -298,15 +298,6 @@
         PSL20: { fb: 2400, fv: 290, ft: 1150, fcpar: 2400, fcper: 750, e: 2000, emin: 1020, density: 45 }
     };
 
-    function initSelectors() {
-        const matSel = document.getElementById('input-material');
-        matSel.innerHTML = '';
-        Object.keys(structuralLibrary).forEach(mat => {
-            matSel.options[matSel.options.length] = new Option(mat, mat);
-        });
-        loadMaterialProperties();
-    }
-
   function loadMaterialProperties() {
         const selected = document.getElementById('input-material').value;
         const props = materialLibrary[selected];
