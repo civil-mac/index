@@ -495,107 +495,104 @@ function initSelectors() {
         calculateBeam();
     }
 
-    function calculateBeam() {
-        const L_ft = Math.max(0.01, parseFloat(document.getElementById('input-span').value) || 0);
-        let Lb_ft = parseFloat(document.getElementById('input-lb').value) || 0;
-        if(Lb_ft > L_ft) Lb_ft = L_ft; // Cap unbraced profile to physical span limit
-        
-        const ll_lim = Math.max(1, parseFloat(document.getElementById('input-ll-lim').value) || 1);
-        const tl_lim = Math.max(1, parseFloat(document.getElementById('input-tl-lim').value) || 1);
-        const w_super_plf = Math.max(0, parseFloat(document.getElementById('input-load').value) || 0);
+function calculateBeam() {
+    // 1. Pull Inputs from DOM
+    const L_ft = parseFloat(document.getElementById('input-span').value) || 0;
+    const Lb_ft = parseFloat(document.getElementById('input-lb').value) || 0;
+    const w_input_plf = parseFloat(document.getElementById('input-load').value) || 0;
+    
+    const Fy = parseFloat(document.getElementById('prop-fy').value) || 50;
+    const d = parseFloat(document.getElementById('prop-d').value) || 0;
+    const tw = parseFloat(document.getElementById('prop-tw').value) || 0;
+    const bf = parseFloat(document.getElementById('prop-bf').value) || 0;
+    const tf = parseFloat(document.getElementById('prop-tf').value) || 0;
+    const ix = parseFloat(document.getElementById('prop-ix').value) || 0;
+    const sx = parseFloat(document.getElementById('prop-sx').value) || 0;
+    const zx = parseFloat(document.getElementById('prop-zx').value) || 0;
+    const beam_weight = parseFloat(document.getElementById('prop-weight').value) || 0;
 
-        // Extract Material Specs
-        const Fy = parseFloat(document.getElementById('prop-fy').value) || 50;
-        const d = parseFloat(document.getElementById('prop-d').value) || 0;
-        const tw = parseFloat(document.getElementById('prop-tw').value) || 0;
-        const bf = parseFloat(document.getElementById('prop-bf').value) || 0;
-        const tf = parseFloat(document.getElementById('prop-tf').value) || 0;
-        const ix = parseFloat(document.getElementById('prop-ix').value) || 0;
-        const sx = parseFloat(document.getElementById('prop-sx').value) || 0;
-        const zx = parseFloat(document.getElementById('prop-zx').value) || 0;
-        const rts = parseFloat(document.getElementById('prop-rts').value) || 0;
-        const j = parseFloat(document.getElementById('prop-j').value) || 0;
-        const cw = parseFloat(document.getElementById('prop-cw').value) || 0;
-        const ho = parseFloat(document.getElementById('prop-ho').value) || 0;
-        const weight = parseFloat(document.getElementById('prop-weight').value) || 0;
+    const ll_lim = parseFloat(document.getElementById('input-ll-lim').value) || 240;
+    const tl_lim = parseFloat(document.getElementById('input-tl-lim').value) || 360;
 
-        const w_total_plf = w_super_plf + weight;
-        const L_in = L_ft * 12;
-        const Lb_in = Lb_ft * 12;
+    if (L_ft <= 0) return;
 
-        // --- MOMENT CAPACITY (AISC Chapter F) ---
-        const M_max_kipft = (w_total_plf * L_ft * L_ft) / 8 / 1000;
-        const M_max_kipin = M_max_kipft * 12;
+    // 2. Combine Superimposed Load + Beam Self-Weight
+    const total_w_plf = w_input_plf + beam_weight;
 
-        const Mp = Fy * zx; // Plastic Yield limit state
-        let Mn = Mp;
-        let stateNote = "Yielding";
+    // 3. Flexural Bending Calculations (AISC Chapter F)
+    // ASD Design Moment Demand
+    const M_max_lbft = (total_w_plf * L_ft * L_ft) / 8;
+    const M_demand_kft = M_max_lbft / 1000;
 
-        // Calculate limits for Compact Unbraced Profiles (F2)
-        const Lp = 1.76 * rts * Math.sqrt(E / Fy);
-        const c = 1.0; // For symmetric I-shapes
-        const Lr = 1.95 * rts * (E / (0.7 * Fy)) * Math.sqrt((j * c / (sx * ho)) + Math.sqrt(Math.pow(j * c / (sx * ho), 2) + 6.76 * Math.pow((0.7 * Fy) / E, 2)));
+    // Nominal Plastic Flexural Capacity (Assuming Compact Section, Lb = 0)
+    // Mn = Fy * Zx
+    const Mn_kips_in = Fy * zx;
+    const Mn_kips_ft = Mn_kips_in / 12;
+    
+    // Allowable Flexural Strength (ASD: Omega = 1.67)
+    const Omega_b = 1.67;
+    const Allowable_Mn_kft = Mn_kips_ft / Omega_b;
 
-        if (Lb_in > Lp) {
-            if (Lb_in <= Lr) {
-                // Inelastic Lateral-Torsional Buckling Line
-                Mn = Cb * (Mp - (Mp - 0.7 * Fy * sx) * ((Lb_in - Lp) / (Lr - Lp)));
-                Mn = Math.min(Mp, Mn);
-                stateNote = "Inelastic LTB";
-            } else {
-                // Elastic Lateral-Torsional Buckling Line
-                const Fcr = (Cb * Math.PI * Math.PI * E / Math.pow(Lb_in / rts, 2)) * Math.sqrt(1 + 0.078 * (j * c / (sx * ho)) * Math.pow(Lb_in / rts, 2));
-                Mn = Fcr * sx;
-                Mn = Math.min(Mp, Mn);
-                stateNote = "Elastic LTB";
-            }
-        }
-        const Ma_kipft = (Mn / 1.67) / 12; // Allowable Moment Capacity (ASD)
+    // Bending Unity Ratio
+    const flexure_ratio = M_demand_kft / Allowable_Mn_kft;
 
-        // --- SHEAR CAPACITY (AISC Chapter G) ---
-        const V_max_kips = (w_total_plf * L_ft) / 2 / 1000;
-        const Aw = d * tw;
-        
-        // Compactness check limit state for standard shapes
-        let Cv = 1.0;
-        const h_over_tw = d / tw; // Approximated clear web spacing
-        if (h_over_tw > 2.24 * Math.sqrt(E / Fy)) {
-            Cv = (2.24 * Math.sqrt(E / Fy)) / h_over_tw;
-        }
-        const Vn_kips = 0.6 * Fy * Aw * Cv;
-        const Va_kips = Vn_kips / 1.50; // Allowable Shear Capacity (ASD)
+    // 4. Web Shear Calculations (AISC Chapter G)
+    const V_demand_kips = (total_w_plf * L_ft) / 2 / 1000;
+    
+    // Vn = 0.6 * Fy * Aw * Cv1 (Assuming Cv1 = 1.0 for standard rolled hot wide-flanges)
+    const Aw = d * tw;
+    const Vn_kips = 0.6 * Fy * Aw;
+    const Omega_v = 1.50;
+    const Allowable_Vn_kips = Vn_kips / Omega_v;
 
-        // --- SERVICEABILITY DEFLECTION ENGINE ---
-        // 70% live load rule dropped: using standard direct loading metrics
-        const delta_ll = (5 * ((w_super_plf * 0.7) / 12) * Math.pow(L_in, 4)) / (384 * E * 1000 * ix); 
-        const delta_tl = (5 * (w_total_plf / 12) * Math.pow(L_in, 4)) / (384 * E * 1000 * ix);
+    const shear_ratio = V_demand_kips / Allowable_Vn_kips;
 
-        const ratio_ll_act = delta_ll > 0 ? Math.round(L_in / delta_ll) : 0;
-        const ratio_tl_act = delta_tl > 0 ? Math.round(L_in / delta_tl) : 0;
+    // 5. Serviceability Engine (Deflections)
+    const E = 29000; // ksi
+    const L_in = L_ft * 12;
 
-        // Update Matrix Reporting Rows
-        updateRow('flexure', M_max_kipft, Ma_kipft, `Mmax = ${M_max_kipft.toFixed(2)} k-ft vs Ma = ${Ma_kipft.toFixed(2)} k-ft (${stateNote})`);
-        updateRow('shear', V_max_kips, Va_kips, `Vmax = ${V_max_kips.toFixed(2)} kips vs Va = ${Va_kips.toFixed(2)} kips (Cv = ${Cv.toFixed(2)})`);
-        
-        updateDeflRow('ll-defl', delta_ll, L_in / ll_lim, `Δll = ${delta_ll.toFixed(3)} in (Ratio: L/${ratio_ll_act})`, ll_lim, ratio_ll_act);
-        updateDeflRow('tl-defl', delta_tl, L_in / tl_lim, `Δtl = ${delta_tl.toFixed(3)} in (Ratio: L/${ratio_tl_act})`, tl_lim, ratio_tl_act);
+    // Live Load Deflection (Assuming 70% of input load is transient live load allocation)
+    const w_ll_kips_in = (w_input_plf * 0.70) / 12 / 1000;
+    const delta_ll = (5 * w_ll_kips_in * Math.pow(L_in, 4)) / (384 * E * ix);
+    const allow_delta_ll = L_in / ll_lim;
+    const ll_defl_ratio = delta_ll / allow_delta_ll;
 
-        drawBeamGraphic(L_ft, w_total_plf);
+    // Total Load Deflection (Includes Self-Weight)
+    const w_tl_kips_in = total_w_plf / 12 / 1000;
+    const delta_tl = (5 * w_tl_kips_in * Math.pow(L_in, 4)) / (384 * E * ix);
+    const allow_delta_tl = L_in / tl_lim;
+    const tl_defl_ratio = delta_tl / allow_delta_tl;
+
+    // 6. Push UI Elements & Update Status Pills
+    updateMatrixRow('flexure', M_demand_kft.toFixed(3) + ' k-ft', Allowable_Mn_kft.toFixed(3) + ' k-ft', flexure_ratio);
+    updateMatrixRow('shear', V_demand_kips.toFixed(3) + ' kips', Allowable_Vn_kips.toFixed(3) + ' kips', shear_ratio);
+    updateMatrixRow('ll-defl', delta_ll.toFixed(3) + ' in', allow_delta_ll.toFixed(3) + ' in', ll_defl_ratio);
+    updateMatrixRow('tl-defl', delta_tl.toFixed(3) + ' in', allow_delta_tl.toFixed(3) + ' in', tl_defl_ratio);
+
+    // 7. Redraw Canvas Element
+    drawBeamGraphic(L_ft, total_w_plf);
+}
+
+function updateMatrixRow(id, demandStr, capacityStr, ratio) {
+    const ratioEl = document.getElementById(`ratio-${id}`);
+    const mathEl = document.getElementById(`math-${id}`);
+    const pillEl = document.getElementById(`pill-${id}`);
+
+    if (!ratioEl || !mathEl || !pillEl) return;
+
+    ratioEl.innerText = ratio.toFixed(3);
+    mathEl.innerText = `Demand: ${demandStr} | Allowable Capacity: ${capacityStr}`;
+
+    if (ratio <= 1.0) {
+        pillEl.innerText = "Pass";
+        pillEl.className = "status-pill pass";
+        ratioEl.style.color = "var(--accent-green)";
+    } else {
+        pillEl.innerText = "Fail";
+        pillEl.className = "status-pill fail";
+        ratioEl.style.color = "var(--accent-red)";
     }
-
-    function updateRow(id, actual, allowable, mathText) {
-        const ratio = allowable > 0 ? (actual / allowable) : 0;
-        const ratioEl = document.getElementById(`ratio-${id}`);
-        const pillEl = document.getElementById(`pill-${id}`);
-        document.getElementById(`math-${id}`).innerText = mathText;
-
-        ratioEl.innerText = ratio.toFixed(3);
-        if (ratio <= 1.0005) {
-            pillEl.innerText = "Pass"; pillEl.className = "status-pill pass"; ratioEl.style.color = "var(--accent-green)";
-        } else {
-            pillEl.innerText = "Fail"; pillEl.className = "status-pill fail"; ratioEl.style.color = "var(--accent-red)";
-        }
-    }
+}
 
     function updateDeflRow(id, actual, allowable, mathText, limitCode, actualRatio) {
         const ratioEl = document.getElementById(`ratio-${id}`);
