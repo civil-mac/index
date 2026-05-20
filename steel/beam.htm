@@ -594,21 +594,6 @@ function updateMatrixRow(id, demandStr, capacityStr, ratio) {
     }
 }
 
-    function updateDeflRow(id, actual, allowable, mathText, limitCode, actualRatio) {
-        const ratioEl = document.getElementById(`ratio-${id}`);
-        const pillEl = document.getElementById(`pill-${id}`);
-        document.getElementById(`math-${id}`).innerText = mathText;
-
-        const ucRatio = actual / allowable;
-        ratioEl.innerText = ucRatio.toFixed(3);
-
-        if (actualRatio >= limitCode || actual === 0) {
-            pillEl.innerText = "Pass"; pillEl.className = "status-pill pass"; ratioEl.style.color = "var(--accent-green)";
-        } else {
-            pillEl.innerText = "Fail"; pillEl.className = "status-pill fail"; ratioEl.style.color = "var(--accent-red)";
-        }
-    }
-
     function drawBeamGraphic(span, load) {
         const canvas = document.getElementById('beamCanvas');
         const ctx = canvas.getContext('2d');
