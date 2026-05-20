@@ -62,6 +62,56 @@
 
         .canvas-container { margin-top: 1.25rem; background: #111827; border-radius: 12px; border: 1px dashed var(--border-color); padding: 1rem; display: flex; justify-content: center; }
         canvas { width: 100%; max-width: 450px; height: 120px; }
+
+        /* Custom grid that safely shifts layout configurations dynamically depending on size */
+        .loads-grid-container {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 0.5rem;
+        background: #111827;
+        padding: 0.75rem;
+        border-radius: 12px;
+        border: 1px solid var(--border-color);
+        }
+
+        .form-group-sub {
+        position: relative;
+        }
+
+        .form-group-sub label {
+        display: block;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-bottom: 0.25rem;
+        text-align: center;
+        font-weight: 600;
+        }
+
+        .form-group-sub input {
+        padding: 0.5rem 0.25rem;
+        text-align: center;
+        font-size: 0.9rem;
+        }
+
+        .envelope-status-bar {
+        font-size: 0.8rem;
+        font-family: monospace;
+        color: var(--accent-steel);
+        background: rgba(56, 189, 248, 0.06);
+        border: 1px dashed rgba(56, 189, 248, 0.25);
+        border-radius: 8px;
+        padding: 0.5rem;
+        margin-top: 0.75rem;
+        text-align: center;
+        }
+
+        /* Responsiveness patch: When screen window goes skinny, wrap the 5 items into easily readable rows */
+        @media (max-width: 600px) {
+        .loads-grid-container {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.75rem;
+        }
+        }
     </style>
 </head>
 <body>
