@@ -149,8 +149,8 @@
                     <input type="number" id="factor-cl" value="1.0" step="0.01" oninput="calculateRatios()">
                 </div>
                 <div class="form-group" style="margin-bottom:0; margin-top: 0.5rem;">
-                    <label style="text-align:center;">Size, Cf</label>
-                    <input type="number" id="factor-cf" value="1.1" step="0.05" oninput="calculateRatios()">
+                    <label style="text-align:center;">Size Factor, Cf <span id="cf-status" style="color:var(--accent-wood); font-size: 0.65rem;">(Auto)</span></label>
+                    <input type="number" id="factor-cf" value="1.1" step="0.05" oninput="manualCfOverride()">
                 </div>
                 <div class="form-group" style="margin-bottom:0; margin-top: 0.5rem;">
                     <label style="text-align:center;">Flat Use, Cfu</label>
@@ -305,6 +305,22 @@
         }
     }
 
+    //------------------------------------------------------------------//
+    let isCfManual = false;
+
+    function manualCfOverride() {
+    isCfManual = true; // User typed in the box, lock it to manual
+    document.getElementById('cf-status').innerText = "(Manual)";
+    calculateRatios(); // Refresh the calcs
+    }
+
+    function resetCfToAuto() {
+    isCfManual = false;
+    document.getElementById('cf-status').innerText = "(Auto)";
+    calculateRatios(); // Will re-run auto-calc logic
+    }
+    //------------------------------------------------------------------//
+
     function updateProperties() {
         const selected = document.getElementById('input-material').value;
         const props = structuralLibrary[selected];
@@ -326,6 +342,23 @@
         const span = parseFloat(document.getElementById('input-span').value) || 0;
         const b = parseFloat(document.getElementById('input-b').value) || 0;
         const d = parseFloat(document.getElementById('input-d').value) || 0;
+
+    // Auto-calculate logic
+    if (!isCfManual) {
+        let autoCf = 1.0;
+        if (d <= 4)      autoCf = 1.5;
+        else if (d <= 6) autoCf = 1.3;
+        else if (d <= 8) autoCf = 1.2;
+        else if (d <= 10) autoCf = 1.1;
+        else autoCf = 1.0;
+        
+        document.getElementById('factor-cf').value = autoCf;
+    }
+    
+    const Cf = parseFloat(document.getElementById('factor-cf').value) || 1.0;
+    
+    // ... proceed with existing Math using 'Cf' ...
+    }
 
         const D = parseFloat(document.getElementById('load-d').value) || 0;
         const L = parseFloat(document.getElementById('load-l').value) || 0;
