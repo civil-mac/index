@@ -282,7 +282,7 @@
 </div>
 
 <script>
-const steelLibrary = {
+const structuralLibrary = {
     "W27x539": { d: 32.50, tw: 1.970, bf: 15.30, tf: 3.540, ix: 25600.0, sx: 1570.0, zx: 1890.0, rts: 4.41, j: 496.000, cw: 443000.0, ho: 28.96, weight: 539.0 },
     "W27x368": { d: 30.40, tw: 1.380, bf: 14.70, tf: 2.480, ix: 16200.0, sx: 1060.0, zx: 1240.0, rts: 4.15, j: 170.000, cw: 255000.0, ho: 27.92, weight: 368.0 },
     "W27x336": { d: 30.00, tw: 1.260, bf: 14.60, tf: 2.280, ix: 14600.0, sx: 972.0, zx: 1130.0, rts: 4.10, j: 131.000, cw: 226000.0, ho: 27.72, weight: 336.0 },
@@ -493,7 +493,7 @@ function initSelectors() {
     const matSel = document.getElementById('input-material');
     matSel.innerHTML = '';
     
-    Object.keys(steelLibrary).forEach(shape => {
+    Object.keys(structuralLibrary).forEach(shape => {
         matSel.options[matSel.options.length] = new Option(shape, shape);
     });
     
@@ -503,7 +503,7 @@ function initSelectors() {
 
 function loadShapeProperties() {
     const shapeName = document.getElementById('input-material').value;
-    const props = steelLibrary[shapeName];
+    const props = structuralLibrary[shapeName];
     
     document.getElementById('prop-d').value = props.d;
     document.getElementById('prop-tw').value = props.tw;
