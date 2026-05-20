@@ -454,19 +454,26 @@ const steelLibrary = {
     "W5X16": { d: 5.01, tw: 0.240, bf: 5.00, tf: 0.360, ix: 21.4, sx: 8.6, zx: 9.6, rts: 1.43, j: 0.192, cw: 40.6, ho: 4.65, weight: 16.0 },
     "W4X13": { d: 4.16, tw: 0.280, bf: 4.06, tf: 0.345, ix: 11.3, sx: 5.5, zx: 6.3, rts: 1.16, j: 0.151, cw: 14.0, ho: 3.82, weight: 13.0 }
 };
+    
+const E = 29000; // ksi
+const G = 11200; // ksi
+const Cb = 1.14; // Default safe coefficient value for uniform line load drop
 
-    const E = 29000; // ksi
-    const G = 11200; // ksi
-    const Cb = 1.14; // Default safe coefficient value for uniform line load drop
-
-    function initSelectors() {
-        const matSel = document.getElementById('input-material');
-        matSel.innerHTML = '';
-        Object.keys(steelLibrary).forEach(shape => {
-            matSel.options[matSel.options.length] = new Option(shape, shape);
-        });
-        loadShapeProperties();
-    }
+function initSelectors() {
+    const matSel = document.getElementById('input-material');
+    matSel.innerHTML = '';
+    
+    // 1. Populate the dropdown matrix from your library
+    Object.keys(steelLibrary).forEach(shape => {
+        matSel.options[matSel.options.length] = new Option(shape, shape);
+    });
+    
+    // 2. FORCE THE DEFAULT SHAPE TO BE ACTIVE
+    matSel.value = "W8X10"; 
+    
+    // 3. Load properties for whatever is currently selected (now W8X10)
+    loadShapeProperties();
+}
 
     function loadShapeProperties() {
         const shapeName = document.getElementById('input-material').value;
