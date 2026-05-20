@@ -1,11 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="notranslate" translate="no">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="google" content="notranslate">
     <title>Calc Book | Wood Beam Analysis</title>
     <style>
-    :root {
+        :root {
             --bg-color: #0f172a;
             --card-bg: #1e293b;
             --accent-wood: #fbbf24;
@@ -47,18 +48,15 @@
 
         .property-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-top: 0.75rem; background: #111827; padding: 1rem; border-radius: 12px; border: 1px dashed var(--border-color); }
         .factors-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; background: #111827; padding: 1rem; border-radius: 12px; border: 1px solid var(--border-color); }
-        .factors-grid .read-only-box { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.75rem; font-family: monospace; font-size: 1.1rem; color: var(--accent-wood); text-align: center; font-weight: bold; }
         
-        /* Multi-Load Input Grid Layout */
         .loads-grid-container { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.5rem; background: #111827; padding: 0.75rem; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 0.5rem; }
         .form-group-sub { display: flex; flex-direction: column; text-align: center; }
         .form-group-sub label { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem; font-weight: 600; text-transform: uppercase; }
         .form-group-sub input { padding: 0.5rem 0.25rem; text-align: center; font-size: 0.95rem; border-radius: 6px; }
-        .envelope-status-bar { font-size: 0.75rem; font-family: monospace; color: var(--accent-wood); background: rgba(56, 189, 248, 0.05); border: 1px dashed rgba(56, 189, 248, 0.2); text-align: center; padding: 0.5rem; border-radius: 8px; margin-top: 0.5rem; }
+        .envelope-status-bar { font-size: 0.75rem; font-family: monospace; color: var(--accent-wood); background: rgba(251, 191, 36, 0.05); border: 1px dashed rgba(251, 191, 36, 0.2); text-align: center; padding: 0.5rem; border-radius: 8px; margin-top: 0.5rem; }
 
         .engineering-notes { margin-top: 0.75rem; font-size: 0.75rem; color: var(--text-muted); line-height: 1.4; padding: 0.5rem 0.75rem; background: rgba(30, 41, 59, 0.5); border-left: 2px solid var(--border-color); border-radius: 0 4px 4px 0; }
 
-        /* Report Matrix */
         .report-row { display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-bottom: 1px solid var(--border-color); font-size: 0.95rem; }
         .report-row:last-child { border-bottom: none; }
         .report-values { font-weight: 600; font-size: 1.1rem; margin-right: 0.5rem; font-family: monospace; }
@@ -87,7 +85,7 @@
             <div class="form-row" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));">
                 <div class="form-group">
                     <label>Library Presets</label>
-                    <select id="input-material" onchange="loadMaterialProperties()">
+                    <select id="input-material" onchange="updateProperties()">
                         <option value="DF2">Douglas Fir-Larch No. 2</option>
                         <option value="SPF2">S-P-F No. 2</option>
                         <option value="LVL20">Versa-Lam LVL 2.0E</option>
@@ -96,39 +94,39 @@
                 </div>
             </div>
 
-            <label style="margin-bottom: -0.25rem;">Active Properties</label>
+            <label style="margin-bottom: -0.25rem; display: block;">Active Properties</label>
             <div class="property-grid">
                 <div class="form-group" style="margin-bottom:0;">
                     <label>Fb (psi)</label>
-                    <input type="number" id="prop-fb" step="1" oninput="calculateBeam()">
+                    <input type="number" id="prop-fb" step="1" oninput="calculateRatios()">
                 </div>
                 <div class="form-group" style="margin-bottom:0;">
                     <label>Fv (psi)</label>
-                    <input type="number" id="prop-fv" step="1" oninput="calculateBeam()">
+                    <input type="number" id="prop-fv" step="1" oninput="calculateRatios()">
                 </div>
                 <div class="form-group" style="margin-bottom:0;">
                     <label>Ft (psi)</label>
-                    <input type="number" id="prop-ft" step="1" oninput="calculateBeam()">
+                    <input type="number" id="prop-ft" step="1" oninput="calculateRatios()">
                 </div>
                 <div class="form-group" style="margin-bottom:0;">
                     <label>Fc || (psi)</label>
-                    <input type="number" id="prop-fcpar" step="1" oninput="calculateBeam()">
+                    <input type="number" id="prop-fcpar" step="1" oninput="calculateRatios()">
                 </div>
                 <div class="form-group" style="margin-bottom:0;">
                     <label>Fc _|_ (psi)</label>
-                    <input type="number" id="prop-fcper" step="1" oninput="calculateBeam()">
+                    <input type="number" id="prop-fcper" step="1" oninput="calculateRatios()">
                 </div>
                 <div class="form-group" style="margin-bottom:0;">
                     <label>E (ksi)</label>
-                    <input type="number" id="prop-e" step="0.01" oninput="calculateBeam()">
+                    <input type="number" id="prop-e" step="0.01" oninput="calculateRatios()">
                 </div>
                 <div class="form-group" style="margin-bottom:0;">
                     <label>Emin (ksi)</label>
-                    <input type="number" id="prop-emin" step="0.001" oninput="calculateBeam()">
+                    <input type="number" id="prop-emin" step="0.001" oninput="calculateRatios()">
                 </div>
                 <div class="form-group" style="margin-bottom:0;">
                     <label>Density (pcf)</label>
-                    <input type="number" id="prop-density" step="0.01" oninput="calculateBeam()">
+                    <input type="number" id="prop-density" step="0.01" oninput="calculateRatios()">
                 </div>
             </div>
 
@@ -136,60 +134,60 @@
             <div class="factors-grid">
                 <div class="form-group" style="margin-bottom:0;">
                     <label style="text-align:center;">Cd</label>
-                    <input type="number" id="factor-cd" value="1.0" step="0.05" oninput="calculateBeam()">
+                    <input type="number" id="factor-cd" value="1.0" step="0.05" oninput="calculateRatios()">
                 </div>
                 <div class="form-group" style="margin-bottom:0;">
                     <label style="text-align:center;">Cm</label>
-                    <input type="number" id="factor-cm" value="1.0" step="0.05" oninput="calculateBeam()">
+                    <input type="number" id="factor-cm" value="1.0" step="0.05" oninput="calculateRatios()">
                 </div>
                 <div class="form-group" style="margin-bottom:0;">
                     <label style="text-align:center;">Ct</label>
-                    <input type="number" id="factor-ct" value="1.0" step="0.05" oninput="calculateBeam()">
+                    <input type="number" id="factor-ct" value="1.0" step="0.05" oninput="calculateRatios()">
                 </div>
                 <div class="form-group" style="margin-bottom:0;">
                     <label style="text-align:center;">CL</label>
-                    <input type="number" id="factor-cl" value="1.0" step="0.01" oninput="calculateBeam()">
+                    <input type="number" id="factor-cl" value="1.0" step="0.01" oninput="calculateRatios()">
                 </div>
                 <div class="form-group" style="margin-bottom:0; margin-top: 0.5rem;">
                     <label style="text-align:center;">Cf</label>
-                    <input type="number" id="factor-cf" value="1.1" step="0.05" oninput="calculateBeam()">
+                    <input type="number" id="factor-cf" value="1.1" step="0.05" oninput="calculateRatios()">
                 </div>
                 <div class="form-group" style="margin-bottom:0; margin-top: 0.5rem;">
                     <label style="text-align:center;">Cfu</label>
-                    <input type="number" id="factor-cfu" value="1.0" step="0.05" oninput="calculateBeam()">
+                    <input type="number" id="factor-cfu" value="1.0" step="0.05" oninput="calculateRatios()">
                 </div>
                 <div class="form-group" style="margin-bottom:0; margin-top: 0.5rem;">
                     <label style="text-align:center;">Ci</label>
-                    <input type="number" id="factor-ci" value="1.0" step="0.05" oninput="calculateBeam()">
+                    <input type="number" id="factor-ci" value="1.0" step="0.05" oninput="calculateRatios()">
                 </div>
                 <div class="form-group" style="margin-bottom:0; margin-top: 0.5rem;">
                     <label style="text-align:center;">Cr</label>
-                    <input type="number" id="factor-cr" value="1.0" step="0.05" oninput="calculateBeam()">
+                    <input type="number" id="factor-cr" value="1.0" step="0.05" oninput="calculateRatios()">
                 </div>
             </div>
             <div class="engineering-notes">
-                <strong>NDS Quick Guide:</strong> Unbraced compression flange values typ. drop to around <code>C_L = 0.637</code> depending on beam slenderness. Wet conditions require <code>C_M = 0.85</code> for flexure ($F_b \le 1150\text{ psi}$) and <code>0.97</code> for shear.
+                <strong>NDS Quick Guide:</strong> Unbraced compression flange values typ. drop to around <code>C_L = 0.637</code> depending on beam slenderness. Wet conditions require <code>C_M = 0.85</code> for flexure and <code>0.97</code> for shear.
             </div>
 
             <div class="form-row" style="margin-top: 1.25rem;">
                 <div class="form-group">
                     <label>Span Length</label>
                     <div class="unit-container">
-                        <input type="number" id="input-span" value="12" min="0.01" step="0.01" oninput="calculateBeam()">
+                        <input type="number" id="input-span" value="12" min="0.01" step="0.01" oninput="calculateRatios()">
                         <span class="unit-label">ft</span>
                     </div>
                 </div>
                 <div class="form-group">
                     <label>Exact Width (b)</label>
                     <div class="unit-container">
-                        <input type="number" id="input-b" value="1.75" min="0.01" step="0.01" oninput="calculateBeam()">
+                        <input type="number" id="input-b" value="1.75" min="0.01" step="0.01" oninput="calculateRatios()">
                         <span class="unit-label">in</span>
                     </div>
                 </div>
                 <div class="form-group">
                     <label>Exact Depth (d)</label>
                     <div class="unit-container">
-                        <input type="number" id="input-d" value="11.25" min="0.01" step="0.01" oninput="calculateBeam()">
+                        <input type="number" id="input-d" value="11.25" min="0.01" step="0.01" oninput="calculateRatios()">
                         <span class="unit-label">in</span>
                     </div>
                 </div>
@@ -198,11 +196,11 @@
             <div class="form-row">
                 <div class="form-group">
                     <label>L.L. Limit (L/)</label>
-                    <input type="number" id="input-ll-lim" value="240" min="1" step="1" oninput="calculateBeam()">
+                    <input type="number" id="input-ll-lim" value="240" min="1" step="1" oninput="calculateRatios()">
                 </div>
                 <div class="form-group">
                     <label>T.L. Limit (L/)</label>
-                    <input type="number" id="input-tl-lim" value="360" min="1" step="1" oninput="calculateBeam()">
+                    <input type="number" id="input-tl-lim" value="360" min="1" step="1" oninput="calculateRatios()">
                 </div>
             </div>
 
@@ -212,23 +210,23 @@
             <div class="loads-grid-container">
                 <div class="form-group-sub">
                     <label>Dead</label>
-                    <input type="number" id="load-d" value="200" min="0" step="1" oninput="calculateBeam()">
+                    <input type="number" id="load-d" value="200" min="0" step="1" oninput="calculateRatios()">
                 </div>
                 <div class="form-group-sub">
                     <label>Live</label>
-                    <input type="number" id="load-l" value="500" min="0" step="1" oninput="calculateBeam()">
+                    <input type="number" id="load-l" value="500" min="0" step="1" oninput="calculateRatios()">
                 </div>
                 <div class="form-group-sub">
                     <label>Snow</label>
-                    <input type="number" id="load-s" value="0" min="0" step="1" oninput="calculateBeam()">
+                    <input type="number" id="load-s" value="0" min="0" step="1" oninput="calculateRatios()">
                 </div>
                 <div class="form-group-sub">
                     <label>Wind</label>
-                    <input type="number" id="load-w" value="0" min="0" step="1" oninput="calculateBeam()">
+                    <input type="number" id="load-w" value="0" min="0" step="1" oninput="calculateRatios()">
                 </div>
                 <div class="form-group-sub">
                     <label>Seismic</label>
-                    <input type="number" id="load-e" value="0" min="0" step="1" oninput="calculateBeam()">
+                    <input type="number" id="load-e" value="0" min="0" step="1" oninput="calculateRatios()">
                 </div>
             </div>
             <div class="envelope-status-bar" id="controlling-comb-display">
@@ -291,15 +289,16 @@
         </div>
     </div>
 </div>
+
 <script>
- const materialLibrary = {
+    const structuralLibrary = {
         DF2:   { fb: 900,  fv: 180, ft: 575,  fcpar: 1350, fcper: 625, e: 1600, emin: 580,  density: 35 },
         SPF2:  { fb: 875,  fv: 135, ft: 450,  fcpar: 1150, fcper: 425, e: 1400, emin: 510,  density: 28 },
         LVL20: { fb: 2600, fv: 285, ft: 1200, fcpar: 2500, fcper: 750, e: 2000, emin: 1020, density: 42 },
         PSL20: { fb: 2400, fv: 290, ft: 1150, fcpar: 2400, fcper: 750, e: 2000, emin: 1020, density: 45 }
     };
-    
-function initSelector() {
+
+    function initSelector() {
         const selector = document.getElementById('input-material');
         if (selector) {
             updateProperties();
@@ -424,7 +423,7 @@ function initSelector() {
         });
     }
 
-function updateUI(data) {
+    function updateUI(data) {
         document.getElementById('controlling-comb-display').innerText = `Controlling Combination: ${data.maxComboName} (${data.maxLoad.toFixed(1)} plf)`;
 
         // Flexure Element Injection
@@ -462,7 +461,7 @@ function updateUI(data) {
         }
     }
 
-function drawBeamGraphic(span, load) {
+    function drawBeamGraphic(span, load) {
         const canvas = document.getElementById('beamCanvas');
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
@@ -517,7 +516,6 @@ function drawBeamGraphic(span, load) {
     window.onload = function() {
         initSelector();
     };
-</script>
 </script>
 </body>
 </html>
