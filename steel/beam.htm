@@ -489,7 +489,7 @@ const E = 29000; // ksi
 const G = 11200; // ksi
 const Cb = 1.14; // Default safe coefficient value for uniform line load drop
 
-function initSelectors() {
+function initSelector() {
     const matSel = document.getElementById('input-material');
     matSel.innerHTML = '';
     
@@ -690,7 +690,7 @@ function drawBeamGraphic(span, load) {
     }
 }
 
-window.onload = () => { initSelectors(); };
+window.onload = () => { initSelector(); };
 </script>
 </body>
 </html>
