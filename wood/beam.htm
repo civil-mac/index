@@ -299,7 +299,7 @@
         PSL20: { fb: 2400, fv: 290, ft: 1150, fcpar: 2400, fcper: 750, e: 2000, emin: 1020, density: 45 }
     };
     
-function initSelector() {
+function loadMaterialProperties() {
         const selected = document.getElementById('input-material').value;
         const props = structuralLibrary[selected];
         if (!props) return;
@@ -315,31 +315,11 @@ function initSelector() {
 
         calculateBeam();
     }
-    
-  function loadMaterialProperties() {
-        const selected = document.getElementById('input-material').value;
-        const props = materialLibrary[selected];
-        if (!props) return;
 
-        document.getElementById('prop-fb').value = props.fb;
-        document.getElementById('prop-fv').value = props.fv;
-        document.getElementById('prop-ft').value = props.ft;
-        document.getElementById('prop-fcpar').value = props.fcpar;
-        document.getElementById('prop-fcper').value = props.fcper;
-        document.getElementById('prop-e').value = props.e;
-        document.getElementById('prop-emin').value = props.emin;
-        document.getElementById('prop-density').value = props.density;
-
-        calculateBeam();
-    }
-
-   function calculateBeam() {
+  function calculateBeam() {
         const span = parseFloat(document.getElementById('input-span').value) || 0;
-        const Ix = parseFloat(document.getElementById('prop-ix').value) || 0;
-        const Zx = parseFloat(document.getElementById('prop-zx').value) || 0;
-        const d = parseFloat(document.getElementById('prop-d').value) || 0;
-        const tw = parseFloat(document.getElementById('prop-tw').value) || 0;
-        const Fy = parseFloat(document.getElementById('prop-fy').value) || 50;
+        const b = parseFloat(document.getElementById('input-b').value) || 0;
+        const d = parseFloat(document.getElementById('input-d').value) || 0;
 
         const D = parseFloat(document.getElementById('load-d').value) || 0;
         const L = parseFloat(document.getElementById('load-l').value) || 0;
@@ -347,17 +327,20 @@ function initSelector() {
         const W = parseFloat(document.getElementById('load-w').value) || 0;
         const E = parseFloat(document.getElementById('load-e').value) || 0;
 
-        const llLim = parseFloat(document.getElementById('input-ll-lim').value) || 360;
-        const tlLim = parseFloat(document.getElementById('input-tl-lim').value) || 240;
+        const llLim = parseFloat(document.getElementById('input-ll-lim').value) || 240;
+        const tlLim = parseFloat(document.getElementById('input-tl-lim').value) || 360;
 
-        // ASD Combinations
+        // Wood ASD Combination Envelopes
         const combos = [
-            { name: "D",            w: D },
-            { name: "D + L",        w: D + L },
-            { name: "D + S",        w: D + S },
-            { name: "D + 0.6W",     w: D + 0.6 * W },
-            { name: "D + 0.7E",     w: D + 0.7 * E },
-            { name: "D + L + S",    w: D + L + S }
+            { name: "D",             w: D },
+            { name: "D + L",         w: D + L },
+            { name: "D + S",         w: D + S },
+            { name: "D + (L or S)",  w: D + Math.max(L, S) },
+            { name: "D + 0.6W",      w: D + 0.6 * W },
+            { name: "D + 0.7E",      w: D + 0.7 * E },
+            { name: "D + L + 0.6W",  w: D + L + 0.6 * W },
+            { name: "D + L + S",     w: D + L + S },
+            { name: "D + L + 0.7E",  w: D + L + 0.7 * E }
         ];
 
         let maxCombo = combos[0];
@@ -368,34 +351,58 @@ function initSelector() {
         const maxLoad = maxCombo.w;
         document.getElementById('controlling-comb-display').innerText = `Controlling Combination: ${maxCombo.name} (${maxLoad.toFixed(1)} plf)`;
 
-        // Flexure Check (ASD Omega = 1.67)
+        // Properties
+        const Fb = parseFloat(document.getElementById('prop-fb').value) || 0;
+        const Fv = parseFloat(document.getElementById('prop-fv').value) || 0;
+        const E_ksi = parseFloat(document.getElementById('prop-e').value) || 0;
+        const E_psi = E_ksi * 1000; // E input is in ksi
+
+        // NDS Adjustments
+        const CD = parseFloat(document.getElementById('factor-cd').value) || 1.0;
+        const CM = parseFloat(document.getElementById('factor-cm').value) || 1.0;
+        const Ct = parseFloat(document.getElementById('factor-ct').value) || 1.0;
+        const CL = parseFloat(document.getElementById('factor-cl').value) || 1.0;
+        const Cf = parseFloat(document.getElementById('factor-cf').value) || 1.0;
+        const Cfu = parseFloat(document.getElementById('factor-cfu').value) || 1.0;
+        const Ci = parseFloat(document.getElementById('factor-ci').value) || 1.0;
+        const Cr = parseFloat(document.getElementById('factor-cr').value) || 1.0;
+
+        const Fb_adj = Fb * CD * CM * Ct * CL * Cf * Ci * Cr;
+        const Fv_adj = Fv * CD * CM * Ct * Ci;
+
+        // Section Modulus calculations for dimensional wood
+        const Area = b * d;
+        const Sx = (b * d * d) / 6;
+        const Ix_geom = (b * d * d * d) / 12;
+
+        // Bending check
         const M_demand = (maxLoad * span * span) / 8; // lb-ft
-        const Mn = (Fy * 1000 * Zx) / 12; // lb-ft
-        const M_capacity = Mn / 1.67; // lb-ft
+        const M_capacity = (Fb_adj * Sx) / 12; // lb-ft
         const r_flexure = M_demand / (M_capacity || 1);
 
         document.getElementById('math-flexure').innerHTML = `M<sub>max</sub> = ${(M_demand/1000).toFixed(2)} k-ft &nbsp;|&nbsp; M<sub>cap</sub> = ${(M_capacity/1000).toFixed(2)} k-ft`;
         updateRowStatus('flexure', r_flexure);
 
-        // Shear Check (ASD Omega = 1.50)
-        const V_demand = (maxLoad * span) / 2; // lbs
-        const Vn = 0.6 * Fy * 1000 * d * tw; // lbs
-        const V_capacity = Vn / 1.50; // lbs
+        // Shear check at distance 'd'
+        const w_lbs_in = maxLoad / 12;
+        const V_max = (maxLoad * span) / 2;
+        const V_demand = V_max - (w_lbs_in * d);
+        const V_capacity = (2 / 3) * Fv_adj * Area;
         const r_shear = V_demand / (V_capacity || 1);
 
-        document.getElementById('math-shear').innerHTML = `V<sub>max</sub> = ${(V_demand/1000).toFixed(2)} k &nbsp;|&nbsp; V<sub>cap</sub> = ${(V_capacity/1000).toFixed(2)} k`;
+        document.getElementById('math-shear').innerHTML = `V<sub>d</sub> = ${(V_demand/1000).toFixed(2)} k &nbsp;|&nbsp; V<sub>cap</sub> = ${(V_capacity/1000).toFixed(2)} k`;
         updateRowStatus('shear', r_shear);
 
-        // Deflections (E = 29,000 ksi)
-        const E_psi = 29000 * 1000;
-        const Δ_ll_demand = (5 * (L / 12) * Math.pow(span * 12, 4)) / (384 * E_psi * Ix);
+        // Live Load Deflection (5wL^4 / 384EI)
+        const Δ_ll_demand = (5 * (L / 12) * Math.pow(span * 12, 4)) / (384 * E_psi * Ix_geom);
         const Δ_ll_cap = (span * 12) / llLim;
         const r_ll = Δ_ll_demand / (Δ_ll_cap || 1);
         document.getElementById('math-ll-defl').innerHTML = `Δ<sub>LL</sub> = ${Δ_ll_demand.toFixed(3)} in &nbsp;|&nbsp; Limit = L/${llLim} (${Δ_ll_cap.toFixed(2)} in)`;
         updateRowStatus('ll-defl', r_ll);
 
+        // Total Load Deflection
         const wService = D + L + S;
-        const Δ_tl_demand = (5 * (wService / 12) * Math.pow(span * 12, 4)) / (384 * E_psi * Ix);
+        const Δ_tl_demand = (5 * (wService / 12) * Math.pow(span * 12, 4)) / (384 * E_psi * Ix_geom);
         const Δ_tl_cap = (span * 12) / tlLim;
         const r_tl = Δ_tl_demand / (Δ_tl_cap || 1);
         document.getElementById('math-tl-defl').innerHTML = `Δ<sub>TL</sub> = ${Δ_tl_demand.toFixed(3)} in &nbsp;|&nbsp; Limit = L/${tlLim} (${Δ_tl_cap.toFixed(2)} in)`;
@@ -404,7 +411,7 @@ function initSelector() {
         drawBeamGraphic(span, maxLoad);
     }
 
-function updateRowStatus(id, ratio) {
+    function updateRowStatus(id, ratio) {
         const ratioEl = document.getElementById(`ratio-${id}`);
         const pillEl = document.getElementById(`pill-${id}`);
         
@@ -417,23 +424,41 @@ function updateRowStatus(id, ratio) {
         }
     }
 
-function drawBeamGraphic(span, load) {
+    function drawBeamGraphic(span, load) {
         const canvas = document.getElementById('beamCanvas');
+        if (!canvas) return;
         const ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight;
-        const w = canvas.width; const h = canvas.height;
-        const padding = 40; const beamY = h - 40; const beamLength = w - (padding * 2);
+        
+        canvas.width = canvas.offsetWidth; 
+        canvas.height = canvas.offsetHeight;
+        
+        const w = canvas.width; 
+        const h = canvas.height;
+        const padding = 40; 
+        const beamY = h - 40; 
+        const beamLength = w - (padding * 2);
 
-        ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 6;
-        ctx.beginPath(); ctx.moveTo(padding, beamY); ctx.lineTo(w - padding, beamY); ctx.stroke();
+        ctx.clearRect(0, 0, w, h);
 
-        ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 2;
+        // Draw Wood Beam (Yellow Theme Accent)
+        ctx.strokeStyle = '#fbbf24'; 
+        ctx.lineWidth = 6;
+        ctx.beginPath(); 
+        ctx.moveTo(padding, beamY); 
+        ctx.lineTo(w - padding, beamY); 
+        ctx.stroke();
+
+        // Pin Supports
+        ctx.strokeStyle = '#94a3b8'; 
+        ctx.lineWidth = 2;
         ctx.beginPath(); ctx.moveTo(padding, beamY); ctx.lineTo(padding-8, beamY+12); ctx.lineTo(padding+8, beamY+12); ctx.closePath(); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(w-padding, beamY); ctx.lineTo(w-padding-8, beamY+12); ctx.lineTo(w-padding+8, beamY+12); ctx.closePath(); ctx.stroke();
 
+        // Load Diagram
         if (load > 0) {
-            ctx.strokeStyle = '#f87171'; ctx.fillStyle = 'rgba(248, 113, 113, 0.15)'; ctx.lineWidth = 1.5;
+            ctx.strokeStyle = '#f87171'; 
+            ctx.fillStyle = 'rgba(248, 113, 113, 0.15)'; 
+            ctx.lineWidth = 1.5;
             ctx.fillRect(padding, beamY - 25, beamLength, 25);
             ctx.strokeRect(padding, beamY - 25, beamLength, 25);
             
@@ -443,12 +468,18 @@ function drawBeamGraphic(span, load) {
             }
         }
 
-        ctx.fillStyle = '#94a3b8'; ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
+        ctx.fillStyle = '#94a3b8'; 
+        ctx.font = '11px sans-serif'; 
+        ctx.textAlign = 'center';
         ctx.fillText(`${span} ft`, w / 2, beamY + 30);
     }
 
     window.addEventListener('resize', calculateBeam);
-    initSelector();
+    
+    // Core Fix: Initializing using the actual function name
+    window.onload = function() {
+        loadMaterialProperties();
+    };
 </script>
 </body>
 </html>
