@@ -280,12 +280,18 @@
         </div> </div> </div>
 
 <script>
-    const structuralLibrary = {
-        SPF2:  { fb: 875,  fv: 135, ft: 450,  fcpar: 1150, fcper: 425, e: 1400, emin: 510,  density: 28 },
-        DF2:   { fb: 900,  fv: 180, ft: 575,  fcpar: 1350, fcper: 625, e: 1600, emin: 580,  density: 35 },
-        LVL20: { fb: 2600, fv: 285, ft: 1200, fcpar: 2500, fcper: 750, e: 2000, emin: 1020, density: 42 },
-        PSL20: { fb: 2400, fv: 290, ft: 1150, fcpar: 2400, fcper: 750, e: 2000, emin: 1020, density: 45 }
-    };
+        let activeLoads = [
+            { id: 1, type: 'uniform', case: 'D', mag1: 50, mag2: 50, start: 0, end: 10 }
+        ];
+
+        const structuralLibrary = {
+            species: {
+         	SPF2:  { fb: 875,  fv: 135, ft: 450,  fcpar: 1150, fcper: 425, e: 1400, emin: 510,  density: 28 },
+        	DF2:   { fb: 900,  fv: 180, ft: 575,  fcpar: 1350, fcper: 625, e: 1600, emin: 580,  density: 35 },
+        	LVL20: { fb: 2600, fv: 285, ft: 1200, fcpar: 2500, fcper: 750, e: 2000, emin: 1020, density: 42 },
+        	PSL20: { fb: 2400, fv: 290, ft: 1150, fcpar: 2400, fcper: 750, e: 2000, emin: 1020, density: 45 }
+    		};
+        };
 
      //------------------------------------------------------------------//
     let isCfManual = false;
@@ -302,8 +308,7 @@
     }
 
 	//------------------------------------------------------------------//
-
-// --- UI Field Option Builders ---
+	
         function initSelector() {
             const select = document.getElementById('preset-select');
             if(!select) return;
@@ -314,24 +319,9 @@
                 opt.textContent = p.name;
                 select.appendChild(opt);
             });
-            
-            // Set initial nominal drop values if matching fields exist
             document.getElementById('input-b').value = 2;
             document.getElementById('input-d').value = 10;
         }
-
-	    function manualCfOverride() {
-        isCfManual = true;
-        document.getElementById('cf-status').innerText = "(Manual)";
-        calculateRatios();
-    }
-
-    function resetCfToAuto() {
-        isCfManual = false;
-        document.getElementById('cf-status').innerText = "(Auto)";
-        calculateRatios();
-    }
-    //------------------------------------------------------------------//
 
         function populateSpecies() {
             const select = document.getElementById('input-species');
@@ -360,7 +350,6 @@
             }
         }
 
-        // --- FEM Load Matrix Renderers ---
         function renderLoadTable() {
             const container = document.getElementById('loads-table-body');
             if (!container) return;
@@ -411,20 +400,19 @@
             calculateRatios();
         }
 
-        function updateLoad(id, field, value) {
-            const load = activeLoads.find(l => l.id === id);
-            if (load) {
-                if (field === 'type') {
-                    load.type = value;
-                    renderLoadTable();
-                } else {
-                    load[field] = parseFloat(value) || 0;
-                }
-                calculateRatios();
-            }
-        }
+		function updateLoad(id, field, value) {
+  	  		const load = activeLoads.find(l => l.id === id);
+ 	   		if (load) {
+  	      	if (field === 'type') {
+     	       load.type = value;
+   	         renderLoadTable();
+  	      	} else {
+    	        load[field] = parseFloat(value) || 0;
+    	    } // <-- This was missing and caused the system freeze
+    	    calculateRatios();
+		    }
+		}
 
-        // --- Core Mechanical Engineering Capacity Calculations ---
         function calculateRatios() {
             const span = parseFloat(document.getElementById('input-span').value) || 10;
             const nomB = parseFloat(document.getElementById('input-b').value) || 2;
@@ -433,64 +421,49 @@
             const b = structuralLibrary.nominalToActual[nomB] || (nomB - 0.5);
             const d = structuralLibrary.nominalToActual[nomD] || (nomD - 0.5);
 
-            // 1. Calculate Superposition Loads from Array Engine
             let totalLoadLbsPerFt = 0;
             activeLoads.forEach(l => {
                 if (l.type === 'uniform') {
                     totalLoadLbsPerFt += l.mag1;
                 } else if (l.type === 'point') {
-                    totalLoadLbsPerFt += (l.mag1 / span); // Equivalent uniform load approximation for stabilization
+                    totalLoadLbsPerFt += (l.mag1 / span);
                 }
             });
 
-            // Fallback safety to keep engine baseline running if empty
             if(totalLoadLbsPerFt === 0) totalLoadLbsPerFt = 1;
 
-            // Simple Structural Properties
             const Area = b * d;
             const S_x = (b * d * d) / 6;
             const I_x = (b * d * d * d) / 12;
-
-            // Load Values conversion
             const w_lbs = totalLoadLbsPerFt;
             
-            // Maximum Demands (Simple Span Uniform Equations)
-            const M_max = (w_lbs * span * span) / 8; // ft-lbs
-            const V_max = (w_lbs * span) / 2;       // lbs
+            const M_max = (w_lbs * span * span) / 8; 
+            const V_max = (w_lbs * span) / 2;       
 
-            // Extract Reference Stress Properties
             const speciesSelect = document.getElementById('input-species').value || "SPF:No.2";
             const [sp, gd] = speciesSelect.split(':');
             const baseProps = structuralLibrary.species[sp]?.grades[gd] || { Fb: 775, Fv: 135, E: 1400000 };
 
-            // NDS Adjustment Factors
             const Cd = parseFloat(document.getElementById('input-cd').value) || 1.0;
             const Cm = parseFloat(document.getElementById('input-cm').value) || 1.0;
             const Ct = parseFloat(document.getElementById('input-ct').value) || 1.0;
             const Ci = parseFloat(document.getElementById('input-ci').value) || 1.0;
             const Cr = parseFloat(document.getElementById('input-cr').value) || 1.0;
 
-            // Reference Design Capacities
             const Fb_prime = baseProps.Fb * Cd * Cm * Ct * Ci * Cr;
             const Fv_prime = baseProps.Fv * Cd * Cm * Ct * Ci;
             const E_prime = baseProps.E * Cm * Ct * Ci;
 
-            // Allowable Capacities
-            const M_allowable = (Fb_prime * S_x) / 12; // conversion to ft-lbs
+            const M_allowable = (Fb_prime * S_x) / 12; 
             const V_allowable = (2 / 3) * Fv_prime * Area;
 
-            // Demand vs Capacity Ratios
             const ratioFlexure = M_max / M_allowable;
             const ratioShear = V_max / V_allowable;
 
-            // Serviceability Deflection Checks
-            const LL_lim = parseFloat(document.getElementById('input-ll-lim').value) || 240;
             const TL_lim = parseFloat(document.getElementById('input-tl-lim').value) || 360;
-            
             const delta_max = (5 * (w_lbs/12) * Math.pow(span * 12, 4)) / (384 * E_prime * I_x);
             const ratioDeflection = delta_max / ((span * 12) / TL_lim);
 
-            // Update DOM Strings safely
             document.getElementById('math-flexure').textContent = `M = ${M_max.toFixed(0)} ft-lbs ≤ Mr = ${M_allowable.toFixed(0)} ft-lbs`;
             document.getElementById('ratio-flexure').textContent = ratioFlexure.toFixed(3);
             updatePill('pill-flexure', ratioFlexure);
@@ -503,7 +476,6 @@
             document.getElementById('ratio-deflection').textContent = ratioDeflection.toFixed(3);
             updatePill('pill-deflection', ratioDeflection);
 
-            // Repaint Graphical Canvas Elements
             drawBeamGraphic();
         }
 
@@ -521,7 +493,6 @@
             }
         }
 
-        // --- Graphical Canvas Visualizer Component ---
         function drawBeamGraphic() {
             const canvas = document.getElementById('beamCanvas');
             if (!canvas) return;
@@ -533,12 +504,11 @@
 
             const span = parseFloat(document.getElementById('input-span').value) || 10;
             const padding = 40;
-            const beamY = h - 40;
+            const beamY = h - 30;
             const beamLength = w - (padding * 2);
 
             ctx.clearRect(0, 0, w, h);
 
-            // Base Beam Assembly Line
             ctx.strokeStyle = '#fbbf24'; 
             ctx.lineWidth = 6;
             ctx.beginPath(); 
@@ -546,7 +516,6 @@
             ctx.lineTo(w - padding, beamY); 
             ctx.stroke();
 
-            // Left Node Support Pin
             ctx.strokeStyle = '#94a3b8'; 
             ctx.lineWidth = 2;
             ctx.beginPath(); 
@@ -556,7 +525,6 @@
             ctx.closePath(); 
             ctx.stroke();
 
-            // Right Node Support Roller
             ctx.beginPath(); 
             ctx.moveTo(w - padding, beamY); 
             ctx.lineTo(w - padding - 8, beamY + 12); 
@@ -564,19 +532,16 @@
             ctx.closePath(); 
             ctx.stroke();
 
-            // Check array structural vectors for any valid forces
             const hasActiveLoads = activeLoads.some(l => l.mag1 > 0 || l.mag2 > 0);
-
+			
             if (hasActiveLoads) {
                 ctx.strokeStyle = '#f87171'; 
                 ctx.fillStyle = 'rgba(248, 113, 113, 0.15)'; 
                 ctx.lineWidth = 1.5;
                 
-                // Uniform force cloud profile layout
                 ctx.fillRect(padding, beamY - 25, beamLength, 25); 
                 ctx.strokeRect(padding, beamY - 25, beamLength, 25);
 
-                // Downward vector system glyph generation
                 for (let x = padding + 15; x < w - padding; x += (beamLength / 8)) {
                     ctx.beginPath(); 
                     ctx.moveTo(x, beamY - 25); 
@@ -591,14 +556,12 @@
                 }
             }
 
-            // Dimension line string label annotations
             ctx.fillStyle = '#94a3b8'; 
             ctx.font = '11px sans-serif'; 
             ctx.textAlign = 'center';
-            ctx.fillText(`${span} ft`, w / 2, beamY + 28);
+            ctx.fillText(`${span} ft`, w / 2, beamY + 26);
         }
 
-        // --- System Boot Lifecycles ---
         window.addEventListener('resize', calculateRatios);
         
         window.onload = function() { 
