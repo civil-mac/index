@@ -309,14 +309,19 @@
     //------------------------------------------------------------------//
 
 	// --- 1. The Global State ---
-	let activeLoads = [
+let activeLoads = [
     { id: 1, type: 'uniform', case: 'D', mag1: 50, mag2: 50, start: 0, end: 10 }
 ];
 
 function renderLoadTable() {
     const container = document.getElementById('loads-table-body');
-    if (!container) return; // Safety check
+    if (!container) return;
     container.innerHTML = '';
+    
+    if (activeLoads.length === 0) {
+        container.innerHTML = '<div style="color:var(--text-muted); font-size:0.9rem; padding:0.5rem 0;">No active superimposed loads.</div>';
+        return;
+    }
     
     activeLoads.forEach(load => {
         const row = document.createElement('div');
@@ -339,6 +344,7 @@ function renderLoadTable() {
 
 function addLoadRow() {
     const spanVal = parseFloat(document.getElementById('input-span').value) || 10;
+    // Push exactly ONE clean uniform load matching current span
     activeLoads.push({ 
         id: Date.now(), 
         type: 'uniform', 
@@ -358,7 +364,6 @@ function deleteLoad(id) {
     calculateRatios();
 }
 
-// Simple placeholder update function to keep the pipeline alive for now
 function updateLoad(id, field, value) {
     const load = activeLoads.find(l => l.id === id);
     if (load) {
@@ -367,7 +372,7 @@ function updateLoad(id, field, value) {
         } else {
             load[field] = parseFloat(value) || 0;
         }
-        renderLoadTable();
+        // Do NOT recall renderLoadTable() here while typing to avoid breaking input focus
         calculateRatios();
     }
 }
@@ -487,30 +492,82 @@ function compileLoads() {
         ratioEl.style.color = isPass ? "var(--accent-green)" : "var(--accent-red)";
     }
 
-    function drawBeamGraphic(span, load) {
-        const canvas = document.getElementById('beamCanvas');
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-        canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight;
-        const w = canvas.width; const h = canvas.height;
-        const padding = 40; const beamY = h - 40; const beamLength = w - (padding * 2);
-        ctx.clearRect(0, 0, w, h);
-        ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 6;
-        ctx.beginPath(); ctx.moveTo(padding, beamY); ctx.lineTo(w - padding, beamY); ctx.stroke();
-        ctx.strokeStyle = '#94a3b8'; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.moveTo(padding, beamY); ctx.lineTo(padding-8, beamY+12); ctx.lineTo(padding+8, beamY+12); ctx.closePath(); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(w-padding, beamY); ctx.lineTo(w-padding-8, beamY+12); ctx.lineTo(w-padding+8, beamY+12); ctx.closePath(); ctx.stroke();
-        if (load > 0) {
-            ctx.strokeStyle = '#f87171'; ctx.fillStyle = 'rgba(248, 113, 113, 0.15)'; ctx.lineWidth = 1.5;
-            ctx.fillRect(padding, beamY - 25, beamLength, 25); ctx.strokeRect(padding, beamY - 25, beamLength, 25);
-            for (let x = padding + 15; x < w - padding; x += (beamLength / 8)) {
-                ctx.beginPath(); ctx.moveTo(x, beamY - 25); ctx.lineTo(x, beamY - 2); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(x - 3, beamY - 6); ctx.lineTo(x, beamY - 2); ctx.lineTo(x + 3, beamY - 6); ctx.stroke();
-            }
+function drawBeamGraphic() {
+    const canvas = document.getElementById('beamCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
+    canvas.width = w;
+    canvas.height = h;
+
+    const span = parseFloat(document.getElementById('input-span').value) || 12;
+    const padding = 40;
+    const beamY = h - 40;
+    const beamLength = w - (padding * 2);
+
+    ctx.clearRect(0, 0, w, h);
+
+    // Draw Main Structural Member Line
+    ctx.strokeStyle = '#fbbf24'; 
+    ctx.lineWidth = 6;
+    ctx.beginPath(); 
+    ctx.moveTo(padding, beamY); 
+    ctx.lineTo(w - padding, beamY); 
+    ctx.stroke();
+
+    // Left Support (Pin)
+    ctx.strokeStyle = '#94a3b8'; 
+    ctx.lineWidth = 2;
+    ctx.beginPath(); 
+    ctx.moveTo(padding, beamY); 
+    ctx.lineTo(padding - 8, beamY + 12); 
+    ctx.lineTo(padding + 8, beamY + 12); 
+    ctx.closePath(); 
+    ctx.stroke();
+
+    // Right Support (Roller)
+    ctx.beginPath(); 
+    ctx.moveTo(w - padding, beamY); 
+    ctx.lineTo(w - padding - 8, beamY + 12); 
+    ctx.lineTo(w - padding + 8, beamY + 12); 
+    ctx.closePath(); 
+    ctx.stroke();
+
+    // Check if there are any non-zero active loads to visually render
+    const hasActiveLoads = activeLoads.some(l => l.mag1 > 0 || l.mag2 > 0);
+
+    if (hasActiveLoads) {
+        ctx.strokeStyle = '#f87171'; 
+        ctx.fillStyle = 'rgba(248, 113, 113, 0.15)'; 
+        ctx.lineWidth = 1.5;
+        
+        // Render simple load envelope overlay box
+        ctx.fillRect(padding, beamY - 25, beamLength, 25); 
+        ctx.strokeRect(padding, beamY - 25, beamLength, 25);
+
+        // Vector Force Arrows
+        for (let x = padding + 15; x < w - padding; x += (beamLength / 8)) {
+            ctx.beginPath(); 
+            ctx.moveTo(x, beamY - 25); 
+            ctx.lineTo(x, beamY - 2); 
+            ctx.stroke();
+            
+            ctx.beginPath(); 
+            ctx.moveTo(x - 3, beamY - 6); 
+            ctx.lineTo(x, beamY - 2); 
+            ctx.lineTo(x + 3, beamY - 6); 
+            ctx.stroke();
         }
-        ctx.fillStyle = '#94a3b8'; ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
-        ctx.fillText(`${span} ft`, w / 2, beamY + 30);
     }
+
+    // Dimension Text label
+    ctx.fillStyle = '#94a3b8'; 
+    ctx.font = '11px sans-serif'; 
+    ctx.textAlign = 'center';
+    ctx.fillText(`${span} ft`, w / 2, beamY + 28);
+}
+	
 window.addEventListener('resize', calculateRatios);
     
     window.onload = function() { 
