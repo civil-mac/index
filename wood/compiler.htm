@@ -285,13 +285,11 @@
         ];
 
         const structuralLibrary = {
-            species: {
          	SPF2:  { fb: 875,  fv: 135, ft: 450,  fcpar: 1150, fcper: 425, e: 1400, emin: 510,  density: 28 },
         	DF2:   { fb: 900,  fv: 180, ft: 575,  fcpar: 1350, fcper: 625, e: 1600, emin: 580,  density: 35 },
         	LVL20: { fb: 2600, fv: 285, ft: 1200, fcpar: 2500, fcper: 750, e: 2000, emin: 1020, density: 42 },
         	PSL20: { fb: 2400, fv: 290, ft: 1150, fcpar: 2400, fcper: 750, e: 2000, emin: 1020, density: 45 }
     		};
-        };
 
      //------------------------------------------------------------------//
     let isCfManual = false;
@@ -529,10 +527,10 @@
             ctx.moveTo(w - padding, beamY); 
             ctx.lineTo(w - padding - 8, beamY + 12); 
             ctx.lineTo(w - padding + 8, beamY + 12); 
-            ctx.closePath(); 
+ctx.closePath(); 
             ctx.stroke();
 
-            // CLEANED UP BLOCK: Exactly one declaration, one check, and one open bracket.
+            // CLEAN BLOCK: Exactly one declaration and one execution wrapper
             const hasActiveLoads = activeLoads.some(l => l.mag1 > 0 || l.mag2 > 0);
             if (hasActiveLoads) {
                 ctx.strokeStyle = '#f87171'; 
