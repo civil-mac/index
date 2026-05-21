@@ -280,70 +280,60 @@
         </div> </div> </div>
 
 <script>
-        let activeLoads = [
+let activeLoads = [
             { id: 1, type: 'uniform', case: 'D', mag1: 50, mag2: 50, start: 0, end: 10 }
         ];
 
+        // FLAT DATA SET: Corrected syntax, no extra species nesting, no inside semicolons
         const structuralLibrary = {
-         	SPF2:  { fb: 875,  fv: 135, ft: 450,  fcpar: 1150, fcper: 425, e: 1400, emin: 510,  density: 28 },
-        	DF2:   { fb: 900,  fv: 180, ft: 575,  fcpar: 1350, fcper: 625, e: 1600, emin: 580,  density: 35 },
-        	LVL20: { fb: 2600, fv: 285, ft: 1200, fcpar: 2500, fcper: 750, e: 2000, emin: 1020, density: 42 },
-        	PSL20: { fb: 2400, fv: 290, ft: 1150, fcpar: 2400, fcper: 750, e: 2000, emin: 1020, density: 45 }
-    		};
+            SPF2:  { fb: 875,  fv: 135, ft: 450,  fcpar: 1150, fcper: 425, e: 1400, emin: 510,  density: 28 },
+            DF2:   { fb: 900,  fv: 180, ft: 575,  fcpar: 1350, fcper: 625, e: 1600, emin: 580,  density: 35 },
+            LVL20: { fb: 2600, fv: 285, ft: 1200, fcpar: 2500, fcper: 750, e: 2000, emin: 1020, density: 42 },
+            PSL20: { fb: 2400, fv: 290, ft: 1150, fcpar: 2400, fcper: 750, e: 2000, emin: 1020, density: 45 }
+        };
 
-     //------------------------------------------------------------------//
-    let isCfManual = false;
-	    function manualCfOverride() {
-        isCfManual = true;
-        document.getElementById('cf-status').innerText = "(Manual)";
-        calculateRatios();
-    }
+        let isCfManual = false;
 
-    function resetCfToAuto() {
-        isCfManual = false;
-        document.getElementById('cf-status').innerText = "(Auto)";
-        calculateRatios();
-    }
-
-	//------------------------------------------------------------------//
-	
-        function initSelector() {
-            const select = document.getElementById('preset-select');
-            if(!select) return;
-            select.innerHTML = '<option value="">-- Custom Member Profile --</option>';
-            structuralLibrary.presets.forEach(p => {
-                const opt = document.createElement('option');
-                opt.value = p.id;
-                opt.textContent = p.name;
-                select.appendChild(opt);
-            });
-            document.getElementById('input-b').value = 2;
-            document.getElementById('input-d').value = 10;
+        function manualCfOverride() {
+            isCfManual = true;
+            document.getElementById('cf-status').innerText = "(Manual)";
+            calculateRatios();
         }
 
-        function populateSpecies() {
-            const select = document.getElementById('input-species');
-            if(!select) return;
-            select.innerHTML = '';
-            for (let spKey in structuralLibrary.species) {
-                for (let gdKey in structuralLibrary.species[spKey].grades) {
-                    const opt = document.createElement('option');
-                    opt.value = `${spKey}:${gdKey}`;
-                    opt.textContent = `${structuralLibrary.species[spKey].name} - ${gdKey}`;
-                    if(spKey === "SPF" && gdKey === "No.2") opt.selected = true;
-                    select.appendChild(opt);
+        function resetCfToAuto() {
+            isCfManual = false;
+            document.getElementById('cf-status').innerText = "(Auto)";
+            calculateRatios();
+        }
+
+        // Populates the numerical input fields when a preset selection drops down
+        function updateProperties() {
+            const materialKey = document.getElementById('input-material').value;
+            const props = structuralLibrary[materialKey];
+            
+            if (props) {
+                document.getElementById('prop-fb').value = props.fb;
+                document.getElementById('prop-fv').value = props.fv;
+                document.getElementById('prop-ft').value = props.ft;
+                document.getElementById('prop-fcpar').value = props.fcpar;
+                document.getElementById('prop-fcper').value = props.fcper;
+                document.getElementById('prop-e').value = props.e;
+                document.getElementById('prop-emin').value = props.emin;
+                document.getElementById('prop-density').value = props.density;
+                
+                // Calculate size factor Cf automatically for dimension lumber if not manually locked
+                if (!isCfManual) {
+                    const d = parseFloat(document.getElementById('input-d').value) || 9.25;
+                    if (materialKey === 'SPF2' || materialKey === 'DF2') {
+                        let cf = 1.0;
+                        if (d <= 12 && d > 8) cf = 1.1;
+                        else if (d <= 8 && d > 6) cf = 1.2;
+                        else if (d <= 6) cf = 1.3;
+                        document.getElementById('factor-cf').value = cf;
+                    } else {
+                        document.getElementById('factor-cf').value = 1.0; // Engineered wood standard
+                    }
                 }
-            }
-        }
-
-        function applyPreset() {
-            const id = document.getElementById('preset-select').value;
-            if (!id) return;
-            const preset = structuralLibrary.presets.find(p => p.id === id);
-            if (preset) {
-                document.getElementById('input-b').value = preset.b;
-                document.getElementById('input-d').value = preset.d;
-                document.getElementById('input-species').value = `${preset.species}:${preset.grade}`;
                 calculateRatios();
             }
         }
@@ -398,26 +388,23 @@
             calculateRatios();
         }
 
-		function updateLoad(id, field, value) {
-  	  		const load = activeLoads.find(l => l.id === id);
- 	   		if (load) {
-  	      	if (field === 'type') {
-     	       load.type = value;
-   	         renderLoadTable();
-  	      	} else {
-    	        load[field] = parseFloat(value) || 0;
-    	    } // <-- This was missing and caused the system freeze
-    	    calculateRatios();
-		    }
-		}
+        function updateLoad(id, field, value) {
+            const load = activeLoads.find(l => l.id === id);
+            if (load) {
+                if (field === 'type') {
+                    load.type = value;
+                    renderLoadTable();
+                } else {
+                    load[field] = parseFloat(value) || 0;
+                }
+                calculateRatios();
+            }
+        }
 
         function calculateRatios() {
             const span = parseFloat(document.getElementById('input-span').value) || 10;
-            const nomB = parseFloat(document.getElementById('input-b').value) || 2;
-            const nomD = parseFloat(document.getElementById('input-d').value) || 10;
-            
-            const b = structuralLibrary.nominalToActual[nomB] || (nomB - 0.5);
-            const d = structuralLibrary.nominalToActual[nomD] || (nomD - 0.5);
+            const b = parseFloat(document.getElementById('input-b').value) || 1.5;
+            const d = parseFloat(document.getElementById('input-d').value) || 9.25;
 
             let totalLoadLbsPerFt = 0;
             activeLoads.forEach(l => {
@@ -428,7 +415,7 @@
                 }
             });
 
-            if(totalLoadLbsPerFt === 0) totalLoadLbsPerFt = 1;
+            if (totalLoadLbsPerFt === 0) totalLoadLbsPerFt = 1;
 
             const Area = b * d;
             const S_x = (b * d * d) / 6;
@@ -438,28 +425,32 @@
             const M_max = (w_lbs * span * span) / 8; 
             const V_max = (w_lbs * span) / 2;       
 
-            const speciesSelect = document.getElementById('input-species').value || "SPF:No.2";
-            const [sp, gd] = speciesSelect.split(':');
-            const baseProps = structuralLibrary.species[sp]?.grades[gd] || { Fb: 775, Fv: 135, E: 1400000 };
+            // Read the numerical property inputs directly from the active GUI cards
+            const baseFb = parseFloat(document.getElementById('prop-fb').value) || 0;
+            const baseFv = parseFloat(document.getElementById('prop-fv').value) || 0;
+            const baseE_ksi = parseFloat(document.getElementById('prop-e').value) || 1.0;
+            const E_psi = baseE_ksi * 1000000; // Convert ksi to psi for deflection matching
 
-            const Cd = parseFloat(document.getElementById('input-cd').value) || 1.0;
-            const Cm = parseFloat(document.getElementById('input-cm').value) || 1.0;
-            const Ct = parseFloat(document.getElementById('input-ct').value) || 1.0;
-            const Ci = parseFloat(document.getElementById('input-ci').value) || 1.0;
-            const Cr = parseFloat(document.getElementById('input-cr').value) || 1.0;
+            const Cd = parseFloat(document.getElementById('factor-cd').value) || 1.0;
+            const Cm = parseFloat(document.getElementById('factor-cm').value) || 1.0;
+            const Ct = parseFloat(document.getElementById('factor-ct').value) || 1.0;
+            const Cl = parseFloat(document.getElementById('factor-cl').value) || 1.0;
+            const Cf = parseFloat(document.getElementById('factor-cf').value) || 1.0;
+            const Cfu = parseFloat(document.getElementById('factor-cfu').value) || 1.0;
+            const Ci = parseFloat(document.getElementById('factor-ci').value) || 1.0;
+            const Cr = parseFloat(document.getElementById('factor-cr').value) || 1.0;
 
-            const Fb_prime = baseProps.Fb * Cd * Cm * Ct * Ci * Cr;
-            const Fv_prime = baseProps.Fv * Cd * Cm * Ct * Ci;
-            const E_prime = baseProps.E * Cm * Ct * Ci;
+            const Fb_prime = baseFb * Cd * Cm * Ct * Cl * Cf * Cfu * Ci * Cr;
+            const Fv_prime = baseFv * Cd * Cm * Ct * Ci;
 
             const M_allowable = (Fb_prime * S_x) / 12; 
             const V_allowable = (2 / 3) * Fv_prime * Area;
 
-            const ratioFlexure = M_max / M_allowable;
-            const ratioShear = V_max / V_allowable;
+            const ratioFlexure = M_allowable > 0 ? (M_max / M_allowable) : 0;
+            const ratioShear = V_allowable > 0 ? (V_max / V_allowable) : 0;
 
             const TL_lim = parseFloat(document.getElementById('input-tl-lim').value) || 360;
-            const delta_max = (5 * (w_lbs/12) * Math.pow(span * 12, 4)) / (384 * E_prime * I_x);
+            const delta_max = (5 * (w_lbs / 12) * Math.pow(span * 12, 4)) / (384 * E_psi * I_x);
             const ratioDeflection = delta_max / ((span * 12) / TL_lim);
 
             document.getElementById('math-flexure').textContent = `M = ${M_max.toFixed(0)} ft-lbs ≤ Mr = ${M_allowable.toFixed(0)} ft-lbs`;
@@ -470,7 +461,7 @@
             document.getElementById('ratio-shear').textContent = ratioShear.toFixed(3);
             updatePill('pill-shear', ratioShear);
 
-            document.getElementById('math-deflection').textContent = `Δ = ${delta_max.toFixed(3)} in ≤ Δ_lim = ${((span*12)/TL_lim).toFixed(3)} in`;
+            document.getElementById('math-deflection').textContent = `Δ = ${delta_max.toFixed(3)} in ≤ Δ_lim = ${((span * 12) / TL_lim).toFixed(3)} in`;
             document.getElementById('ratio-deflection').textContent = ratioDeflection.toFixed(3);
             updatePill('pill-deflection', ratioDeflection);
 
@@ -482,12 +473,10 @@
             if (!pill) return;
             if (ratio > 1.0) {
                 pill.textContent = "Fail";
-                pill.style.background = "var(--accent-red)";
-                pill.style.color = "#000";
+                pill.className = "status-pill fail";
             } else {
                 pill.textContent = "Pass";
-                pill.style.background = "var(--accent-green)";
-                pill.style.color = "#000";
+                pill.className = "status-pill pass";
             }
         }
 
@@ -523,14 +512,13 @@
             ctx.closePath(); 
             ctx.stroke();
 
- 			ctx.beginPath(); 
+            ctx.beginPath(); 
             ctx.moveTo(w - padding, beamY); 
             ctx.lineTo(w - padding - 8, beamY + 12); 
             ctx.lineTo(w - padding + 8, beamY + 12); 
-ctx.closePath(); 
+            ctx.closePath(); 
             ctx.stroke();
 
-            // CLEAN BLOCK: Exactly one declaration and one execution wrapper
             const hasActiveLoads = activeLoads.some(l => l.mag1 > 0 || l.mag2 > 0);
             if (hasActiveLoads) {
                 ctx.strokeStyle = '#f87171'; 
@@ -560,14 +548,12 @@ ctx.closePath();
             ctx.fillText(`${span} ft`, w / 2, beamY + 26);
         }
 
-        window.addEventListener('resize', calculateRatios);
+        window.addEventListener('resize', drawBeamGraphic);
         
         window.onload = function() { 
-            initSelector();       
-            populateSpecies();    
+            updateProperties(); // Sets up initial card metrics and triggers chain calculations
             renderLoadTable();    
-            calculateRatios();    
         };
-    </script>
+</script>
 </body>
 </html>
