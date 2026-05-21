@@ -214,16 +214,6 @@
             <button onclick="addLoadRow()" style="width:100%; margin-top: 10px;">+ Add Load</button>
             <div id="controlling-comb-display" style="margin-top: 10px;">Controlling Combination: --</div>
         </div>
-
-        <div class="panel">
-            <h2 class="panel-title">Code Check Matrix</h2>
-            <div class="canvas-container" style="margin-top: 20px;">
-                <canvas id="beamCanvas"></canvas>
-            </div>
-        </div>
-
-    </div>
-</div>
 		
 	<script>
     // 1. Initialize empty or with desired starting rows
@@ -262,10 +252,14 @@
     renderLoadTable();
 	</script>
                 
+</div> <div class="panel" style="display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
+            <div>
+                <h2 class="panel-title">Code Check Matrix</h2>
+                
                 <div class="report-row">
                     <div>
                         <span>Flexural Bending Capacity</span>
-                        <span class="sub-math" id="math-flexure">--</span>
+                        <span class="sub-math" id="math-flexure">M = 0.00 ft-lbs &le; M_r = 0.00 ft-lbs</span>
                     </div>
                     <div style="text-align: right; display: flex; align-items: center; justify-content: flex-end;">
                         <span class="report-values" id="ratio-flexure">0.000</span>
@@ -275,8 +269,8 @@
 
                 <div class="report-row">
                     <div>
-                        <span>Shear Verification (at dist. d)</span>
-                        <span class="sub-math" id="math-shear">--</span>
+                        <span>Shear Stress Capacity</span>
+                        <span class="sub-math" id="math-shear">V = 0 lbs &le; V_r = 0 lbs</span>
                     </div>
                     <div style="text-align: right; display: flex; align-items: center; justify-content: flex-end;">
                         <span class="report-values" id="ratio-shear">0.000</span>
@@ -286,33 +280,21 @@
 
                 <div class="report-row">
                     <div>
-                        <span>Live Load Deflection</span>
-                        <span class="sub-math" id="math-ll-defl">--</span>
+                        <span>Serviceability Deflection Checks</span>
+                        <span class="sub-math" id="math-deflection">L.L. R_ll / Total L.R_tl</span>
                     </div>
                     <div style="text-align: right; display: flex; align-items: center; justify-content: flex-end;">
-                        <span class="report-values" id="ratio-ll-defl">0.000</span>
-                        <span class="status-pill" id="pill-ll-defl">Pass</span>
-                    </div>
-                </div>
-
-                <div class="report-row">
-                    <div>
-                        <span>Total Load Deflection</span>
-                        <span class="sub-math" id="math-tl-defl">--</span>
-                    </div>
-                    <div style="text-align: right; display: flex; align-items: center; justify-content: flex-end;">
-                        <span class="report-values" id="ratio-tl-defl">0.000</span>
-                        <span class="status-pill" id="pill-tl-defl">Pass</span>
+                        <span class="report-values" id="ratio-deflection">0.000</span>
+                        <span class="status-pill" id="pill-deflection">Pass</span>
                     </div>
                 </div>
             </div>
 
-            <div class="canvas-container">
-                <canvas id="beamCanvas"></canvas>
+            <div class="canvas-container" style="margin-top: 1.5rem;">
+                <canvas id="beamCanvas" style="width:100%; height:150px; display:block;"></canvas>
             </div>
-        </div>
-    </div>
-</div>
+            
+        </div> </div> </div>
 
 <script>
     const structuralLibrary = {
