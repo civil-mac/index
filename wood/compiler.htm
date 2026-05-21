@@ -289,13 +289,38 @@
 
      //------------------------------------------------------------------//
     let isCfManual = false;
-
-    function initSelector() {
-        updateProperties();
+	    function manualCfOverride() {
+        isCfManual = true;
+        document.getElementById('cf-status').innerText = "(Manual)";
+        calculateRatios();
     }
 
-   
-    function manualCfOverride() {
+    function resetCfToAuto() {
+        isCfManual = false;
+        document.getElementById('cf-status').innerText = "(Auto)";
+        calculateRatios();
+    }
+
+	//------------------------------------------------------------------//
+
+// --- UI Field Option Builders ---
+        function initSelector() {
+            const select = document.getElementById('preset-select');
+            if(!select) return;
+            select.innerHTML = '<option value="">-- Custom Member Profile --</option>';
+            structuralLibrary.presets.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.id;
+                opt.textContent = p.name;
+                select.appendChild(opt);
+            });
+            
+            // Set initial nominal drop values if matching fields exist
+            document.getElementById('input-b').value = 2;
+            document.getElementById('input-d').value = 10;
+        }
+
+	    function manualCfOverride() {
         isCfManual = true;
         document.getElementById('cf-status').innerText = "(Manual)";
         calculateRatios();
@@ -308,284 +333,280 @@
     }
     //------------------------------------------------------------------//
 
-	// --- 1. The Global State ---
-let activeLoads = [
-    { id: 1, type: 'uniform', case: 'D', mag1: 50, mag2: 50, start: 0, end: 10 }
-];
-
-function renderLoadTable() {
-    const container = document.getElementById('loads-table-body');
-    if (!container) return;
-    container.innerHTML = '';
-    
-    if (activeLoads.length === 0) {
-        container.innerHTML = '<div style="color:var(--text-muted); font-size:0.9rem; padding:0.5rem 0;">No active superimposed loads.</div>';
-        return;
-    }
-    
-    activeLoads.forEach(load => {
-        const row = document.createElement('div');
-        row.className = 'loads-grid-container';
-        row.innerHTML = `
-            <select onchange="updateLoad(${load.id}, 'type', this.value)">
-                <option value="uniform" ${load.type==='uniform'?'selected':''}>Uniform</option>
-                <option value="point" ${load.type==='point'?'selected':''}>Point</option>
-                <option value="trapezoid" ${load.type==='trapezoid'?'selected':''}>Trap.</option>
-            </select>
-            <input type="number" value="${load.mag1}" oninput="updateLoad(${load.id}, 'mag1', this.value)" placeholder="Mag1">
-            <input type="number" value="${load.mag2}" oninput="updateLoad(${load.id}, 'mag2', this.value)" placeholder="Mag2" ${load.type==='point' ? 'disabled' : ''}>
-            <input type="number" value="${load.start}" oninput="updateLoad(${load.id}, 'start', this.value)" placeholder="Start">
-            <input type="number" value="${load.end}" oninput="updateLoad(${load.id}, 'end', this.value)" placeholder="End">
-            <button onclick="deleteLoad(${load.id})" style="color:var(--accent-red); background:none; border:none; cursor:pointer; font-weight:bold;">X</button>
-        `;
-        container.appendChild(row);
-    });
-}
-
-function addLoadRow() {
-    const spanVal = parseFloat(document.getElementById('input-span').value) || 10;
-    // Push exactly ONE clean uniform load matching current span
-    activeLoads.push({ 
-        id: Date.now(), 
-        type: 'uniform', 
-        case: 'D', 
-        mag1: 0, 
-        mag2: 0, 
-        start: 0, 
-        end: spanVal 
-    });
-    renderLoadTable();
-    calculateRatios();
-}
-
-function deleteLoad(id) {
-    activeLoads = activeLoads.filter(load => load.id !== id);
-    renderLoadTable();
-    calculateRatios();
-}
-
-function updateLoad(id, field, value) {
-    const load = activeLoads.find(l => l.id === id);
-    if (load) {
-        if (field === 'type') {
-            load.type = value;
-            renderLoadTable(); // Only re-render structural DOM components if the layout type changes
-        } else {
-            load[field] = parseFloat(value) || 0;
+        function populateSpecies() {
+            const select = document.getElementById('input-species');
+            if(!select) return;
+            select.innerHTML = '';
+            for (let spKey in structuralLibrary.species) {
+                for (let gdKey in structuralLibrary.species[spKey].grades) {
+                    const opt = document.createElement('option');
+                    opt.value = `${spKey}:${gdKey}`;
+                    opt.textContent = `${structuralLibrary.species[spKey].name} - ${gdKey}`;
+                    if(spKey === "SPF" && gdKey === "No.2") opt.selected = true;
+                    select.appendChild(opt);
+                }
+            }
         }
-        calculateRatios(); // Recalculate forces and re-draw canvas instantly without wiping inputs
-    }
-}
-	
-    // --- PHASE 1: Load Compiler (Wraps your Load Combos) ---
-function compileLoads() {
-    const span = parseFloat(document.getElementById('input-span').value) || 0;
-    const steps = 100;
-    let maxM = 0;
-    let maxV = 0;
 
-    // Iterate across the span to find the moment/shear envelope
-    for(let i = 0; i <= steps; i++) {
-        let x = (i / steps) * span;
-        let M_x = 0;
-        let V_x = 0;
-
-        activeLoads.forEach(load => {
-            // APPLY SUPERPOSITION PRINCIPLE HERE
-            // Add moment/shear contribution of each load type at point x
-            // If uniform: M = w*a/2*(L-a) etc...
-        });
-
-        maxM = Math.max(maxM, Math.abs(M_x));
-        maxV = Math.max(maxV, Math.abs(V_x));
-    }
-    
-    return { M_max: maxM, V_max: maxV };
-}
-
-    // --- PHASE 2: Capacity Engine (Wraps your Math) ---
-    function calculateCapacity(loads) {
-        const b = parseFloat(document.getElementById('input-b').value) || 0;
-        const d = parseFloat(document.getElementById('input-d').value) || 0;
-        const span = loads.span;
-
-        // Auto-Cf logic preserved
-        if (!isCfManual) {
-            let autoCf = (d <= 4) ? 1.5 : (d <= 6) ? 1.3 : (d <= 8) ? 1.2 : (d <= 10) ? 1.1 : 1.0;
-            document.getElementById('factor-cf').value = autoCf;
+        function applyPreset() {
+            const id = document.getElementById('preset-select').value;
+            if (!id) return;
+            const preset = structuralLibrary.presets.find(p => p.id === id);
+            if (preset) {
+                document.getElementById('input-b').value = preset.b;
+                document.getElementById('input-d').value = preset.d;
+                document.getElementById('input-species').value = `${preset.species}:${preset.grade}`;
+                calculateRatios();
+            }
         }
-        
-        const Cf = parseFloat(document.getElementById('factor-cf').value) || 1.0;
-        const Fb = parseFloat(document.getElementById('prop-fb').value) || 0;
-        const Fv = parseFloat(document.getElementById('prop-fv').value) || 0;
-        const E_psi = (parseFloat(document.getElementById('prop-e').value) || 0) * 1000;
-        
-        // Adjustments
-        const CD = parseFloat(document.getElementById('factor-cd').value) || 1.0;
-        const CM = parseFloat(document.getElementById('factor-cm').value) || 1.0;
-        const Ct = parseFloat(document.getElementById('factor-ct').value) || 1.0;
-        const CL = parseFloat(document.getElementById('factor-cl').value) || 1.0;
-        const Ci = parseFloat(document.getElementById('factor-ci').value) || 1.0;
-        const Cr = parseFloat(document.getElementById('factor-cr').value) || 1.0;
 
-        const Fb_adj = Fb * CD * CM * Ct * CL * Cf * Ci * Cr;
-        const Fv_adj = Fv * CD * CM * Ct * Ci;
-        const Sx = (b * d * d) / 6;
-        const Ix = (b * d * d * d) / 12;
-
-        return {
-            M_demand: (loads.maxLoad * span * span) / 8,
-            M_capacity: (Fb_adj * Sx) / 12,
-            V_demand: ((loads.maxLoad * span) / 2) - ((loads.maxLoad / 12) * d),
-            V_capacity: (2 / 3) * Fv_adj * (b * d),
-            Δ_ll: (5 * (loads.L / 12) * Math.pow(span * 12, 4)) / (384 * E_psi * Ix),
-            Δ_tl: (5 * ((loads.D + loads.L + loads.S) / 12) * Math.pow(span * 12, 4)) / (384 * E_psi * Ix)
-        };
-    }
-
-    // --- PHASE 3: DOM Injection (Wraps your UI updates) ---
-    function updateUI(loads, results) {
-        const llLim = parseFloat(document.getElementById('input-ll-lim').value) || 240;
-        const tlLim = parseFloat(document.getElementById('input-tl-lim').value) || 360;
-
-        document.getElementById('controlling-comb-display').innerText = `Controlling Combination: ${loads.maxComboName} (${loads.maxLoad.toFixed(1)} plf)`;
-        
-        document.getElementById('math-flexure').innerHTML = `M<sub>max</sub> = ${(results.M_demand/1000).toFixed(2)} k-ft &nbsp;|&nbsp; M<sub>cap</sub> = ${(results.M_capacity/1000).toFixed(2)} k-ft`;
-        updateRowStatus('flexure', results.M_demand / results.M_capacity);
-
-        document.getElementById('math-shear').innerHTML = `V<sub>d</sub> = ${(results.V_demand/1000).toFixed(2)} k &nbsp;|&nbsp; V<sub>cap</sub> = ${(results.V_capacity/1000).toFixed(2)} k`;
-        updateRowStatus('shear', results.V_demand / results.V_capacity);
-        
-        document.getElementById('math-ll-defl').innerHTML = `Δ<sub>LL</sub> = ${results.Δ_ll.toFixed(3)} in &nbsp;|&nbsp; Limit = L/${llLim} (${(loads.span * 12 / llLim).toFixed(2)} in)`;
-        updateRowStatus('ll-defl', results.Δ_ll / (loads.span * 12 / llLim));
-
-        document.getElementById('math-tl-defl').innerHTML = `Δ<sub>TL</sub> = ${results.Δ_tl.toFixed(3)} in &nbsp;|&nbsp; Limit = L/${tlLim} (${(loads.span * 12 / tlLim).toFixed(2)} in)`;
-        updateRowStatus('tl-defl', results.Δ_tl / (loads.span * 12 / tlLim));
-
-        drawBeamGraphic(loads.span, loads.maxLoad);
-    }
-
-    // --- EXECUTION LOOP ---
-function calculateRatios() {
-    // FALLBACK PROTECTION: Pull load values from our array state if the old input is gone
-    const loadInput = document.getElementById('input-load');
-    let load = loadInput ? (parseFloat(loadInput.value) || 0) : 0;
-    
-    // If the old input element is gone, look at the first row of our array for data
-    if (!loadInput && activeLoads.length > 0) {
-        load = activeLoads[0].mag1; 
-    }
-
-    // --- EXISTING UTILS ---
-    function initSelector() { updateProperties(); }
-    function manualCfOverride() { isCfManual = true; document.getElementById('cf-status').innerText = "(Manual)"; calculateRatios(); }
-    function resetCfToAuto() { isCfManual = false; document.getElementById('cf-status').innerText = "(Auto)"; calculateRatios(); }
-    function updateProperties() { 
-        const props = structuralLibrary[document.getElementById('input-material').value];
-        if (!props) return;
-        ['fb','fv','ft','fcpar','fcper','e','emin','density'].forEach(k => document.getElementById('prop-'+k).value = props[k]);
-        calculateRatios(); 
-    }
-    function updateRowStatus(id, ratio) {
-        const ratioEl = document.getElementById(`ratio-${id}`);
-        const pillEl = document.getElementById(`pill-${id}`);
-        ratioEl.innerText = ratio.toFixed(3);
-        const isPass = ratio <= 1.0;
-        pillEl.innerText = isPass ? "Pass" : "Fail";
-        pillEl.className = isPass ? "status-pill pass" : "status-pill fail";
-        ratioEl.style.color = isPass ? "var(--accent-green)" : "var(--accent-red)";
-    }
-
-function drawBeamGraphic() {
-    const canvas = document.getElementById('beamCanvas');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    const w = canvas.clientWidth;
-    const h = canvas.clientHeight;
-    canvas.width = w;
-    canvas.height = h;
-
-    const span = parseFloat(document.getElementById('input-span').value) || 12;
-    const padding = 40;
-    const beamY = h - 40;
-    const beamLength = w - (padding * 2);
-
-    ctx.clearRect(0, 0, w, h);
-
-    // Draw Main Structural Member Line
-    ctx.strokeStyle = '#fbbf24'; 
-    ctx.lineWidth = 6;
-    ctx.beginPath(); 
-    ctx.moveTo(padding, beamY); 
-    ctx.lineTo(w - padding, beamY); 
-    ctx.stroke();
-
-    // Left Support (Pin)
-    ctx.strokeStyle = '#94a3b8'; 
-    ctx.lineWidth = 2;
-    ctx.beginPath(); 
-    ctx.moveTo(padding, beamY); 
-    ctx.lineTo(padding - 8, beamY + 12); 
-    ctx.lineTo(padding + 8, beamY + 12); 
-    ctx.closePath(); 
-    ctx.stroke();
-
-    // Right Support (Roller)
-    ctx.beginPath(); 
-    ctx.moveTo(w - padding, beamY); 
-    ctx.lineTo(w - padding - 8, beamY + 12); 
-    ctx.lineTo(w - padding + 8, beamY + 12); 
-    ctx.closePath(); 
-    ctx.stroke();
-
-    // Check if there are any non-zero active loads to visually render
-    const hasActiveLoads = activeLoads.some(l => l.mag1 > 0 || l.mag2 > 0);
-
-    if (hasActiveLoads) {
-        ctx.strokeStyle = '#f87171'; 
-        ctx.fillStyle = 'rgba(248, 113, 113, 0.15)'; 
-        ctx.lineWidth = 1.5;
-        
-        // Render simple load envelope overlay box
-        ctx.fillRect(padding, beamY - 25, beamLength, 25); 
-        ctx.strokeRect(padding, beamY - 25, beamLength, 25);
-
-        // Vector Force Arrows
-        for (let x = padding + 15; x < w - padding; x += (beamLength / 8)) {
-            ctx.beginPath(); 
-            ctx.moveTo(x, beamY - 25); 
-            ctx.lineTo(x, beamY - 2); 
-            ctx.stroke();
+        // --- FEM Load Matrix Renderers ---
+        function renderLoadTable() {
+            const container = document.getElementById('loads-table-body');
+            if (!container) return;
+            container.innerHTML = '';
             
-            ctx.beginPath(); 
-            ctx.moveTo(x - 3, beamY - 6); 
-            ctx.lineTo(x, beamY - 2); 
-            ctx.lineTo(x + 3, beamY - 6); 
-            ctx.stroke();
+            if (activeLoads.length === 0) {
+                container.innerHTML = '<div style="color:var(--text-muted); font-size:0.9rem; padding:0.5rem 0;">No active superimposed loads.</div>';
+                return;
+            }
+            
+            activeLoads.forEach(load => {
+                const row = document.createElement('div');
+                row.className = 'loads-grid-container';
+                row.innerHTML = `
+                    <select onchange="updateLoad(${load.id}, 'type', this.value)">
+                        <option value="uniform" ${load.type==='uniform'?'selected':''}>Uniform</option>
+                        <option value="point" ${load.type==='point'?'selected':''}>Point</option>
+                        <option value="trapezoid" ${load.type==='trapezoid'?'selected':''}>Trap.</option>
+                    </select>
+                    <input type="number" value="${load.mag1}" oninput="updateLoad(${load.id}, 'mag1', this.value)" placeholder="Mag1">
+                    <input type="number" value="${load.mag2}" oninput="updateLoad(${load.id}, 'mag2', this.value)" placeholder="Mag2" ${load.type==='point' ? 'disabled' : ''}>
+                    <input type="number" value="${load.start}" oninput="updateLoad(${load.id}, 'start', this.value)" placeholder="Start">
+                    <input type="number" value="${load.end}" oninput="updateLoad(${load.id}, 'end', this.value)" placeholder="End">
+                    <button onclick="deleteLoad(${load.id})" style="color:var(--accent-red); background:none; border:none; cursor:pointer; font-weight:bold;">X</button>
+                `;
+                container.appendChild(row);
+            });
         }
-    }
 
-    // Dimension Text label
-    ctx.fillStyle = '#94a3b8'; 
-    ctx.font = '11px sans-serif'; 
-    ctx.textAlign = 'center';
-    ctx.fillText(`${span} ft`, w / 2, beamY + 28);
-}
-	
-window.addEventListener('resize', calculateRatios);
-    
-window.onload = function() { 
-    initSelector();       // 1. Sets up nominal sizing dimensions
-    populateSpecies();    // 2. Loads material library values into the dropdown
-    
-    // Force a default row to start if the array somehow got cleared
-    if (activeLoads.length === 0) {
-        activeLoads.push({ id: 1, type: 'uniform', case: 'D', mag1: 50, mag2: 50, start: 0, end: 10 });
-    }
-    
-    renderLoadTable();    // 3. Spits out the HTML fields into the DOM
-    calculateRatios();    // 4. Now safe to run calculations and paint the canvas
-};
-</script>
+        function addLoadRow() {
+            const spanVal = parseFloat(document.getElementById('input-span').value) || 10;
+            activeLoads.push({ 
+                id: Date.now(), 
+                type: 'uniform', 
+                case: 'D', 
+                mag1: 50, 
+                mag2: 50, 
+                start: 0, 
+                end: spanVal 
+            });
+            renderLoadTable();
+            calculateRatios();
+        }
+
+        function deleteLoad(id) {
+            activeLoads = activeLoads.filter(load => load.id !== id);
+            renderLoadTable();
+            calculateRatios();
+        }
+
+        function updateLoad(id, field, value) {
+            const load = activeLoads.find(l => l.id === id);
+            if (load) {
+                if (field === 'type') {
+                    load.type = value;
+                    renderLoadTable();
+                } else {
+                    load[field] = parseFloat(value) || 0;
+                }
+                calculateRatios();
+            }
+        }
+
+        // --- Core Mechanical Engineering Capacity Calculations ---
+        function calculateRatios() {
+            const span = parseFloat(document.getElementById('input-span').value) || 10;
+            const nomB = parseFloat(document.getElementById('input-b').value) || 2;
+            const nomD = parseFloat(document.getElementById('input-d').value) || 10;
+            
+            const b = structuralLibrary.nominalToActual[nomB] || (nomB - 0.5);
+            const d = structuralLibrary.nominalToActual[nomD] || (nomD - 0.5);
+
+            // 1. Calculate Superposition Loads from Array Engine
+            let totalLoadLbsPerFt = 0;
+            activeLoads.forEach(l => {
+                if (l.type === 'uniform') {
+                    totalLoadLbsPerFt += l.mag1;
+                } else if (l.type === 'point') {
+                    totalLoadLbsPerFt += (l.mag1 / span); // Equivalent uniform load approximation for stabilization
+                }
+            });
+
+            // Fallback safety to keep engine baseline running if empty
+            if(totalLoadLbsPerFt === 0) totalLoadLbsPerFt = 1;
+
+            // Simple Structural Properties
+            const Area = b * d;
+            const S_x = (b * d * d) / 6;
+            const I_x = (b * d * d * d) / 12;
+
+            // Load Values conversion
+            const w_lbs = totalLoadLbsPerFt;
+            
+            // Maximum Demands (Simple Span Uniform Equations)
+            const M_max = (w_lbs * span * span) / 8; // ft-lbs
+            const V_max = (w_lbs * span) / 2;       // lbs
+
+            // Extract Reference Stress Properties
+            const speciesSelect = document.getElementById('input-species').value || "SPF:No.2";
+            const [sp, gd] = speciesSelect.split(':');
+            const baseProps = structuralLibrary.species[sp]?.grades[gd] || { Fb: 775, Fv: 135, E: 1400000 };
+
+            // NDS Adjustment Factors
+            const Cd = parseFloat(document.getElementById('input-cd').value) || 1.0;
+            const Cm = parseFloat(document.getElementById('input-cm').value) || 1.0;
+            const Ct = parseFloat(document.getElementById('input-ct').value) || 1.0;
+            const Ci = parseFloat(document.getElementById('input-ci').value) || 1.0;
+            const Cr = parseFloat(document.getElementById('input-cr').value) || 1.0;
+
+            // Reference Design Capacities
+            const Fb_prime = baseProps.Fb * Cd * Cm * Ct * Ci * Cr;
+            const Fv_prime = baseProps.Fv * Cd * Cm * Ct * Ci;
+            const E_prime = baseProps.E * Cm * Ct * Ci;
+
+            // Allowable Capacities
+            const M_allowable = (Fb_prime * S_x) / 12; // conversion to ft-lbs
+            const V_allowable = (2 / 3) * Fv_prime * Area;
+
+            // Demand vs Capacity Ratios
+            const ratioFlexure = M_max / M_allowable;
+            const ratioShear = V_max / V_allowable;
+
+            // Serviceability Deflection Checks
+            const LL_lim = parseFloat(document.getElementById('input-ll-lim').value) || 240;
+            const TL_lim = parseFloat(document.getElementById('input-tl-lim').value) || 360;
+            
+            const delta_max = (5 * (w_lbs/12) * Math.pow(span * 12, 4)) / (384 * E_prime * I_x);
+            const ratioDeflection = delta_max / ((span * 12) / TL_lim);
+
+            // Update DOM Strings safely
+            document.getElementById('math-flexure').textContent = `M = ${M_max.toFixed(0)} ft-lbs ≤ Mr = ${M_allowable.toFixed(0)} ft-lbs`;
+            document.getElementById('ratio-flexure').textContent = ratioFlexure.toFixed(3);
+            updatePill('pill-flexure', ratioFlexure);
+
+            document.getElementById('math-shear').textContent = `V = ${V_max.toFixed(0)} lbs ≤ Vr = ${V_allowable.toFixed(0)} lbs`;
+            document.getElementById('ratio-shear').textContent = ratioShear.toFixed(3);
+            updatePill('pill-shear', ratioShear);
+
+            document.getElementById('math-deflection').textContent = `Δ = ${delta_max.toFixed(3)} in ≤ Δ_lim = ${((span*12)/TL_lim).toFixed(3)} in`;
+            document.getElementById('ratio-deflection').textContent = ratioDeflection.toFixed(3);
+            updatePill('pill-deflection', ratioDeflection);
+
+            // Repaint Graphical Canvas Elements
+            drawBeamGraphic();
+        }
+
+        function updatePill(id, ratio) {
+            const pill = document.getElementById(id);
+            if (!pill) return;
+            if (ratio > 1.0) {
+                pill.textContent = "Fail";
+                pill.style.background = "var(--accent-red)";
+                pill.style.color = "#000";
+            } else {
+                pill.textContent = "Pass";
+                pill.style.background = "var(--accent-green)";
+                pill.style.color = "#000";
+            }
+        }
+
+        // --- Graphical Canvas Visualizer Component ---
+        function drawBeamGraphic() {
+            const canvas = document.getElementById('beamCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const w = canvas.clientWidth;
+            const h = canvas.clientHeight;
+            canvas.width = w;
+            canvas.height = h;
+
+            const span = parseFloat(document.getElementById('input-span').value) || 10;
+            const padding = 40;
+            const beamY = h - 40;
+            const beamLength = w - (padding * 2);
+
+            ctx.clearRect(0, 0, w, h);
+
+            // Base Beam Assembly Line
+            ctx.strokeStyle = '#fbbf24'; 
+            ctx.lineWidth = 6;
+            ctx.beginPath(); 
+            ctx.moveTo(padding, beamY); 
+            ctx.lineTo(w - padding, beamY); 
+            ctx.stroke();
+
+            // Left Node Support Pin
+            ctx.strokeStyle = '#94a3b8'; 
+            ctx.lineWidth = 2;
+            ctx.beginPath(); 
+            ctx.moveTo(padding, beamY); 
+            ctx.lineTo(padding - 8, beamY + 12); 
+            ctx.lineTo(padding + 8, beamY + 12); 
+            ctx.closePath(); 
+            ctx.stroke();
+
+            // Right Node Support Roller
+            ctx.beginPath(); 
+            ctx.moveTo(w - padding, beamY); 
+            ctx.lineTo(w - padding - 8, beamY + 12); 
+            ctx.lineTo(w - padding + 8, beamY + 12); 
+            ctx.closePath(); 
+            ctx.stroke();
+
+            // Check array structural vectors for any valid forces
+            const hasActiveLoads = activeLoads.some(l => l.mag1 > 0 || l.mag2 > 0);
+
+            if (hasActiveLoads) {
+                ctx.strokeStyle = '#f87171'; 
+                ctx.fillStyle = 'rgba(248, 113, 113, 0.15)'; 
+                ctx.lineWidth = 1.5;
+                
+                // Uniform force cloud profile layout
+                ctx.fillRect(padding, beamY - 25, beamLength, 25); 
+                ctx.strokeRect(padding, beamY - 25, beamLength, 25);
+
+                // Downward vector system glyph generation
+                for (let x = padding + 15; x < w - padding; x += (beamLength / 8)) {
+                    ctx.beginPath(); 
+                    ctx.moveTo(x, beamY - 25); 
+                    ctx.lineTo(x, beamY - 2); 
+                    ctx.stroke();
+                    
+                    ctx.beginPath(); 
+                    ctx.moveTo(x - 3, beamY - 6); 
+                    ctx.lineTo(x, beamY - 2); 
+                    ctx.lineTo(x + 3, beamY - 6); 
+                    ctx.stroke();
+                }
+            }
+
+            // Dimension line string label annotations
+            ctx.fillStyle = '#94a3b8'; 
+            ctx.font = '11px sans-serif'; 
+            ctx.textAlign = 'center';
+            ctx.fillText(`${span} ft`, w / 2, beamY + 28);
+        }
+
+        // --- System Boot Lifecycles ---
+        window.addEventListener('resize', calculateRatios);
+        
+        window.onload = function() { 
+            initSelector();       
+            populateSpecies();    
+            renderLoadTable();    
+            calculateRatios();    
+        };
+    </script>
 </body>
 </html>
