@@ -234,41 +234,6 @@
 <div class="envelope-status-bar" id="controlling-comb-display" style="margin-top: 1rem; display: block; width: 100%;">
     Controlling Combination: --
 </div>
-		
-	<script>
-    // 1. Initialize empty or with desired starting rows
-    let activeLoads = []; 
-
-	function renderLoadTable() {
-    const container = document.getElementById('loads-table-body');
-    container.innerHTML = '';
-    activeLoads.forEach(load => {
-        const row = document.createElement('div');
-        row.className = 'loads-grid-container'; // Let the CSS handle the grid layout entirely
-        row.innerHTML = `
-            <select onchange="updateLoad(${load.id}, 'type', this.value)">
-                <option value="uniform" ${load.type==='uniform'?'selected':''}>Uniform</option>
-                <option value="point" ${load.type==='point'?'selected':''}>Point</option>
-                <option value="trapezoid" ${load.type==='trapezoid'?'selected':''}>Trap.</option>
-            </select>
-            <input type="number" value="${load.mag1}" oninput="updateLoad(${load.id}, 'mag1', this.value)" placeholder="Mag1">
-            <input type="number" value="${load.mag2}" oninput="updateLoad(${load.id}, 'mag2', this.value)" placeholder="Mag2" ${load.type==='point' ? 'disabled' : ''}>
-            <input type="number" value="${load.start}" oninput="updateLoad(${load.id}, 'start', this.value)" placeholder="Start">
-            <input type="number" value="${load.end}" oninput="updateLoad(${load.id}, 'end', this.value)" placeholder="End">
-            <button onclick="deleteLoad(${load.id})" style="color:var(--accent-red); background:none; border:none; cursor:pointer; font-weight:bold;">X</button>
-        `;
-        container.appendChild(row);
-   		 });
-	}
-
-    function addLoadRow() {
-        activeLoads.push({ id: Date.now(), type: 'uniform', case: 'D', mag1: 0, mag2: 0, start: 0, end: 10 });
-        renderLoadTable();
-    }
-
-    // Call once to ensure initial state is rendered correctly
-    renderLoadTable();
-	</script>
                 
 	</div> <div class="panel" style="display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
             <div>
@@ -345,30 +310,68 @@
 
 	// --- 1. The Global State ---
 	let activeLoads = [
-    { id: Date.now(), type: 'uniform', case: 'D', mag1: 20, mag2: 20, start: 0, end: 10 }
-	];
+    { id: 1, type: 'uniform', case: 'D', mag1: 50, mag2: 50, start: 0, end: 10 }
+];
 
-	// --- 2. The Logic to Manage the Array ---
-    function addLoadRow() {
-    activeLoads.push({ id: Date.now(), type: 'uniform', case: 'D', mag1: 0, mag2: 0, start: 0, end: 10 });
+function renderLoadTable() {
+    const container = document.getElementById('loads-table-body');
+    if (!container) return; // Safety check
+    container.innerHTML = '';
+    
+    activeLoads.forEach(load => {
+        const row = document.createElement('div');
+        row.className = 'loads-grid-container';
+        row.innerHTML = `
+            <select onchange="updateLoad(${load.id}, 'type', this.value)">
+                <option value="uniform" ${load.type==='uniform'?'selected':''}>Uniform</option>
+                <option value="point" ${load.type==='point'?'selected':''}>Point</option>
+                <option value="trapezoid" ${load.type==='trapezoid'?'selected':''}>Trap.</option>
+            </select>
+            <input type="number" value="${load.mag1}" oninput="updateLoad(${load.id}, 'mag1', this.value)" placeholder="Mag1">
+            <input type="number" value="${load.mag2}" oninput="updateLoad(${load.id}, 'mag2', this.value)" placeholder="Mag2" ${load.type==='point' ? 'disabled' : ''}>
+            <input type="number" value="${load.start}" oninput="updateLoad(${load.id}, 'start', this.value)" placeholder="Start">
+            <input type="number" value="${load.end}" oninput="updateLoad(${load.id}, 'end', this.value)" placeholder="End">
+            <button onclick="deleteLoad(${load.id})" style="color:var(--accent-red); background:none; border:none; cursor:pointer; font-weight:bold;">X</button>
+        `;
+        container.appendChild(row);
+    });
+}
+
+function addLoadRow() {
+    const spanVal = parseFloat(document.getElementById('input-span').value) || 10;
+    activeLoads.push({ 
+        id: Date.now(), 
+        type: 'uniform', 
+        case: 'D', 
+        mag1: 0, 
+        mag2: 0, 
+        start: 0, 
+        end: spanVal 
+    });
     renderLoadTable();
-    }
+    calculateRatios();
+}
 
-    function deleteLoad(id) {
-    	activeLoads = activeLoads.filter(l => l.id !== id);
-    	renderLoadTable();
-	calculateRatios();
-    }
+function deleteLoad(id) {
+    activeLoads = activeLoads.filter(load => load.id !== id);
+    renderLoadTable();
+    calculateRatios();
+}
 
-    function updateLoad(id, field, value) {
-    	const load = activeLoads.find(l => l.id === id);
-    	if (load) {
-        load[field] = parseFloat(value) || 0;
-        // Logic to hide/show mag2 based on type
-        if (load.type === 'point' || load.type === 'uniform') load.mag2 = load.mag1;
+// Simple placeholder update function to keep the pipeline alive for now
+function updateLoad(id, field, value) {
+    const load = activeLoads.find(l => l.id === id);
+    if (load) {
+        if (field === 'type') {
+            load.type = value;
+        } else {
+            load[field] = parseFloat(value) || 0;
+        }
+        renderLoadTable();
         calculateRatios();
     }
 }
+	
     // --- PHASE 1: Load Compiler (Wraps your Load Combos) ---
 function compileLoads() {
     const span = parseFloat(document.getElementById('input-span').value) || 0;
@@ -508,8 +511,14 @@ function compileLoads() {
         ctx.fillStyle = '#94a3b8'; ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
         ctx.fillText(`${span} ft`, w / 2, beamY + 30);
     }
-    window.addEventListener('resize', calculateRatios);
-    window.onload = function() { initSelector(); };
+window.addEventListener('resize', calculateRatios);
+    
+    window.onload = function() { 
+        initSelector();       // 1. Populates the nominal sizes (b and d)
+        populateSpecies();    // 2. Populates the species/grades list from your library
+        renderLoadTable();    // 3. Spits out your starting load row into the DOM
+        calculateRatios();    // 4. Runs the math engine and paints the canvas graphic
+    };
 </script>
 </body>
 </html>
