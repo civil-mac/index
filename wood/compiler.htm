@@ -525,15 +525,15 @@
             ctx.closePath(); 
             ctx.stroke();
 
-            ctx.beginPath(); 
+ 			ctx.beginPath(); 
             ctx.moveTo(w - padding, beamY); 
             ctx.lineTo(w - padding - 8, beamY + 12); 
             ctx.lineTo(w - padding + 8, beamY + 12); 
             ctx.closePath(); 
             ctx.stroke();
 
+            // CLEANED UP BLOCK: Exactly one declaration, one check, and one open bracket.
             const hasActiveLoads = activeLoads.some(l => l.mag1 > 0 || l.mag2 > 0);
-			
             if (hasActiveLoads) {
                 ctx.strokeStyle = '#f87171'; 
                 ctx.fillStyle = 'rgba(248, 113, 113, 0.15)'; 
