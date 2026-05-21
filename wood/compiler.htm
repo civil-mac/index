@@ -369,11 +369,11 @@ function updateLoad(id, field, value) {
     if (load) {
         if (field === 'type') {
             load.type = value;
+            renderLoadTable(); // Only re-render structural DOM components if the layout type changes
         } else {
             load[field] = parseFloat(value) || 0;
         }
-        // Do NOT recall renderLoadTable() here while typing to avoid breaking input focus
-        calculateRatios();
+        calculateRatios(); // Recalculate forces and re-draw canvas instantly without wiping inputs
     }
 }
 	
@@ -466,10 +466,14 @@ function compileLoads() {
     }
 
     // --- EXECUTION LOOP ---
-    function calculateRatios() {
-        const loads = compileLoads();
-        const results = calculateCapacity(loads);
-        updateUI(loads, results);
+function calculateRatios() {
+    // FALLBACK PROTECTION: Pull load values from our array state if the old input is gone
+    const loadInput = document.getElementById('input-load');
+    let load = loadInput ? (parseFloat(loadInput.value) || 0) : 0;
+    
+    // If the old input element is gone, look at the first row of our array for data
+    if (!loadInput && activeLoads.length > 0) {
+        load = activeLoads[0].mag1; 
     }
 
     // --- EXISTING UTILS ---
@@ -570,12 +574,18 @@ function drawBeamGraphic() {
 	
 window.addEventListener('resize', calculateRatios);
     
-    window.onload = function() { 
-        initSelector();       // 1. Populates the nominal sizes (b and d)
-        populateSpecies();    // 2. Populates the species/grades list from your library
-        renderLoadTable();    // 3. Spits out your starting load row into the DOM
-        calculateRatios();    // 4. Runs the math engine and paints the canvas graphic
-    };
+window.onload = function() { 
+    initSelector();       // 1. Sets up nominal sizing dimensions
+    populateSpecies();    // 2. Loads material library values into the dropdown
+    
+    // Force a default row to start if the array somehow got cleared
+    if (activeLoads.length === 0) {
+        activeLoads.push({ id: 1, type: 'uniform', case: 'D', mag1: 50, mag2: 50, start: 0, end: 10 });
+    }
+    
+    renderLoadTable();    // 3. Spits out the HTML fields into the DOM
+    calculateRatios();    // 4. Now safe to run calculations and paint the canvas
+};
 </script>
 </body>
 </html>
