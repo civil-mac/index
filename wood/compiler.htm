@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+		<!DOCTYPE html>
 <html lang="en" class="notranslate" translate="no">
 <head>
     <meta charset="UTF-8">
@@ -49,7 +49,26 @@
         .property-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-top: 0.75rem; background: #111827; padding: 1rem; border-radius: 12px; border: 1px dashed var(--border-color); }
         .factors-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; background: #111827; padding: 1rem; border-radius: 12px; border: 1px solid var(--border-color); }
         
-        .loads-grid-container { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.5rem; background: #111827; padding: 0.75rem; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 0.5rem; }
+        .loads-grid-container {
+ 	   display: grid !important;
+ 	   grid-template-columns: 1.5fr 1fr 1fr 1fr 1fr 0.5fr !important;
+ 	   gap: 0.5rem !important;
+ 	   align-items: center !important;
+ 	   margin-bottom: 0.5rem !important;
+ 	   width: 100% !important;
+ 	   clear: both !important; /* Forces it to clear floating elements above */
+		}
+
+		/* Ensure the inputs inside the table look uniform */
+		.loads-grid-container select,
+		.loads-grid-container input {
+    	width: 100% !important;
+    	padding: 0.5rem !important;
+    	background: var(--input-bg) !important;
+    	border: 1px solid var(--border-color) !important;
+    	border-radius: 8px !important;
+    	color: var(--text-main) !important;
+		}
         .form-group-sub { display: flex; flex-direction: column; text-align: center; }
         .form-group-sub label { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem; font-weight: 600; text-transform: uppercase; }
         .form-group-sub input { padding: 0.5rem 0.25rem; text-align: center; font-size: 0.95rem; border-radius: 6px; }
@@ -193,55 +212,54 @@
                 </div>
             </div>
 
-            <div class="form-row">
-                <div class="form-group">
-                    <label>L.L. Limit (L/)</label>
-                    <input type="number" id="input-ll-lim" value="240" min="1" step="1" oninput="calculateRatios()">
-                </div>
-                <div class="form-group">
-                    <label>T.L. Limit (L/)</label>
-                    <input type="number" id="input-tl-lim" value="360" min="1" step="1" oninput="calculateRatios()">
-                </div>
-            </div>
-		</div> 
-<div class="container">
-    <div class="bento-layout" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-        
-        <div class="panel">
-            <h2 class="panel-title">Beam Inputs</h2>
-            <h3 class="panel-subtitle">Superimposed Design Loads</h3>
-            <div id="loads-table-body"></div>
-            <button onclick="addLoadRow()" style="width:100%; margin-top: 10px;">+ Add Load</button>
-            <div id="controlling-comb-display" style="margin-top: 10px;">Controlling Combination: --</div>
-        </div>
+         <div class="form-row">
+    <div class="form-group">
+        <label>L.L. Limit (L/)</label>
+        <input type="number" id="input-ll-lim" value="240" min="1" step="1" oninput="calculateRatios()">
+    </div>
+    <div class="form-group">
+        <label>T.L. Limit (L/)</label>
+        <input type="number" id="input-tl-lim" value="360" min="1" step="1" oninput="calculateRatios()">
+    </div>
+</div>
+
+<div class="panel-subtitle" style="display: block; width: 100%; margin-top: 1.5rem;">Superimposed Design Loads</div>
+
+<div id="loads-table-body" style="width: 100%; display: block; margin-top: 0.5rem;"></div>
+
+<button onclick="addLoadRow()" style="width:100%; margin-top: 0.75rem; background: var(--border-color); border:none; padding: 0.5rem; border-radius: 8px; color:white; cursor:pointer;">
+    + Add Load
+</button>
+
+<div class="envelope-status-bar" id="controlling-comb-display" style="margin-top: 1rem; display: block; width: 100%;">
+    Controlling Combination: --
+</div>
 		
 	<script>
     // 1. Initialize empty or with desired starting rows
     let activeLoads = []; 
 
-    function renderLoadTable() {
-        const container = document.getElementById('loads-table-body');
-        container.innerHTML = '';
-        activeLoads.forEach(load => {
-            const row = document.createElement('div');
-            row.className = 'loads-grid-container';
-            row.style.display = "grid"; 
-            row.style.gridTemplateColumns = "1.5fr 1fr 1fr 1fr 1fr 0.5fr";
-            row.innerHTML = `
-                <select onchange="updateLoad(${load.id}, 'type', this.value)">
-                    <option value="uniform" ${load.type==='uniform'?'selected':''}>Uniform</option>
-                    <option value="point" ${load.type==='point'?'selected':''}>Point</option>
-                    <option value="trapezoid" ${load.type==='trapezoid'?'selected':''}>Trap.</option>
-                </select>
-                <input type="number" value="${load.mag1}" oninput="updateLoad(${load.id}, 'mag1', this.value)" placeholder="Mag1">
-                <input type="number" value="${load.mag2}" oninput="updateLoad(${load.id}, 'mag2', this.value)" placeholder="Mag2" ${load.type==='point' ? 'disabled' : ''}>
-                <input type="number" value="${load.start}" oninput="updateLoad(${load.id}, 'start', this.value)" placeholder="Start">
-                <input type="number" value="${load.end}" oninput="updateLoad(${load.id}, 'end', this.value)" placeholder="End">
-                <button onclick="deleteLoad(${load.id})" style="color:var(--accent-red); background:none; border:none; cursor:pointer;">X</button>
-            `;
-            container.appendChild(row);
-        });
-    }
+	function renderLoadTable() {
+    const container = document.getElementById('loads-table-body');
+    container.innerHTML = '';
+    activeLoads.forEach(load => {
+        const row = document.createElement('div');
+        row.className = 'loads-grid-container'; // Let the CSS handle the grid layout entirely
+        row.innerHTML = `
+            <select onchange="updateLoad(${load.id}, 'type', this.value)">
+                <option value="uniform" ${load.type==='uniform'?'selected':''}>Uniform</option>
+                <option value="point" ${load.type==='point'?'selected':''}>Point</option>
+                <option value="trapezoid" ${load.type==='trapezoid'?'selected':''}>Trap.</option>
+            </select>
+            <input type="number" value="${load.mag1}" oninput="updateLoad(${load.id}, 'mag1', this.value)" placeholder="Mag1">
+            <input type="number" value="${load.mag2}" oninput="updateLoad(${load.id}, 'mag2', this.value)" placeholder="Mag2" ${load.type==='point' ? 'disabled' : ''}>
+            <input type="number" value="${load.start}" oninput="updateLoad(${load.id}, 'start', this.value)" placeholder="Start">
+            <input type="number" value="${load.end}" oninput="updateLoad(${load.id}, 'end', this.value)" placeholder="End">
+            <button onclick="deleteLoad(${load.id})" style="color:var(--accent-red); background:none; border:none; cursor:pointer; font-weight:bold;">X</button>
+        `;
+        container.appendChild(row);
+   		 });
+	}
 
     function addLoadRow() {
         activeLoads.push({ id: Date.now(), type: 'uniform', case: 'D', mag1: 0, mag2: 0, start: 0, end: 10 });
@@ -252,7 +270,7 @@
     renderLoadTable();
 	</script>
                 
-</div> <div class="panel" style="display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
+	</div> <div class="panel" style="display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
             <div>
                 <h2 class="panel-title">Code Check Matrix</h2>
                 
