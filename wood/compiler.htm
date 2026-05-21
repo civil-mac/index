@@ -203,46 +203,64 @@
                     <input type="number" id="input-tl-lim" value="360" min="1" step="1" oninput="calculateRatios()">
                 </div>
             </div>
+		</div> 
+<div class="container">
+    <div class="bento-layout" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        
+        <div class="panel">
+            <h2 class="panel-title">Beam Inputs</h2>
+            <h3 class="panel-subtitle">Superimposed Design Loads</h3>
+            <div id="loads-table-body"></div>
+            <button onclick="addLoadRow()" style="width:100%; margin-top: 10px;">+ Add Load</button>
+            <div id="controlling-comb-display" style="margin-top: 10px;">Controlling Combination: --</div>
+        </div>
 
-	<label>Active Superimposed Loads</label>
-	<div id="loads-table-body"></div>
-	<button onclick="addLoadRow()" style="width:100%; margin-top: 0.5rem;">+ Add Load</button>
-                </div>
-
-	<script>
-	function renderLoadTable() {
-  		const container = document.getElementById('loads-table-body');
-    		container.innerHTML = '';
-   		activeLoads.forEach(load => {
-       		const row = document.createElement('div');
-        	row.className = 'loads-grid-container';
-        	row.style.gridTemplateColumns = "1.5fr 1fr 1fr 1fr 1fr 0.5fr"; // Added space for Mag2
-        	row.innerHTML = `
-                <select onchange="updateLoad(${load.id}, 'type', this.value)">
-                <option value="uniform" ${load.type==='uniform'?'selected':''}>Uniform</option>
-                <option value="point" ${load.type==='point'?'selected':''}>Point</option>
-                <option value="trapezoid" ${load.type==='trapezoid'?'selected':''}>Trap.</option>
-            </select>
-            <input type="number" value="${load.mag1}" oninput="updateLoad(${load.id}, 'mag1', this.value)" placeholder="Mag1">
-            <input type="number" value="${load.mag2}" oninput="updateLoad(${load.id}, 'mag2', this.value)" placeholder="Mag2" ${load.type==='point' ? 'disabled' : ''}>
-            <input type="number" value="${load.start}" oninput="updateLoad(${load.id}, 'start', this.value)" placeholder="Start">
-            <input type="number" value="${load.end}" oninput="updateLoad(${load.id}, 'end', this.value)" placeholder="End">
-            <button onclick="deleteLoad(${load.id})" style="color:var(--accent-red)">X</button>
-        `;
-        container.appendChild(row);
-    	});
-	}
-	// Call this on page load
-	renderLoadTable();
-	</script>
-            <div class="envelope-status-bar" id="controlling-comb-display">
-                Controlling Combination: --
+        <div class="panel">
+            <h2 class="panel-title">Code Check Matrix</h2>
+            <div class="canvas-container" style="margin-top: 20px;">
+                <canvas id="beamCanvas"></canvas>
             </div>
         </div>
 
-        <div class="panel" style="display: flex; flex-direction: column; justify-content: space-between;">
-            <div>
-                <h2 class="panel-title">Code Check Matrix</h2>
+    </div>
+</div>
+		
+	<script>
+    // 1. Initialize empty or with desired starting rows
+    let activeLoads = []; 
+
+    function renderLoadTable() {
+        const container = document.getElementById('loads-table-body');
+        container.innerHTML = '';
+        activeLoads.forEach(load => {
+            const row = document.createElement('div');
+            row.className = 'loads-grid-container';
+            row.style.display = "grid"; 
+            row.style.gridTemplateColumns = "1.5fr 1fr 1fr 1fr 1fr 0.5fr";
+            row.innerHTML = `
+                <select onchange="updateLoad(${load.id}, 'type', this.value)">
+                    <option value="uniform" ${load.type==='uniform'?'selected':''}>Uniform</option>
+                    <option value="point" ${load.type==='point'?'selected':''}>Point</option>
+                    <option value="trapezoid" ${load.type==='trapezoid'?'selected':''}>Trap.</option>
+                </select>
+                <input type="number" value="${load.mag1}" oninput="updateLoad(${load.id}, 'mag1', this.value)" placeholder="Mag1">
+                <input type="number" value="${load.mag2}" oninput="updateLoad(${load.id}, 'mag2', this.value)" placeholder="Mag2" ${load.type==='point' ? 'disabled' : ''}>
+                <input type="number" value="${load.start}" oninput="updateLoad(${load.id}, 'start', this.value)" placeholder="Start">
+                <input type="number" value="${load.end}" oninput="updateLoad(${load.id}, 'end', this.value)" placeholder="End">
+                <button onclick="deleteLoad(${load.id})" style="color:var(--accent-red); background:none; border:none; cursor:pointer;">X</button>
+            `;
+            container.appendChild(row);
+        });
+    }
+
+    function addLoadRow() {
+        activeLoads.push({ id: Date.now(), type: 'uniform', case: 'D', mag1: 0, mag2: 0, start: 0, end: 10 });
+        renderLoadTable();
+    }
+
+    // Call once to ensure initial state is rendered correctly
+    renderLoadTable();
+	</script>
                 
                 <div class="report-row">
                     <div>
