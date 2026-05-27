@@ -764,10 +764,12 @@ function drawMomentDiagram(M) {
     ctx.scale(2,2);
     ctx.clearRect(0,0,W,H);
 
-    const baseWidth = canvas.offsetWidth;
+ const baseWidth = canvas.offsetWidth;
     const baseHeight = canvas.offsetHeight;
     const pad = 25; const gWidth = baseWidth - 50;
-    const baseY = 20;
+    
+    // 1. CHANGED: Move the baseline (y=0 origin) down to 140 to center it vertically
+    const baseY = 140; 
 
     ctx.fillStyle = "#111827"; ctx.fillRect(0, 0, baseWidth, baseHeight);
     
@@ -782,8 +784,8 @@ function drawMomentDiagram(M) {
     for(let i=0; i<M.length; i++) {
         let px = pad + (i/(M.length-1))*gWidth;
         
-        // CHANGED: Baseline is shifted down, and the multiplier is bounded cleanly
-        let py = baseY - (M[i]/maxM)*(baseHeight - baseY - 5);
+        // 2. CHANGED: Bound the total amplitude to 100 pixels max so it never overflows
+        let py = baseY - (M[i]/maxM) * 100;
         
         ctx.lineTo(px,py);
     }
