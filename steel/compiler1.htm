@@ -512,20 +512,36 @@ const ASD_COMBINATIONS = [
 // --- Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
     const selectEl = document.getElementById('input-material');
+    
+    // 1. Populate the dropdown options
     Object.keys(structuralLibrary).forEach(shape => {
         let opt = document.createElement('option');
-        opt.value = shape; opt.innerText = shape;
+        opt.value = shape; 
+        opt.innerText = shape;
         selectEl.appendChild(opt);
     });
-    // Set a default profile
-    selectEl.value = "W8x10";
+
+    // 2. Find the exact key format stored in your library (case-insensitive search)
+    const targetShape = "w8x10"; // Our goal shape
+    const matchingKey = Object.keys(structuralLibrary).find(
+        key => key.toLowerCase().replace(/\s+/g, '') === targetShape
+    );
+
+    // 3. Assign the valid key and force update
+    if (matchingKey) {
+        selectEl.value = matchingKey;
+    } else if (selectEl.options.length > 0) {
+        selectEl.selectedIndex = 0; // Fallback to first profile if not found
+    }
+
+    // 4. Manually trigger the property extraction and baseline calculations
     loadShapeProperties();
 
     if (document.getElementById('loads-table-body').children.length === 0) {
-        addLoadRow(150, 400); // Seed initial row matching your baseline specs
+        addLoadRow(150, 400); 
     }
 });
-
+    
 function loadShapeProperties() {
     const key = document.getElementById('input-material').value;
     const prop = structuralLibrary[key];
