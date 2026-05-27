@@ -782,8 +782,8 @@ function drawMomentDiagram(M) {
     for(let i=0; i<M.length; i++) {
         let px = pad + (i/(M.length-1))*gWidth;
         
-        // CHANGED: Changed the + to a - to invert the coordinate space rendering
-        let py = baseY - (M[i]/maxM)*(baseHeight - baseY - 20);
+        // CHANGED: Baseline is shifted down, and the multiplier is bounded cleanly
+        let py = baseY - (M[i]/maxM)*(baseHeight - baseY - 30);
         
         ctx.lineTo(px,py);
     }
