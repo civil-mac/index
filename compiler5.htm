@@ -637,9 +637,9 @@ function fixedEndForces(type, mag1, mag2, a, b, L) {
 function run() {
     if (window.__ensureMath) window.__ensureMath();
 
-    const span_ft = parseFloat(document.getElementById('input-span').value) || 12;
-    const b = parseFloat(document.getElementById('input-b').value) || 1.75;
-    const d = parseFloat(document.getElementById('input-d').value) || 11.25;
+    const span_ft = parseFloat(document.getElementById('input-span').value) || 10;
+    const b = parseFloat(document.getElementById('input-b').value) || 1.5;
+    const d = parseFloat(document.getElementById('input-d').value) || 9.25;
     const L_in = span_ft * 12;
 
     const Fb_ref = parseFloat(document.getElementById('prop-fb').value) || 0;
@@ -956,7 +956,7 @@ function varColor(name) {
 }
 
 window.onload = function() {
-    activeLoads.push({ id: 1, type: 'uniform', d1: 120, l1: 240, s1: 0, w1: 0, e1: 0, d2: 120, l2: 240, s2: 0, w2: 0, e2: 0, start: 0, end: null });
+    activeLoads.push({ id: 1, type: 'uniform', d1: 20, l1: 53.333, s1: 0, w1: 0, e1: 0, d2: 120, l2: 240, s2: 0, w2: 0, e2: 0, start: 0, end: null });
     updateProperties();
     renderLoadTable();
 };
