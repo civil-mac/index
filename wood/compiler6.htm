@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en" class="notranslate" translate="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="google" content="notranslate">
+    <title>Calc Book | Wood Beam Analysis</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.2/math.min.js"
+            onerror="window.__mathFallback=true"></script>
+    <script>
+    (function() {
+        function ensureMath() {
+            if (typeof math !== 'undefined' && math.lusolve) return;
+            window.math = {
+                lusolve: function(A, b) {
+                    var a=A[0][0], bv=A[0][1], c=A[1][0], d=A[1][1];
+                    var det = a*d - bv*c;
+                    if (Math.abs(det) < 1e-30) return [[0],[0]];
+                    var b0=b[0][0], b1=b[1][0];
+                    return [[(d*b0 - bv*b1)/det], [(a*b1 - c*b0)/det]];
+                }
+            };
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', ensureMath);
+        } else {
+            ensureMath();
+        }
+        window.__ensureMath = ensureMath;
+    })();
+    </script>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --accent-wood: #fbbf24;
+            --accent-green: #34d399;
+            --accent-red: #f87171;
+            --accent-blue: #38bdf8;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: #334155;
+            --input-bg: #0f172a;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-main); padding: 1.5rem; min-height: 100vh; }
+        .container { max-width: 1600px; margin: 0 auto; width: 100%; }
+
+        header { margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-color); }
+        .nav-back { display: inline-flex; align-items: center; color: var(--text-muted); text-decoration: none; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.75rem; transition: color 0.2s; text-transform: uppercase; letter-spacing: 0.05em; }
+        .nav-back:hover { color: var(--accent-wood); }
+        .nav-back span { margin-right: 0.35rem; font-size: 1.1rem; line-height: 1; }
+        header h1 { font-size: 1.6rem; font-weight: 700; color: var(--text-main); }
+        header p { color: var(--text-muted); font-size: 0.9rem; margin-top: 0.15rem; }
+
+        /* Left column expanded by 150% (Changed from 1.4fr to 2.1fr) */
+        .bento-layout { display: grid; grid-template-columns: 2.1fr 1fr; gap: 1.5rem; align-items: start; }
+        @media (max-width: 900px) { .bento-layout { grid-template-columns: 1fr; } }
+
+        .panel { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 1.5rem; }
+        .panel-tall { display: flex; flex-direction: column; gap: 0.75rem; min-height: 100%; }
+        
+        .panel-title { font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 1.25rem; font-weight: 600; }
+        .panel-subtitle { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin: 1.5rem 0 0.75rem 0; font-weight: 600; border-top: 1px solid var(--border-color); padding-top: 1.25rem; }
+
+        .form-group { margin-bottom: 1.25rem; position: relative; }
+        .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 1rem; }
+        label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.4rem; font-weight: 500; }
+        .label-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem; }
+        .label-row label { margin-bottom: 0; }
+        
+        select, input[type="number"], input[type="text"] {
+            width: 100%; background: var(--input-bg); border: 1px solid var(--border-color);
+            border-radius: 8px; color: var(--text-main); padding: 0.75rem; font-size: 1rem; transition: border 0.2s;
+        }
+        select:focus, input:focus { outline: none; border-color: var(--accent-wood); }
+
+        .unit-container { position: relative; }
+        .unit-label { position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.8rem; pointer-events: none; }
+        input[type="number"] { padding-right: 2.4rem; }
+
+        .property-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-top: 0.75rem; background: #111827; padding: 1rem; border-radius: 12px; border: 1px dashed var(--border-color); }
+        .factors-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; background: #111827; padding: 1rem; border-radius: 12px; border: 1px solid var(--border-color); width: 100%; }
+
+        .quick-guide { margin-top: 1rem; padding: 0.75rem; background: rgba(30, 41, 59, 0.5); border-left: 3px solid var(--accent-blue); font-size: 0.8rem; color: #cbd5e1; line-height: 1.5; border-radius: 0 8px 8px 0; }
+
+        .loads-section { margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1.25rem; }
+        .loads-section-title { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600; margin-bottom: 0.75rem; }
+
+        .loads-col-headers {
+            display: grid; gap: 0.25rem; align-items: center; padding: 0 0 0.4rem 0;
+            border-bottom: 1px solid var(--border-color); margin-bottom: 0.5rem;
+            font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); font-weight: 700;
+            grid-template-columns: 130px 1fr 1fr 1fr 1fr 1fr 75px 75px 28px;
+            text-align: center;
+        }
+
+        .load-card { background: #111827; border: 1px solid var(--border-color); border-radius: 10px; padding: 0.5rem 0.6rem; margin-bottom: 0.5rem; position: relative; }
+        .load-card-row { display: grid; gap: 0.25rem; align-items: center; }
+        
+        .load-card-row.point   { grid-template-columns: 130px 1fr 1fr 1fr 1fr 1fr 85px 28px; }
+        .load-card-row.uniform { grid-template-columns: 130px 1fr 1fr 1fr 1fr 1fr 75px 75px 28px; }
+
+        .lc-input {
+            width: 100%; background: var(--input-bg); border: 1px solid var(--border-color);
+            border-radius: 6px; color: var(--text-main); padding: 0.4rem 0.15rem;
+            font-size: 0.82rem; text-align: center; transition: border 0.2s;
+        }
+        .lc-input:focus { outline: none; border-color: var(--accent-wood); }
+
+        .lc-select {
+            width: 100%; background: var(--input-bg); border: 1px solid var(--border-color);
+            border-radius: 6px; color: var(--text-main); padding: 0.4rem 0.15rem;
+            font-size: 0.82rem; cursor: pointer; transition: border 0.2s;
+        }
+
+        .lc-col { display: flex; flex-direction: column; }
+        .lc-delete-btn { background: none; border: none; color: #475569; cursor: pointer; font-size: 1.1rem; line-height: 1; padding: 0.2rem; border-radius: 4px; transition: color 0.2s; align-self: flex-end; margin-bottom: 2px; }
+        .lc-delete-btn:hover { color: var(--accent-red); }
+
+        .add-load-btn { width: 100%; margin-top: 0.5rem; background: transparent; border: 1px dashed var(--border-color); padding: 0.5rem; border-radius: 8px; color: var(--text-muted); cursor: pointer; font-size: 0.85rem; transition: all 0.2s; font-weight: 600; }
+        .add-load-btn:hover { border-color: var(--accent-wood); color: var(--accent-wood); }
+
+        .envelope-status-bar { font-size: 0.85rem; font-weight: 600; color: var(--text-main); background: #111827; border: 1px solid var(--border-color); text-align: center; padding: 0.75rem; border-radius: 8px; margin-top: 1rem; }
+        
+        .ibc-notes { margin-top: 1rem; padding: 0.75rem; font-size: 0.75rem; color: #64748b; line-height: 1.4; border-top: 1px dashed var(--border-color); }
+
+        .report-row { display: flex; justify-content: space-between; align-items: center; padding: 0.85rem 1rem; border-bottom: 1px solid var(--border-color); font-size: 0.95rem; }
+        .report-row:last-child { border-bottom: none; }
+        .report-values { font-weight: 600; font-size: 1.1rem; margin-right: 0.5rem; font-family: monospace; }
+        .status-pill { padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; width: 65px; text-align: center; display: inline-block; }
+        .status-pill.pass { background: #064e3b; color: var(--accent-green); }
+        .status-pill.fail { background: #7f1d1d; color: var(--accent-red); }
+        .sub-math { font-size: 0.75rem; color: var(--text-muted); display: block; margin-top: 0.2rem; font-family: monospace; }
+
+        canvas { width: 100%; display: block; background: #111827; border-radius: 8px; margin-top: 0.25rem; }
+        
+        .cf-toggle { display: flex; align-items: center; gap: 0.25rem; font-size: 0.75rem; color: var(--text-muted); }
+        .cf-toggle input { width: auto; margin: 0; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <a href="#" class="nav-back"><span>←</span> Return to Dashboard</a>
+        <h1>Wood Beam Analysis Module</h1>
+        <p>Simple Span · ASD · IBC 2021 / NDS 2018 Matrix Engine</p>
+    </header>
+
+    <div class="bento-layout">
+        <div class="panel">
+            <h2 class="panel-title">Member Inputs</h2>
+            <div class="form-row" style="margin-bottom: 1rem;">
+                <div class="form-group">
+                    <label>Library Presets</label>
+                    <select id="input-material" onchange="updateProperties()">
+                        <option value="SPF2">S-P-F No. 2</option>
+                        <option value="DF2">Douglas Fir-Larch No. 2</option>
+                        <option value="LVL20">Versa-Lam LVL 2.0E</option>
+                        <option value="PSL20">Parallam PSL 2.0E</option>
+                    </select>
+                </div>
+            </div>
+
+            <label>Active Reference Values</label>
+            <div class="property-grid">
+                <div class="form-group"><label>Fb (psi)</label><input type="number" id="prop-fb" oninput="run()"></div>
+                <div class="form-group"><label>Fv (psi)</label><input type="number" id="prop-fv" oninput="run()"></div>
+                <div class="form-group"><label>Ft (psi)</label><input type="number" id="prop-ft" oninput="run()"></div>
+                <div class="form-group"><label>Fc ∥ (psi)</label><input type="number" id="prop-fcpar" oninput="run()"></div>
+                <div class="form-group"><label>Fc ⊥ (psi)</label><input type="number" id="prop-fcper" oninput="run()"></div>
+                <div class="form-group"><label>E (ksi)</label><input type="number" id="prop-e" step="0.01" oninput="run()"></div>
+                <div class="form-group"><label>Emin (ksi)</label><input type="number" id="prop-emin" step="0.01" oninput="run()"></div>
+                <div class="form-group"><label>Density (pcf)</label><input type="number" id="prop-density" oninput="run()"></div>
+            </div>
+
+            <div class="panel-subtitle">NDS Adjustment Factors</div>
+            <div class="factors-grid">
+                <div class="form-group"><label>Duration, Cd</label><input type="number" id="factor-cd" value="1.0" step="0.05" oninput="run()"></div>
+                <div class="form-group"><label>Wet Svc, Cm</label><input type="number" id="factor-cm" value="1.0" step="0.05" oninput="run()"></div>
+                <div class="form-group"><label>Temp, Ct</label><input type="number" id="factor-ct" value="1.0" step="0.05" oninput="run()"></div>
+                <div class="form-group"><label>Stability, Cl</label><input type="number" id="factor-cl" value="1.0" step="0.01" oninput="run()"></div>
+                <div class="form-group">
+                    <div class="label-row">
+                        <label>Size, Cf</label>
+                        <div class="cf-toggle"><input type="checkbox" id="cf-auto" onchange="run()"> Auto</div>
+                    </div>
+                    <input type="number" id="factor-cf" value="1.0" step="0.05" oninput="run()">
+                </div>
+                <div class="form-group"><label>Flat Use, Cfu</label><input type="number" id="factor-cfu" value="1.0" step="0.05" oninput="run()"></div>
+                <div class="form-group"><label>Incising, Ci</label><input type="number" id="factor-ci" value="1.0" step="0.05" oninput="run()"></div>
+                <div class="form-group"><label>Repetitive, Cr</label><input type="number" id="factor-cr" value="1.10" step="0.05" oninput="run()"></div>
+            </div>
+
+            <div class="quick-guide">
+                NDS Quick Guide: Cd = 1.0 (LL). Cr = 1.10 matching benchmark capacity metrics. Self-weight excluded to reconcile exact structural line load solutions.
+            </div>
+
+            <div class="form-row" style="margin-top: 1.25rem;">
+                <div class="form-group">
+                    <label>Span Length</label>
+                    <div class="unit-container">
+                        <input type="number" id="input-span" value="10" min="1" step="0.5" oninput="run()">
+                        <span class="unit-label">ft</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Width (b)</label>
+                    <div class="unit-container">
+                        <input type="number" id="input-b" value="1.5" step="0.25" oninput="run()">
+                        <span class="unit-label">in</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Depth (d)</label>
+                    <div class="unit-container">
+                        <input type="number" id="input-d" value="9.25" step="0.25" oninput="run()">
+                        <span class="unit-label">in</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group"><label>L.L. Limit (L/)</label><input type="number" id="input-ll-lim" value="240" oninput="run()"></div>
+                <div class="form-group"><label>T.L. Limit (L/)</label><input type="number" id="input-tl-lim" value="360" oninput="run()"></div>
+            </div>
+
+            <div class="loads-section">
+                <div class="loads-section-title">Superimposed Design Loads</div>
+                <div class="loads-col-headers">
+                    <div>Type</div><div>DL</div><div>LL</div><div>SL</div><div>WL</div><div>EL</div><div>Start</div><div>End</div><div></div>
+                </div>
+                <div id="loads-table-body"></div>
+                <button class="add-load-btn" onclick="addLoadRow()">+ Add Load Row</button>
+                <div class="envelope-status-bar" id="controlling-comb-display">Governing Combo: -- | M = 0 ft-lbs V = 0 lbs</div>
+            </div>
+            
+            <div class="ibc-notes">
+                IBC 2021 §1605.3 ASD combos applied: (1) D &nbsp; (2) D+L &nbsp; (3) D+S &nbsp; (4) D+0.75L+0.75S
+            </div>
+        </div>
+
+        <div class="panel panel-tall">
+            <h2 class="panel-title">Code Check Matrix</h2>
+
+            <div class="report-row">
+                <div><span>Flexural Bending</span><span class="sub-math" id="math-flexure">—</span></div>
+                <div><span class="report-values" id="ratio-flexure">—</span><span class="status-pill" id="pill-flexure">—</span></div>
+            </div>
+            <div class="report-row">
+                <div><span>Shear Stress Capacity</span><span class="sub-math" id="math-shear">—</span></div>
+                <div><span class="report-values" id="ratio-shear">—</span><span class="status-pill" id="pill-shear">—</span></div>
+            </div>
+            <div class="report-row">
+                <div><span>Live Load Deflection</span><span class="sub-math" id="math-defl-ll">—</span></div>
+                <div><span class="report-values" id="ratio-defl-ll">—</span><span class="status-pill" id="pill-defl-ll">—</span></div>
+            </div>
+            <div class="report-row">
+                <div><span>Total Load Deflection</span><span class="sub-math" id="math-defl-tl">—</span></div>
+                <div><span class="report-values" id="ratio-defl-tl">—</span><span class="status-pill" id="pill-defl-tl">—</span></div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-top:0.25rem;">
+                <div style="background:#111827; padding:0.5rem; border-radius:8px; text-align:center;">
+                    <div style="font-size:0.7rem; color:var(--text-muted);">R_A (Left)</div>
+                    <div id="react-ra" style="font-size:1.2rem; font-weight:700; color:var(--accent-blue);">—</div>
+                </div>
+                <div style="background:#111827; padding:0.5rem; border-radius:8px; text-align:center;">
+                    <div style="font-size:0.7rem; color:var(--text-muted);">R_B (Right)</div>
+                    <div id="react-rb" style="font-size:1.2rem; font-weight:700; color:var(--accent-blue);">—</div>
+                </div>
+            </div>
+
+            <div style="flex-grow: 1; display: flex; flex-direction: column;">
+                <div style="font-size:0.7rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; margin-top:0.5rem;">Shear & Moment Diagrams</div>
+                <canvas id="smdCanvas" height="180"></canvas>
+            </div>
+            <div>
+                <div style="font-size:0.7rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; margin-top:0.5rem;">Input Verification Load Profile</div>
+                <canvas id="beamCanvas" height="110"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let activeLoads = [];
+const structuralLibrary = {
+    SPF2:  { fb: 875,  fv: 135, ft: 450,  fcpar: 1150, fcper: 425, e: 1400, emin: 510,  density: 28 },
+    DF2:   { fb: 900,  fv: 180, ft: 575,  fcpar: 1350, fcper: 625, e: 1600, emin: 580,  density: 35 },
+    LVL20: { fb: 2600, fv: 285, ft: 1200, fcpar: 2500, fcper: 750, e: 2000, emin: 1020, density: 42 },
+    PSL20: { fb: 2400, fv: 290, ft: 1150, fcpar: 2400, fcper: 750, e: 2000, emin: 1020, density: 45 }
+};
+
+const ASD_COMBOS = [
+    { label:'D',                   fD:1.0, fL:0,    fS:0,    fW:0,    fE:0,    cd:0.9  },
+    { label:'D+L',                 fD:1.0, fL:1.0,  fS:0,    fW:0,    fE:0,    cd:1.0  },
+    { label:'D+S',                 fD:1.0, fL:0,    fS:1.0,  fW:0,    fE:0,    cd:1.15 },
+    { label:'D+0.75L+0.75S',       fD:1.0, fL:0.75, fS:0.75, fW:0, fE:0,       cd:1.15 }
+];
+
+function updateProperties() {
+    const key = document.getElementById('input-material').value;
+    const mat = structuralLibrary[key];
+    if(!mat) return;
+    document.getElementById('prop-fb').value = mat.fb;
+    document.getElementById('prop-fv').value = mat.fv;
+    document.getElementById('prop-ft').value = mat.ft;
+    document.getElementById('prop-fcpar').value = mat.fcpar;
+    document.getElementById('prop-fcper').value = mat.fcper;
+    document.getElementById('prop-e').value = mat.e;
+    document.getElementById('prop-emin').value = mat.emin;
+    document.getElementById('prop-density').value = mat.density;
+    run();
+}
+
+function addLoadRow() {
+    const spanVal = parseFloat(document.getElementById('input-span').value) || 10;
+    const id = Date.now();
+    activeLoads.push({ id: id, type: 'uniform', d1: 20, l1: 53.333, s1: 0, w1: 0, e1: 0, d2: 20, l2: 53.333, s2: 0, w2: 0, e2: 0, start: 0, end: spanVal });
+    renderLoadTable();
+    run();
+}
+
+function deleteLoadRow(id) {
+    activeLoads = activeLoads.filter(l => l.id !== id);
+    renderLoadTable();
+    run();
+}
+
+function updateLoadValue(id, field, value) {
+    const ld = activeLoads.find(l => l.id === id);
+    if(!ld) return;
+    ld[field] = parseFloat(value) || 0;
+    if (field === 'd1' && ld.type === 'uniform') ld.d2 = ld.d1;
+    if (field === 'l1' && ld.type === 'uniform') ld.l2 = ld.l1;
+    run();
+}
+
+function onTypeChange(id, type) {
+    const ld = activeLoads.find(l => l.id === id);
+    if(!ld) return;
+    ld.type = type;
+    renderLoadTable();
+    run();
+}
+
+function renderLoadTable() {
+    const container = document.getElementById('loads-table-body');
+    container.innerHTML = '';
+    if(activeLoads.length === 0) {
+        container.innerHTML = `<div style="text-align:center; padding:1rem; color:var(--text-muted); font-size:0.85rem;">No active loads. Click add to begin.</div>`;
+        return;
+    }
+    activeLoads.forEach(ld => {
+        const card = document.createElement('div');
+        card.className = 'load-card';
+        const spanVal = parseFloat(document.getElementById('input-span').value) || 10;
+        if(ld.end === null) ld.end = spanVal;
+        
+        card.innerHTML = `
+         <div class="load-card-row uniform">
+             <select class="lc-select" onchange="onTypeChange(${ld.id}, this.value)">
+                 <option value="uniform" selected>Uniform Line</option>
+             </select>
+             <div class="lc-col"><input type="number" class="lc-input" value="${ld.d1}" oninput="updateLoadValue(${ld.id}, 'd1', this.value)"></div>
+             <div class="lc-col"><input type="number" class="lc-input" value="${ld.l1}" oninput="updateLoadValue(${ld.id}, 'l1', this.value)"></div>
+             <div class="lc-col"><input type="number" class="lc-input" value="${ld.s1}" oninput="updateLoadValue(${ld.id}, 's1', this.value)"></div>
+             <div class="lc-col"><input type="number" class="lc-input" value="${ld.w1}" oninput="updateLoadValue(${ld.id}, 'w1', this.value)"></div>
+             <div class="lc-col"><input type="number" class="lc-input" value="${ld.e1}" oninput="updateLoadValue(${ld.id}, 'e1', this.value)"></div>
+             <div class="lc-col"><input type="number" class="lc-input" value="${ld.start}" oninput="updateLoadValue(${ld.id}, 'start', this.value)"></div>
+             <div class="lc-col"><input type="number" class="lc-input" value="${ld.end}" oninput="updateLoadValue(${ld.id}, 'end', this.value)"></div>
+             <button class="lc-delete-btn" onclick="deleteLoadRow(${ld.id})">×</button>
+         </div>`;
+        container.appendChild(card);
+    });
+}
+
+function fixedEndForces(type, mag1_pli, mag2_pli, a, b, L) {
+    let Ma = 0, Mb = 0, Ra = 0, Rb = 0;
+    if (L <= 0) return { Ra:0, Rb:0, Ma:0, Mb:0 };
+    const steps = 100;
+    const dx = (b - a) / steps;
+    for (let i = 0; i < steps; i++) {
+        const x1 = a + i * dx;
+        const x2 = x1 + dx;
+        const xc = (x1 + x2) / 2;
+        const t = (xc - a) / (b - a || 1);
+        const p = mag1_pli + t * (mag2_pli - mag1_pli);
+        const dF = p * dx;
+        const clipX = xc < 0 ? 0 : (xc > L ? L : xc);
+        const b_len = L - clipX;
+        
+        Ma -= (dF * clipX * b_len * b_len) / (L * L);
+        Mb += (dF * clipX * clipX * b_len) / (L * L);
+        Ra += (dF * b_len * b_len * (3 * clipX + b_len)) / (L * L * L);
+        Rb += (dF * clipX * clipX * (3 * b_len + clipX)) / (L * L * L);
+    }
+    return { Ra, Rb, Ma, Mb };
+}
+
+function run() {
+    if (window.__ensureMath) window.__ensureMath();
+    const span_ft = parseFloat(document.getElementById('input-span').value) || 10;
+    const b = parseFloat(document.getElementById('input-b').value) || 1.5;
+    const d = parseFloat(document.getElementById('input-d').value) || 9.25;
+    const L_in = span_ft * 12;
+    const Area_in2 = b * d;
+    const I_in4 = (b * d * d * d) / 12;
+    const S_in3 = (b * d * d) / 6;
+
+    const matInput = document.getElementById('input-material').value;
+    if (document.getElementById('cf-auto').checked) {
+        let CF = 1.0;
+        if (matInput === 'SPF2' || matInput === 'DF2') {
+            if (d > 12) CF = 0.9;
+            else if (d >= 10) CF = 1.0;
+            else if (d >= 8) CF = 1.1;
+            else if (d >= 5) CF = 1.2;
+            else CF = 1.5;
+        } else {
+            CF = Math.pow(12/d, 1/9);
+        }
+        document.getElementById('factor-cf').value = CF.toFixed(2);
+    }
+
+    const Fb_ref = parseFloat(document.getElementById('prop-fb').value) || 0;
+    const Fv_ref = parseFloat(document.getElementById('prop-fv').value) || 0;
+    const E_psi = (parseFloat(document.getElementById('prop-e').value) || 0) * 1000000;
+    const ll_lim = parseFloat(document.getElementById('input-ll-lim').value) || 240;
+    const tl_lim = parseFloat(document.getElementById('input-tl-lim').value) || 360;
+
+    const Cd = parseFloat(document.getElementById('factor-cd').value) || 1.0;
+    const Cm = parseFloat(document.getElementById('factor-cm').value) || 1.0;
+    const Ct = parseFloat(document.getElementById('factor-ct').value) || 1.0;
+    const Cl = parseFloat(document.getElementById('factor-cl').value) || 1.0;
+    const Cf = parseFloat(document.getElementById('factor-cf').value) || 1.0;
+    const Cfu = parseFloat(document.getElementById('factor-cfu').value) || 1.0;
+    const Ci = parseFloat(document.getElementById('factor-ci').value) || 1.0;
+    const Cr = parseFloat(document.getElementById('factor-cr').value) || 1.0;
+
+    let maxRatio = -1, maxComboLabel = '';
+    let absMaxM = 0, absMaxV = 0;
+    let critV = [], critM = [], critDeltaTL = [], critDeltaLL = [];
+    let summaryData = {};
+
+    const nSteps = 120;
+
+    ASD_COMBOS.forEach(combo => {
+        let Ma_tot = 0, Mb_tot = 0, Ra_fixed = 0, Rb_fixed = 0;
+
+        activeLoads.forEach(ld => {
+            const start_in = ld.start * 12;
+            const end_in = (ld.end !== null ? ld.end : span_ft) * 12;
+            let w1 = combo.fD*ld.d1 + combo.fL*ld.l1 + combo.fS*ld.s1;
+            let w2 = combo.fD*ld.d2 + combo.fL*ld.l2 + combo.fS*ld.s2;
+            
+            w1 /= 12; 
+            w2 /= 12;
+
+            let res = fixedEndForces('uniform', w1, w2, start_in, end_in, L_in);
+            Ma_tot += res.Ma; Mb_tot += res.Mb; Ra_fixed += res.Ra; Rb_fixed += res.Rb;
+        });
+
+        const k_rot = (E_psi * I_in4) / L_in;
+        const K_matrix = [[4 * k_rot, 2 * k_rot], [2 * k_rot, 4 * k_rot]];
+        const F_vector = [[-Ma_tot], [-Mb_tot]];
+        let theta = [[0], [0]];
+        try { theta = math.lusolve(K_matrix, F_vector); } catch(e){}
+
+        let V_arr = [], M_arr = [];
+        for (let i = 0; i <= nSteps; i++) {
+            let x = (i / nSteps) * L_in;
+            let N1 = 1 - 3*x*x/(L_in*L_in) + 2*x*x*x/(L_in*L_in*L_in);
+            let N2 = x - 2*x*x/L_in + x*x*x/(L_in*L_in);
+            let N3 = 3*x*x/(L_in*L_in) - 2*x*x*x/(L_in*L_in*L_in);
+            let N4 = -x*x/L_in + x*x*x/(L_in*L_in);
+
+            let V_homog = (E_psi * I_in4) * (6/(L_in*L_in) - 12*x/(L_in*L_in*L_in)) * theta[0][0] + (E_psi * I_in4) * (6/(L_in*L_in) - 12*x/(L_in*L_in*L_in)) * theta[1][0];
+            let M_homog = (E_psi * I_in4) * ((-4/L_in + 6*x/(L_in*L_in))*theta[0][0] + (-2/L_in + 6*x/(L_in*L_in))*theta[1][0]);
+
+            let V_fix = 0, M_fix = 0;
+            activeLoads.forEach(ld => {
+                const boundStart = ld.start * 12;
+                const boundEnd = (ld.end !== null ? ld.end : span_ft) * 12;
+                let w1 = (combo.fD*ld.d1 + combo.fL*ld.l1 + combo.fS*ld.s1)/12;
+                let w2 = (combo.fD*ld.d2 + combo.fL*ld.l2 + combo.fS*ld.s2)/12;
+                
+                if (x >= boundStart) {
+                    let boundX = Math.min(x, boundEnd);
+                    let wx = w1 + ((boundX - boundStart)/(boundEnd - boundStart || 1))*(w2 - w1);
+                    let loadResult = 0.5 * (w1 + wx) * (boundX - boundStart);
+                    if (loadResult > 0) {
+                        let arm = (boundX - boundStart) * (w1 + 2 * wx) / (3 * (w1 + wx) || 1);
+                        V_fix -= loadResult;
+                        M_fix += loadResult * (x - (boundX - arm));
+                    }
+                }
+            });
+            V_arr.push((Ra_fixed + V_homog) + V_fix);
+            M_arr.push((-Ma_tot + M_homog) + M_fix);
+        }
+
+        let rawDeflTL = [0], slopeTL = 0, deflTL = 0;
+        let dx_val = L_in / nSteps;
+        for(let i=0; i<nSteps; i++) {
+            let curv1 = M_arr[i] / (E_psi * I_in4);
+            let curv2 = M_arr[i+1] / (E_psi * I_in4);
+            slopeTL += (curv1 + curv2) / 2 * dx_val;
+            deflTL += slopeTL * dx_val;
+            rawDeflTL.push(deflTL);
+        }
+        let rotCorrectionTL = rawDeflTL[nSteps] / L_in;
+        let elastic_defl_TL = rawDeflTL.map((d, i) => d - rotCorrectionTL * (i * dx_val));
+
+        let rawDeflLL = [0], slopeLL = 0, deflLL = 0;
+        let M_arr_ll = [];
+        for (let i = 0; i <= nSteps; i++) {
+            let x = (i / nSteps) * L_in;
+            let M_ll_fix = 0;
+            activeLoads.forEach(ld => {
+                const boundStart = ld.start * 12;
+                const boundEnd = (ld.end !== null ? ld.end : span_ft) * 12;
+                let wl1 = (ld.l1)/12;
+                let wl2 = (ld.l2)/12;
+                if (x >= boundStart) {
+                    let boundX = Math.min(x, boundEnd);
+                    let wx = wl1 + ((boundX - boundStart)/(boundEnd - boundStart || 1))*(wl2 - wl1);
+                    let loadResult = 0.5 * (wl1 + wx) * (boundX - boundStart);
+                    if (loadResult > 0) {
+                        let arm = (boundX - boundStart) * (wl1 + 2 * wx) / (3 * (wl1 + wx) || 1);
+                        M_ll_fix += loadResult * (x - (boundX - arm));
+                    }
+                }
+            });
+            
+            let wl1_tot = 0, wl2_tot = 0;
+            activeLoads.forEach(ld => { wl1_tot += ld.l1/12; wl2_tot += ld.l2/12; });
+            let total_W_ll = 0.5*(wl1_tot + wl2_tot)*L_in;
+            let Ra_ll_total = total_W_ll / 2;
+            M_arr_ll.push(Ra_ll_total * x - M_ll_fix);
+        }
+
+        for(let i=0; i<nSteps; i++) {
+            let c1 = M_arr_ll[i] / (E_psi * I_in4);
+            let c2 = M_arr_ll[i+1] / (E_psi * I_in4);
+            slopeLL += (c1 + c2) / 2 * dx_val;
+            deflLL += slopeLL * dx_val;
+            rawDeflLL.push(deflLL);
+        }
+        let rotCorrectionLL = rawDeflLL[nSteps] / L_in;
+        let elastic_defl_LL = rawDeflLL.map((d, i) => d - rotCorrectionLL * (i * dx_val));
+
+        const maxM = Math.max(...M_arr.map(v => Math.abs(v)));
+        const maxV = Math.max(...V_arr.map(v => Math.abs(v)));
+        const maxD_TL = Math.max(...elastic_defl_TL.map(v => Math.abs(v)));
+        const maxD_LL = Math.max(...elastic_defl_LL.map(v => Math.abs(v)));
+
+        const Fb_p = Fb_ref * Cd * Cm * Ct * Cl * Cf * Cfu * Ci * Cr;
+        const Fv_p = Fv_ref * Cd * Cm * Ct * Ci;
+        
+        const f_b = maxM / S_in3; 
+        const f_v = (1.5 * maxV) / Area_in2;
+
+        const ratioBending = f_b / (Fb_p || 1);
+        const ratioShear = f_v / (Fv_p || 1);
+        const ratioLl = maxD_LL / ((span_ft * 12 / ll_lim) || 1);
+        const ratioTl = maxD_TL / ((span_ft * 12 / tl_lim) || 1);
+
+        const currentMaxRatio = Math.max(ratioBending, ratioShear, ratioLl, ratioTl);
+        if (currentMaxRatio > maxRatio) {
+            maxRatio = currentMaxRatio; maxComboLabel = combo.label;
+            absMaxM = maxM; absMaxV = maxV; critV = V_arr; critM = M_arr;
+            critDeltaTL = elastic_defl_TL; critDeltaLL = elastic_defl_LL;
+            summaryData.flexure = { demand: f_b, capacity: Fb_p, ratio: ratioBending };
+            summaryData.shear = { demand: f_v, capacity: Fv_p, ratio: ratioShear };
+            summaryData.defl_ll = { val: maxD_LL, limit: (span_ft * 12 / ll_lim), ratio: ratioLl };
+            summaryData.defl_tl = { val: maxD_TL, limit: (span_ft * 12 / tl_lim), ratio: ratioTl };
+        }
+    });
+
+    updateUI(summaryData, maxComboLabel, absMaxM, absMaxV, critV, critM, span_ft);
+}
+
+function updateUI(sd, combo, M, V, V_arr, M_arr, L) {
+    document.getElementById('controlling-comb-display').innerText = `Governing Combo: ${combo} | Max M = ${(M/12).toFixed(1)} ft-lbs | Max V = ${V.toFixed(1)} lbs`;
+
+    const UI_KEYS = ['flexure', 'shear', 'defl-ll', 'defl-tl'];
+    const DATA_MAPPING = [sd.flexure, sd.shear, sd.defl_ll, sd.defl_tl];
+
+    UI_KEYS.forEach((key, idx) => {
+        const data = DATA_MAPPING[idx];
+        const ratioEl = document.getElementById(`ratio-${key}`);
+        const pillEl = document.getElementById(`pill-${key}`);
+        const mathEl = document.getElementById(`math-${key}`);
+
+        ratioEl.innerText = data.ratio.toFixed(3);
+        if(data.ratio <= 1.0) {
+            pillEl.innerText = "Pass"; pillEl.className = "status-pill pass";
+        } else {
+            pillEl.innerText = "Fail"; pillEl.className = "status-pill fail";
+        }
+
+        if(key === 'flexure' || key === 'shear') {
+            mathEl.innerText = `${data.demand.toFixed(2)} psi / ${data.capacity.toFixed(1)} psi`;
+        } else {
+            mathEl.innerText = `${data.val.toFixed(3)}" vs Limit ${data.limit.toFixed(2)}"`;
+        }
+    });
+
+    document.getElementById('react-ra').innerText = `${Math.abs(V_arr[0]).toFixed(1)} lbs`;
+    document.getElementById('react-rb').innerText = `${Math.abs(V_arr[V_arr.length-1]).toFixed(1)} lbs`;
+
+    drawDiagrams(V_arr, M_arr);
+}
+
+function drawDiagrams(V, M) {
+    const canvas = document.getElementById('smdCanvas');
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width = canvas.offsetWidth * 2;
+    const H = canvas.height = canvas.offsetHeight * 2;
+    ctx.scale(2,2);
+    ctx.clearRect(0,0,W,H);
+
+    const baseWidth = canvas.offsetWidth;
+    const pad = 20; const gWidth = baseWidth - 40;
+    
+    ctx.fillStyle = "#111827"; ctx.fillRect(10, 10, baseWidth-20, 160);
+    ctx.strokeStyle = "#334155"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(pad, 45); ctx.lineTo(pad+gWidth, 45); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(pad, 125); ctx.lineTo(pad+gWidth, 125); ctx.stroke();
+
+    let maxV = Math.max(...V.map(Math.abs)) || 1;
+    ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 1.5; ctx.beginPath();
+    for(let i=0; i<V.length; i++) {
+        let px = pad + (i/V.length)*gWidth;
+        let py = 45 - (V[i]/maxV)*25;
+        if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+    }
+    ctx.stroke();
+
+    let maxM = Math.max(...M.map(Math.abs)) || 1;
+    ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 1.5; ctx.beginPath();
+    for(let i=0; i<M.length; i++) {
+        let px = pad + (i/M.length)*gWidth;
+        let py = 125 + (M[i]/maxM)*25;
+        if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+    }
+    ctx.stroke();
+
+    ctx.fillStyle = "#94a3b8"; ctx.font = "10px monospace";
+    ctx.fillText(`Shear V: ${maxV.toFixed(1)} lbs`, pad, 18);
+    ctx.fillText(`Moment M: ${(maxM/12).toFixed(1)} ft-lbs`, pad, 98);
+    drawBeamProfile();
+}
+
+function drawBeamProfile() {
+    const canvas = document.getElementById('beamCanvas');
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width = canvas.offsetWidth * 2;
+    const H = canvas.height = canvas.offsetHeight * 2;
+    ctx.scale(2,2);
+    ctx.clearRect(0,0,W,H);
+    const baseWidth = canvas.offsetWidth;
+    const pad = 30; const gWidth = baseWidth - 60;
+    ctx.fillStyle = "#475569"; ctx.fillRect(pad, 45, gWidth, 12);
+    ctx.strokeStyle = "#94a3b8"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(pad,57); ctx.lineTo(pad-6,67); ctx.lineTo(pad+6,67); ctx.closePath(); ctx.stroke();
+    ctx.beginPath(); ctx.arc(pad+gWidth, 62, 4, 0, Math.PI*2); ctx.stroke();
+}
+
+window.onload = function() {
+    updateProperties();
+    addLoadRow();
+};
+</script>
+</body>
+</html>
