@@ -395,6 +395,11 @@
 </div>
 
 <script>
+// --- Global State Array for Superimposed Custom Loads ---
+let loadsArray = [
+    { id: Date.now(), type: 'udl', start: 0, end: 12, d: 150, l: 400, s: 0, w: 0, e: 0, dEnd: 150, lEnd: 400, sEnd: 0, wEnd: 0, eEnd: 0 }
+];
+
 const structuralLibrary = {
     "W27x539": { d: 32.50, tw: 1.970, bf: 15.30, tf: 3.540, ix: 25600.0, sx: 1570.0, zx: 1890.0, rts: 4.41, j: 496.000, cw: 443000.0, ho: 28.96, weight: 539.0 },
     "W27x368": { d: 30.40, tw: 1.380, bf: 14.70, tf: 2.480, ix: 16200.0, sx: 1060.0, zx: 1240.0, rts: 4.15, j: 170.000, cw: 255000.0, ho: 27.92, weight: 368.0 },
@@ -612,40 +617,6 @@ function initSelector() {
     loadShapeProperties();
 }
 
-function toggleLoadFields() {
-    const pattern = document.getElementById('load-pattern-select').value;
-    const startLocBox = document.getElementById('box-start-loc');
-    const endLocBox = document.getElementById('box-end-loc');
-    const trapBox = document.getElementById('trapezoidal-end-vector-box');
-    const unitIndicator = document.getElementById('mag-unit-indicator');
-    const L_ft = parseFloat(document.getElementById('input-span').value) || 12;
-
-    if (pattern === 'udl') {
-        startLocBox.style.display = 'block';
-        endLocBox.style.display = 'block';
-        trapBox.style.display = 'none';
-        document.getElementById('lbl-start-loc').innerText = "Start Location";
-        document.getElementById('lbl-end-loc').innerText = "End Location";
-        document.getElementById('input-start-loc').value = 0;
-        document.getElementById('input-end-loc').value = L_ft;
-        unitIndicator.innerText = "plf";
-    } else if (pattern === 'point') {
-        startLocBox.style.display = 'block';
-        endLocBox.style.display = 'none';
-        trapBox.style.display = 'none';
-        document.getElementById('lbl-start-loc').innerText = "Load Placement Location";
-        unitIndicator.innerText = "lbs";
-    } else if (pattern === 'trap') {
-        startLocBox.style.display = 'block';
-        endLocBox.style.display = 'block';
-        trapBox.style.display = 'block';
-        document.getElementById('lbl-start-loc').innerText = "Start Location";
-        document.getElementById('lbl-end-loc').innerText = "End Location";
-        unitIndicator.innerText = "plf (Start)";
-    }
-    runAnalysis();
-}
-
 function loadShapeProperties() {
     const shapeName = document.getElementById('input-material').value;
     const props = structuralLibrary[shapeName];
@@ -664,9 +635,105 @@ function loadShapeProperties() {
     document.getElementById('prop-ho').value = props.ho;
     document.getElementById('prop-weight').value = props.weight;
     
+    renderLoadRows();
+}
+
+// --- Dynamic Architecture View Controls ---
+function renderLoadRows() {
+    const container = document.getElementById('dynamic-loads-container');
+    container.innerHTML = '';
+    const L_ft = parseFloat(document.getElementById('input-span').value) || 12;
+
+    loadsArray.forEach((load, idx) => {
+        const rowDiv = document.createElement('div');
+        rowDiv.className = 'load-input-panel';
+        rowDiv.style.position = 'relative';
+        rowDiv.style.marginTop = '0.5rem';
+        rowDiv.style.border = '1px solid var(--border-color)';
+        rowDiv.style.background = '#0b0f19';
+
+        const isPoint = load.type === 'point';
+        const isTrap = load.type === 'trap';
+
+        rowDiv.innerHTML = `
+            <button type="button" onclick="deleteLoadRow(${load.id})" style="position: absolute; right: 0.75rem; top: 0.5rem; background: transparent; border: none; color: var(--accent-red); font-size: 1.1rem; cursor: pointer; font-weight: bold; padding: 0.2rem;">&times;</button>
+            <div class="form-row" style="grid-template-columns: 1.5fr 1fr 1fr; gap: 0.5rem; margin-bottom: 0.5rem; width: calc(100% - 25px);">
+                <div class="form-group-sub" style="text-align: left;">
+                    <label style="text-align: left;">Type</label>
+                    <select onchange="updateLoadParam(${load.id}, 'type', this.value)" style="padding: 0.35rem; font-size: 0.85rem;">
+                        <option value="udl" ${load.type === 'udl' ? 'selected' : ''}>Uniform (UDL)</option>
+                        <option value="point" ${load.type === 'point' ? 'selected' : ''}>Point Load</option>
+                        <option value="trap" ${load.type === 'trap' ? 'selected' : ''}>Sloped (Trap)</option>
+                    </select>
+                </div>
+                <div class="form-group-sub">
+                    <label>${isPoint ? 'Location' : 'Start Loc'}</label>
+                    <input type="number" step="0.01" value="${load.start}" oninput="updateLoadParam(${load.id}, 'start', this.value)" style="padding: 0.35rem;">
+                </div>
+                <div class="form-group-sub" style="display: ${isPoint ? 'none' : 'flex'};">
+                    <label>End Loc</label>
+                    <input type="number" step="0.01" value="${load.end}" oninput="updateLoadParam(${load.id}, 'end', this.value)" style="padding: 0.35rem;">
+                </div>
+            </div>
+            <label style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem; display: block; font-weight: 500;">
+                Magnitude Vector (${isPoint ? 'lbs' : isTrap ? 'plf Start' : 'plf'})
+            </label>
+            <div class="loads-grid-container" style="padding: 0.5rem; gap: 0.35rem; background: #111827;">
+                <div class="form-group-sub"><label style="font-size:0.65rem;">D</label><input type="number" value="${load.d}" oninput="updateLoadParam(${load.id}, 'd', this.value)"></div>
+                <div class="form-group-sub"><label style="font-size:0.65rem;">L</label><input type="number" value="${load.l}" oninput="updateLoadParam(${load.id}, 'l', this.value)"></div>
+                <div class="form-group-sub"><label style="font-size:0.65rem;">S</label><input type="number" value="${load.s}" oninput="updateLoadParam(${load.id}, 's', this.value)"></div>
+                <div class="form-group-sub"><label style="font-size:0.65rem;">W</label><input type="number" value="${load.w}" oninput="updateLoadParam(${load.id}, 'w', this.value)"></div>
+                <div class="form-group-sub"><label style="font-size:0.65rem;">E</label><input type="number" value="${load.e}" oninput="updateLoadParam(${load.id}, 'e', this.value)"></div>
+            </div>
+            <div style="display: ${isTrap ? 'block' : 'none'}; margin-top: 0.5rem;">
+                <label style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem; display: block; font-weight: 500;">End Vector Component (plf)</label>
+                <div class="loads-grid-container" style="padding: 0.5rem; gap: 0.35rem; background: #111827; margin-bottom: 0;">
+                    <div class="form-group-sub"><label style="font-size:0.65rem;">D End</label><input type="number" value="${load.dEnd}" oninput="updateLoadParam(${load.id}, 'dEnd', this.value)"></div>
+                    <div class="form-group-sub"><label style="font-size:0.65rem;">L End</label><input type="number" value="${load.lEnd}" oninput="updateLoadParam(${load.id}, 'lEnd', this.value)"></div>
+                    <div class="form-group-sub"><label style="font-size:0.65rem;">S End</label><input type="number" value="${load.sEnd}" oninput="updateLoadParam(${load.id}, 'sEnd', this.value)"></div>
+                    <div class="form-group-sub"><label style="font-size:0.65rem;">W End</label><input type="number" value="${load.wEnd}" oninput="updateLoadParam(${load.id}, 'wEnd', this.value)"></div>
+                    <div class="form-group-sub"><label style="font-size:0.65rem;">E End</label><input type="number" value="${load.eEnd}" oninput="updateLoadParam(${load.id}, 'eEnd', this.value)"></div>
+                </div>
+            </div>
+        `;
+        container.appendChild(rowDiv);
+    });
     runAnalysis();
 }
 
+function addLoadRow() {
+    const L_ft = parseFloat(document.getElementById('input-span').value) || 12;
+    loadsArray.push({
+        id: Date.now() + Math.random(),
+        type: 'udl',
+        start: 0,
+        end: L_ft,
+        d: 0, l: 0, s: 0, w: 0, e: 0,
+        dEnd: 0, lEnd: 0, sEnd: 0, wEnd: 0, eEnd: 0
+    });
+    renderLoadRows();
+}
+
+function deleteLoadRow(id) {
+    loadsArray = loadsArray.filter(l => l.id !== id);
+    renderLoadRows();
+}
+
+function updateLoadParam(id, key, val) {
+    const target = loadsArray.find(l => l.id === id);
+    if (!target) return;
+    if (key === 'type') {
+        target.type = val;
+        const L_ft = parseFloat(document.getElementById('input-span').value) || 12;
+        if(val === 'udl' || val === 'trap') { target.start = 0; target.end = L_ft; }
+        renderLoadRows();
+        return;
+    }
+    target[key] = parseFloat(val) || 0;
+    runAnalysis();
+}
+
+// --- Combined Element Structural Integration Suite ---
 function runAnalysis() {
     const L_ft = Math.max(0.01, parseFloat(document.getElementById('input-span').value) || 0);
     let Lb_ft = parseFloat(document.getElementById('input-lb').value) || 0;
@@ -689,28 +756,20 @@ function runAnalysis() {
     const ho = parseFloat(document.getElementById('prop-ho').value) || 0;
     const weight = parseFloat(document.getElementById('prop-weight').value) || 0;
 
-    const pattern = document.getElementById('load-pattern-select').value;
-    let sLoc = parseFloat(document.getElementById('input-start-loc').value) || 0;
-    let eLoc = parseFloat(document.getElementById('input-end-loc').value) || 0;
-    if(sLoc < 0) sLoc = 0; if(sLoc > L_ft) sLoc = L_ft;
-    if(eLoc < sLoc) eLoc = sLoc; if(eLoc > L_ft) eLoc = L_ft;
-
     const combos = ["D Only", "D + L", "D + S", "D + 0.75L + 0.75S", "D + 0.6W", "D + 0.7E", "D + 0.75L + 0.75(0.6W) + 0.75S", "D + 0.75L + 0.75(0.7E) + 0.75S", "0.6D + 0.6W", "0.6D + 0.7E"];
     
     let maxV_global = 0, maxM_global = 0, critComboName = "";
     let finalShearPoints = [], finalMomentPoints = [];
-    
-    // Evaluate Serviceability Deflections
-    let finalLLDeflPoints = new Array(101).fill(0);
     let finalTLDeflPoints = new Array(101).fill(0);
+
+    // EI stiffness factor baseline setup
+    const EI_constant = E * ix; // ksi * in^4
 
     combos.forEach(comb => {
         let currentShear = new Array(101).fill(0);
         let currentMoment = new Array(101).fill(0);
-        let currentDefl = new Array(101).fill(0);
-        let isLiveCombination = comb.includes('L') || comb.includes('S') || comb.includes('W') || comb.includes('E');
 
-        // Extract multipliers
+        // Extract Multipliers
         let mD = 1.0, mL = 0, mS = 0, mW = 0, mE = 0;
         if(comb === "0.6D + 0.6W") { mD = 0.6; mW = 0.6; }
         else if(comb === "0.6D + 0.7E") { mD = 0.6; mE = 0.7; }
@@ -721,166 +780,161 @@ function runAnalysis() {
             if(comb.includes("0.7E")) mE = comb.includes("0.75") ? 0.75 * 0.7 : 0.7;
         }
 
-        let wStart = (parseFloat(document.getElementById('load-d').value)||0)*mD + (parseFloat(document.getElementById('load-l').value)||0)*mL + (parseFloat(document.getElementById('load-s').value)||0)*mS + (parseFloat(document.getElementById('load-w').value)||0)*mW + (parseFloat(document.getElementById('load-e').value)||0)*mE;
-        let wEnd = wStart;
-        if(pattern === 'trap') {
-            wEnd = (parseFloat(document.getElementById('load-d-end').value)||0)*mD + (parseFloat(document.getElementById('load-l-end').value)||0)*mL + (parseFloat(document.getElementById('load-s-end').value)||0)*mS + (parseFloat(document.getElementById('load-w-end').value)||0)*mW + (parseFloat(document.getElementById('load-e-end').value)||0)*mE;
+        // Construct Composite Load State Matrix Profile
+        for(let i=0; i<=100; i++) {
+            let x = (i/100)*L_ft;
+            
+            // Self Weight response curve parameters
+            let swPlf = weight * mD;
+            let R_sw = (swPlf * L_ft) / 2;
+            currentShear[i] += R_sw - swPlf * x;
+            currentMoment[i] += (R_sw * x) - (swPlf * x * x / 2);
+
+            // Superimposed row tracking calculations loop
+            loadsArray.forEach(load => {
+                let sLoc = Math.min(L_ft, Math.max(0, load.start));
+                let eLoc = Math.min(L_ft, Math.max(sLoc, load.end));
+
+                let wStart = load.d*mD + load.l*mL + load.s*mS + load.w*mW + load.e*mE;
+                let wEnd = load.type === 'trap' ? (load.dEnd*mD + load.lEnd*mL + load.sEnd*mS + load.wEnd*mW + load.eEnd*mE) : wStart;
+
+                if(load.type === 'udl') {
+                    let len = eLoc - sLoc;
+                    if(len > 0) {
+                        let R2 = (wStart * len * (sLoc + len/2)) / L_ft;
+                        let R1 = (wStart * len) - R2;
+                        currentShear[i] += (x < sLoc) ? R1 : (x <= eLoc) ? (R1 - wStart*(x - sLoc)) : -R2;
+                        currentMoment[i] += (x < sLoc) ? R1*x : (x <= eLoc) ? (R1*x - wStart*Math.pow(x-sLoc,2)/2) : R2*(L_ft - x);
+                    }
+                } else if(load.type === 'point') {
+                    let P = wStart; 
+                    let a = sLoc, b = L_ft - a;
+                    let R1 = (P * b) / L_ft, R2 = (P * a) / L_ft;
+                    currentShear[i] += (x < a) ? R1 : -R2;
+                    currentMoment[i] += (x < a) ? R1*x : R2*(L_ft - x);
+                } else if(load.type === 'trap') {
+                    let len = eLoc - sLoc;
+                    if(len > 0) {
+                        let totalLoad = 0.5 * (wStart + wEnd) * len;
+                        let cg_from_start = (len / 3) * ((wStart + 2 * wEnd) / (wStart + wEnd));
+                        let load_cg = sLoc + cg_from_start;
+                        let R2 = (totalLoad * load_cg) / L_ft;
+                        let R1 = totalLoad - R2;
+                        
+                        if(x < sLoc) {
+                            currentShear[i] += R1; currentMoment[i] += R1 * x;
+                        } else if(x <= eLoc) {
+                            let tx = x - sLoc;
+                            let wx = wStart + (wEnd - wStart) * (tx / len);
+                            let segmentLoad = 0.5 * (wStart + wx) * tx;
+                            currentShear[i] += R1 - segmentLoad;
+                            let seg_cg = (tx / 3) * ((wStart + 2 * wx) / (wStart + wx));
+                            currentMoment[i] += R1 * x - segmentLoad * (tx - seg_cg);
+                        } else {
+                            currentShear[i] += -R2; currentMoment[i] += R2 * (L_ft - x);
+                        }
+                    }
+                }
+            });
+        }
+
+        // Numerical deflections conversion engine (Conjugate central difference integration)
+        let currentDefl = new Array(101).fill(0);
+        let dx = L_ft / 100;
+        let rot = new Array(101).fill(0);
+        
+        let sumM = 0;
+        for(let i=0; i<=100; i++) {
+            sumM += currentMoment[i] * (i === 0 || i === 100 ? 0.5 : 1.0);
+        }
+        let C1 = -(sumM * dx) / 2; 
+        
+        let curRot = C1;
+        rot[0] = curRot;
+        for(let i=1; i<=100; i++) {
+            let avgM = (currentMoment[i-1] + currentMoment[i]) / 2;
+            curRot += avgM * dx;
+            rot[i] = curRot;
         }
         
-        // Add Self-Weight into Dead path elements
-        let swPlf = weight * mD;
-
-        // Formulate continuous analytical math evaluation
-        for(let i=0; i<=101; i++) {
-            let x = (i/100)*L_ft;
-            let V_val = 0, M_val = 0, delta_val = 0;
-
-            // Self-weight response curves
-            let R_sw = (swPlf * L_ft) / 2;
-            V_val += R_sw - swPlf * x;
-            M_val += (R_sw * x) - (swPlf * x * x / 2);
-            delta_val += (swPlf * x * (L_ft*L_ft*L_ft - 2*L_ft*x*x + x*x*x)) / (24 * (E * 1000) * (ix / 144));
-
-            // Configured Pattern Component Architecture
-            if(pattern === 'udl') {
-                let cl = wStart; 
-                let len = eLoc - sLoc;
-                if(len > 0) {
-                    let R2 = (cl * len * (sLoc + len/2)) / L_ft;
-                    let R1 = (cl * len) - R2;
-                    V_val += (x < sLoc) ? R1 : (x <= eLoc) ? (R1 - cl*(x - sLoc)) : -R2;
-                    M_val += (x < sLoc) ? R1*x : (x <= eLoc) ? (R1*x - cl*Math.pow(x-sLoc,2)/2) : R2*(L_ft - x);
-                    
-                    // Deflection integration loop elements
-                    let k = (cl) / (24 * (E*1000) * (ix/144));
-                    if(x < sLoc) {
-                        delta_val += k * len * x * (4*sLoc*L_ft + 2*len*L_ft - 2*sLoc*sLoc - 2*sLoc*len - len*len - x*x) / L_ft;
-                    } else if(x <= eLoc) {
-                        delta_val += k * (len*x*(4*sLoc*L_ft + 2*len*L_ft - 2*sLoc*sLoc - 2*sLoc*len - len*len - x*x)/L_ft - Math.pow(x-sLoc,4));
-                    } else {
-                        delta_val += k * len * (L_ft - x) * (4*L_ft*sLoc + 2*len*L_ft - 2*sLoc*sLoc - 2*sLoc*len - len*len - Math.pow(L_ft-x,2)) / L_ft;
-                    }
-                }
-            } else if(pattern === 'point') {
-                let P = wStart; 
-                let a = sLoc, b = L_ft - a;
-                let R1 = (P * b) / L_ft, R2 = (P * a) / L_ft;
-                V_val += (x < a) ? R1 : -R2;
-                M_val += (x < a) ? R1*x : R2*(L_ft - x);
-                delta_val += (x < a) ? (P*b*x*(L_ft*L_ft - b*b - x*x))/(6*L_ft*(E*1000)*(ix/144)) : (P*a*(L_ft-x)*(L_ft*L_ft - a*a - Math.pow(L_ft-x,2)))/(6*L_ft*(E*1000)*(ix/144));
-            } else if(pattern === 'trap') {
-                let len = eLoc - sLoc;
-                if(len > 0) {
-                    let W1 = wStart, W2 = wEnd;
-                    let totalLoad = 0.5 * (W1 + W2) * len;
-                    let cg_from_start = (len / 3) * ((W1 + 2 * W2) / (W1 + W2));
-                    let load_cg = sLoc + cg_from_start;
-                    let R2 = (totalLoad * load_cg) / L_ft;
-                    let R1 = totalLoad - R2;
-                    
-                    if(x < sLoc) {
-                        V_val += R1; M_val += R1 * x;
-                    } else if(x <= eLoc) {
-                        let tx = x - sLoc;
-                        let wx = W1 + (W2 - W1) * (tx / len);
-                        let segmentLoad = 0.5 * (W1 + wx) * tx;
-                        V_val += R1 - segmentLoad;
-                        let seg_cg = (tx / 3) * ((W1 + 2 * wx) / (W1 + wx));
-                        M_val += R1 * x - segmentLoad * (tx - seg_cg);
-                    } else {
-                        V_val += -R2; M_val += R2 * (L_ft - x);
-                    }
-                    // Numerical deflection matching profile approximations
-                    let dM = M_val / ((E*1000)*(ix/144));
-                    currentDefl[i] = M_val; 
-                }
-            }
-
-            currentShear[i] = V_val / 1000;
-            currentMoment[i] = M_val / 1000;
-            if(pattern !== 'trap') {
-                currentDefl[i] = delta_val * 12; 
-            }
+        currentDefl[0] = 0;
+        for(let i=1; i<=100; i++) {
+            let avgRot = (rot[i-1] + rot[i]) / 2;
+            currentDefl[i] = currentDefl[i-1] + avgRot * dx;
         }
 
-        // Trap deflection secondary numerical array conversions
-        if(pattern === 'trap') {
-            let dx = L_ft / 100;
-            let rot = new Array(101).fill(0);
-            let def = new Array(101).fill(0);
-            let sumM = 0;
-            for(let i=0; i<=100; i++) sumM += currentDefl[i];
-            let C1 = -(sumM * dx) / 2; 
-            let currentRot = C1;
-            rot[0] = currentRot;
-            for(let i=1; i<=100; i++) {
-                currentRot += currentDefl[i] * dx;
-                rot[i] = currentRot;
-            }
-            def[0] = 0;
-            let currentDef = 0;
-            for(let i=1; i<=100; i++) {
-                currentDef += rot[i] * dx;
-                def[i] = currentDef * 12;
-            }
-            currentDefl = def;
+        // Scale factors: Convert k-ft^3 to inches over standard structural units conversion matrix
+        for(let i=0; i<=100; i++) {
+            currentDefl[i] = (currentDefl[i] * 1728) / EI_constant;
         }
 
-        // Tracking global max configurations
+        // Global Max Tracker checks
         let maxM_cand = 0;
         currentMoment.forEach(m => { if(Math.abs(m) > Math.abs(maxM_cand)) maxM_cand = m; });
         if(Math.abs(maxM_cand) > Math.abs(maxM_global)) {
             maxM_global = maxM_cand;
             maxV_global = Math.max(...currentShear.map(Math.abs));
             critComboName = comb;
-            finalShearPoints = currentShear;
-            finalMomentPoints = currentMoment;
+            finalShearPoints = currentShear.map(v => v / 1000); // Standard kips layout matching
+            finalMomentPoints = currentMoment.map(m => m / 1000); // Standard k-ft conversion
             finalTLDeflPoints = currentDefl;
         }
     });
 
-    // Dedicated pure Serviceability Live Load Deflection isolation calculation trace
-    let liveShear = new Array(101).fill(0), liveMoment = new Array(101).fill(0);
-    let pL = (parseFloat(document.getElementById('load-l').value)||0);
+    // --- Isolated Pure Serviceability Live Load Deflection Array Engine ---
+    let finalLLDeflPoints = new Array(101).fill(0);
+    let liveMoment = new Array(101).fill(0);
     for(let i=0; i<=100; i++) {
         let x = (i/100)*L_ft;
-        let delta_ll = 0;
-        if(pattern === 'udl') {
-            let len = eLoc - sLoc;
-            if(len > 0) {
-                let k = (pL) / (24 * (E * 1000) * (ix / 144));
-                if(x < sLoc) delta_ll = k * len * x * (4*sLoc*L_ft + 2*len*L_ft - 2*sLoc*sLoc - 2*sLoc*len - len*len - x*x) / L_ft;
-                else if(x <= eLoc) delta_ll = k * (len*x*(4*sLoc*L_ft + 2*len*L_ft - 2*sLoc*sLoc - 2*sLoc*len - len*len - x*x)/L_ft - Math.pow(x-sLoc,4));
-                else delta_ll = k * len * (L_ft - x) * (4*L_ft*sLoc + 2*len*L_ft - 2*sLoc*sLoc - 2*sLoc*len - len*len - Math.pow(L_ft-x,2)) / L_ft;
+        loadsArray.forEach(load => {
+            if(load.l === 0 && load.lEnd === 0) return;
+            let sLoc = Math.min(L_ft, Math.max(0, load.start));
+            let eLoc = Math.min(L_ft, Math.max(sLoc, load.end));
+
+            if(load.type === 'udl') {
+                let len = eLoc - sLoc;
+                if(len > 0) {
+                    let R2 = (load.l * len * (sLoc + len/2)) / L_ft;
+                    let R1 = (load.l * len) - R2;
+                    liveMoment[i] += (x < sLoc) ? R1*x : (x <= eLoc) ? (R1*x - load.l*Math.pow(x-sLoc,2)/2) : R2*(L_ft - x);
+                }
+            } else if(load.type === 'point') {
+                let a = sLoc, b = L_ft - a;
+                let R1 = (load.l * b) / L_ft, R2 = (load.l * a) / L_ft;
+                liveMoment[i] += (x < a) ? R1*x : R2*(L_ft - x);
+            } else if(load.type === 'trap') {
+                let len = eLoc - sLoc;
+                if(len > 0) {
+                    let totalLoad = 0.5 * (load.l + load.lEnd) * len;
+                    let load_cg = sLoc + (len / 3) * ((load.l + 2 * load.lEnd) / (load.l + load.lEnd));
+                    let R2 = (totalLoad * load_cg) / L_ft; let R1 = totalLoad - R2;
+                    if(x < sLoc) liveMoment[i] += R1*x;
+                    else if(x <= eLoc) {
+                        let lx = x - sLoc; let wx = load.l + (load.lEnd - load.l)*(lx/len);
+                        let sL = 0.5*(load.l + wx)*lx; let scg = (lx/3)*((load.l + 2*wx)/(load.l+wx));
+                        liveMoment[i] += R1*x - sL*(lx - scg);
+                    } else liveMoment[i] += R2*(L_ft - x);
+                }
             }
-        } else if(pattern === 'point') {
-            let a = sLoc, b = L_ft - a;
-            delta_ll = (x < a) ? (pL*b*x*(L_ft*L_ft - b*b - x*x))/(6*L_ft*(E*1000)*(ix/144)) : (pL*a*(L_ft-x)*(L_ft*L_ft - a*a - Math.pow(L_ft-x,2)))/(6*L_ft*(E*1000)*(ix/144));
-        } else if(pattern === 'trap') {
-            let len = eLoc - sLoc;
-            let W1 = pL, W2 = (parseFloat(document.getElementById('load-l-end').value)||0);
-            let tM = new Array(101).fill(0);
-            let totalLoad = 0.5 * (W1 + W2) * len;
-            let load_cg = sLoc + (len / 3) * ((W1 + 2 * W2) / (W1 + W2));
-            let R2 = (totalLoad * load_cg) / L_ft; let R1 = totalLoad - R2;
-            for(let j=0; j<=100; j++) {
-                let tx = (j/100)*L_ft;
-                if(tx < sLoc) tM[j] = R1*tx;
-                else if(tx <= eLoc) {
-                    let lx = tx - sLoc; let wx = W1 + (W2 - W1)*(lx/len);
-                    let sL = 0.5*(W1 + wx)*lx; let scg = (lx/3)*((W1 + 2*wx)/(W1+wx));
-                    tM[j] = R1*tx - sL*(lx - scg);
-                } else tM[j] = R2*(L_ft - tx);
-            }
-            let dx = L_ft / 100; let rot = new Array(101).fill(0); let def = new Array(101).fill(0);
-            let sumM = 0; for(let j=0; j<=100; j++) sumM += (tM[j]/((E*1000)*(ix/144)));
-            let currentRot = -(sumM * dx)/2; rot[0] = currentRot;
-            for(let j=1; j<=100; j++) { currentRot += (tM[j]/((E*1000)*(ix/144))) * dx; rot[j] = currentRot; }
-            let currentDef = 0; for(let j=1; j<=100; j++) { currentDef += rot[j] * dx; def[j] = currentDef * 12; }
-            delta_ll = def[i] / 12;
-        }
-        finalLLDeflPoints[i] = delta_ll * 12;
+        });
     }
+
+    let dx_ll = L_ft / 100;
+    let rot_ll = new Array(101).fill(0);
+    let sumM_ll = 0;
+    for(let i=0; i<=100; i++) sumM_ll += liveMoment[i] * (i === 0 || i === 100 ? 0.5 : 1.0);
+    let C1_ll = -(sumM_ll * dx_ll) / 2;
+    let curRot_ll = C1_ll; rot_ll[0] = curRot_ll;
+    for(let i=1; i<=100; i++) {
+        curRot_ll += ((liveMoment[i-1] + liveMoment[i])/2) * dx_ll;
+        rot_ll[i] = curRot_ll;
+    }
+    finalLLDeflPoints[0] = 0;
+    for(let i=1; i<=100; i++) {
+        finalLLDeflPoints[i] = finalLLDeflPoints[i-1] + ((rot_ll[i-1] + rot_ll[i])/2) * dx_ll;
+        finalLLDeflPoints[i-1] = (finalLLDeflPoints[i-1] * 1728) / EI_constant;
+    }
+    finalLLDeflPoints[100] = (finalLLDeflPoints[100] * 1728) / EI_constant;
 
     document.getElementById('controlling-comb-display').innerText = `Controlling Combination: ${critComboName}`;
 
@@ -922,21 +976,21 @@ function runAnalysis() {
     let maxLLDefl = Math.max(...finalLLDeflPoints.map(Math.abs));
     let maxTLDefl = Math.max(...finalTLDeflPoints.map(Math.abs));
     const L_in = L_ft * 12;
-    const ratio_ll_act = maxLLDefl > 0 ? Math.round(L_in / maxLLDefl) : 0;
-    const ratio_tl_act = maxTLDefl > 0 ? Math.round(L_in / maxTLDefl) : 0;
+    const ratio_ll_act = maxLLDefl > 0.001 ? Math.round(L_in / maxLLDefl) : 0;
+    const ratio_tl_act = maxTLDefl > 0.001 ? Math.round(L_in / maxTLDefl) : 0;
 
     // Update standard reporting rows
-    updateRow('flexure', Math.abs(maxM_global), Ma_kipft, `Mmax = ${Math.abs(maxM_global).toFixed(2)} k-ft vs Ma = ${Ma_kipft.toFixed(2)} k-ft (${stateNote})`);
+    updateRow('flexure', Math.abs(maxM_global / 1000), Ma_kipft, `Mmax = ${Math.abs(maxM_global / 1000).toFixed(2)} k-ft vs Ma = ${Ma_kipft.toFixed(2)} k-ft (${stateNote})`);
     updateRow('shear', maxV_global, Va_kips, `Vmax = ${maxV_global.toFixed(2)} kips vs Va = ${Va_kips.toFixed(2)} kips (Cv = ${Cv.toFixed(2)})`);
     updateDeflRow('ll-defl', maxLLDefl, L_in / ll_lim, `Δll = ${maxLLDefl.toFixed(3)} in (Ratio: L/${ratio_ll_act})`, ll_lim, ratio_ll_act);
     updateDeflRow('tl-defl', maxTLDefl, L_in / tl_lim, `Δtl = ${maxTLDefl.toFixed(3)} in (Ratio: L/${ratio_tl_act})`, tl_lim, ratio_tl_act);
 
-    // Paste this near the end of your run() function in s_compiler1.htm:
-document.getElementById('react-ra').innerText = `${(Math.abs(V_arr[0]) / 1000).toFixed(2)} k`;
-document.getElementById('react-rb').innerText = `${(Math.abs(V_arr[V_arr.length-1]) / 1000).toFixed(2)} k`;
+    // Continuous boundary reactions output tracking setup
+    document.getElementById('react-ra').innerText = `${Math.abs(finalShearPoints[0]).toFixed(2)} k`;
+    document.getElementById('react-rb').innerText = `${Math.abs(finalShearPoints[finalShearPoints.length - 1]).toFixed(2)} k`;
     
     // Redraw entire visual matrix output suite
-    drawInputVerification(L_ft, sLoc, eLoc, pattern);
+    drawInputVerification(L_ft);
     drawDiagram('canvasShear', finalShearPoints, '#f87171', 'V');
     drawDiagram('canvasMoment', finalMomentPoints, '#34d399', 'M');
 }
@@ -958,16 +1012,16 @@ function updateDeflRow(id, actual, allowable, mathText, limitCode, actualRatio) 
     const ratioEl = document.getElementById(`ratio-${id}`);
     const pillEl = document.getElementById(`pill-${id}`);
     document.getElementById(`math-${id}`).innerText = mathText;
-    const ucRatio = actual / allowable;
+    const ucRatio = allowable > 0 ? (actual / allowable) : 0;
     ratioEl.innerText = ucRatio.toFixed(3);
-    if (actualRatio >= limitCode || actual === 0) {
+    if ((actualRatio >= limitCode && actualRatio > 0) || actual < 0.002) {
         pillEl.innerText = "Pass"; pillEl.className = "status-pill pass"; ratioEl.style.color = "var(--accent-green)";
     } else {
         pillEl.innerText = "Fail"; pillEl.className = "status-pill fail"; ratioEl.style.color = "var(--accent-red)";
     }
 }
 
-function drawInputVerification(L_ft, sLoc, eLoc, pattern) {
+function drawInputVerification(L_ft) {
     const canvas = document.getElementById('canvasInput');
     const ctx = canvas.getContext('2d');
     canvas.width = canvas.offsetWidth * 2; canvas.height = 300 * 2;
@@ -976,30 +1030,32 @@ function drawInputVerification(L_ft, sLoc, eLoc, pattern) {
     const baseW = canvas.offsetWidth; const pad = 40;
     const gWidth = baseW - 80; const beamY = 180;
 
-    // Draw Wide Flange member silhouette background line
+    // Draw Wide Flange member silhouette
     ctx.fillStyle = "#475569"; ctx.fillRect(pad, beamY - 6, gWidth, 12);
 
-    // Supports
+    // Support vectors
     ctx.strokeStyle = "#94a3b8"; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.moveTo(pad, beamY+6); ctx.lineTo(pad-8, beamY+20); ctx.lineTo(pad+8, beamY+20); ctx.closePath(); ctx.stroke();
     ctx.beginPath(); ctx.arc(pad + gWidth, beamY + 12, 6, 0, Math.PI*2); ctx.stroke();
 
-    // Graphical Load Profiles representation overlay
-    let sX = pad + (sLoc / L_ft) * gWidth;
-    let eX = pad + (eLoc / L_ft) * gWidth;
+    // Composite overlay iteration loop
+    loadsArray.forEach(load => {
+        let sX = pad + (Math.min(L_ft, Math.max(0, load.start)) / L_ft) * gWidth;
+        let eX = pad + (Math.min(L_ft, Math.max(load.start, load.end)) / L_ft) * gWidth;
 
-    ctx.strokeStyle = "var(--accent-steel)"; ctx.fillStyle = "rgba(56, 189, 248, 0.15)"; ctx.lineWidth = 2;
-    if(pattern === 'udl') {
-        ctx.fillRect(sX, beamY - 60, eX - sX, 54);
-        ctx.strokeRect(sX, beamY - 60, eX - sX, 54);
-    } else if(pattern === 'point') {
-        ctx.beginPath(); ctx.moveTo(sX, beamY - 70); ctx.lineTo(sX, beamY - 8); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(sX-5, beamY-18); ctx.lineTo(sX, beamY-8); ctx.lineTo(sX+5, beamY-18); ctx.stroke();
-    } else if(pattern === 'trap') {
-        ctx.beginPath(); ctx.moveTo(sX, beamY - 6);
-        ctx.lineTo(sX, beamY - 60); ctx.lineTo(eX, beamY - 30);
-        ctx.lineTo(eX, beamY - 6); ctx.closePath(); ctx.fill(); ctx.stroke();
-    }
+        ctx.strokeStyle = "var(--accent-steel)"; ctx.fillStyle = "rgba(56, 189, 248, 0.12)"; ctx.lineWidth = 1.5;
+        if(load.type === 'udl') {
+            ctx.fillRect(sX, beamY - 50, eX - sX, 44);
+            ctx.strokeRect(sX, beamY - 50, eX - sX, 44);
+        } else if(load.type === 'point') {
+            ctx.beginPath(); ctx.moveTo(sX, beamY - 60); ctx.lineTo(sX, beamY - 8); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(sX-4, beamY-15); ctx.lineTo(sX, beamY-8); ctx.lineTo(sX+4, beamY-15); ctx.stroke();
+        } else if(load.type === 'trap') {
+            ctx.beginPath(); ctx.moveTo(sX, beamY - 6);
+            ctx.lineTo(sX, beamY - 50); ctx.lineTo(eX, beamY - 30);
+            ctx.lineTo(eX, beamY - 6); ctx.closePath(); ctx.fill(); ctx.stroke();
+        }
+    });
 }
 
 function drawDiagram(canvasId, points, color, labelText) {
@@ -1011,17 +1067,16 @@ function drawDiagram(canvasId, points, color, labelText) {
     const baseW = canvas.offsetWidth; const baseH = 300;
     const pad = 40; const graphW = baseW - 80; const centerY = baseH / 2;
 
-    // Baseline axis vector
     ctx.strokeStyle = "#334155"; ctx.lineWidth = 1.5;
     ctx.beginPath(); ctx.moveTo(pad, centerY); ctx.lineTo(baseW - pad, centerY); ctx.stroke();
 
     if(!points || points.length === 0) return;
 
     let maxVal = Math.max(...points.map(Math.abs));
-    let scale = maxVal > 0 ? (centerY - 30) / maxVal : 1;
+    let scale = maxVal > 0 ? (centerY - 40) / maxVal : 1;
 
     ctx.strokeStyle = color; ctx.lineWidth = 2.5;
-    ctx.fillStyle = color + "1a"; // Added transparency for fill transitions
+    ctx.fillStyle = color + "1a";
 
     ctx.beginPath();
     ctx.moveTo(pad, centerY);
@@ -1033,14 +1088,13 @@ function drawDiagram(canvasId, points, color, labelText) {
     ctx.lineTo(baseW - pad, centerY);
     ctx.closePath(); ctx.fill(); ctx.stroke();
 
-    // Critical extrema textual layout overlays
     ctx.fillStyle = "var(--text-main)"; ctx.font = "bold 11px monospace";
     let extremeValue = points[0];
     points.forEach(v => { if(Math.abs(v) > Math.abs(extremeValue)) extremeValue = v; });
     ctx.fillText(`${labelText}max: ${extremeValue.toFixed(2)}`, pad, 25);
 }
 
-window.onload = () => { initSelector(); toggleLoadFields(); };
+window.onload = () => { initSelector(); };
 </script>
 </body>
 </html>
