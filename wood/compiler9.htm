@@ -781,12 +781,15 @@ function drawMomentDiagram(M) {
     ctx.moveTo(pad, baseY);
     for(let i=0; i<M.length; i++) {
         let px = pad + (i/(M.length-1))*gWidth;
-        let py = baseY + (M[i]/maxM)*(baseHeight - baseY - 20);
+        
+        // CHANGED: Changed the + to a - to invert the coordinate space rendering
+        let py = baseY - (M[i]/maxM)*(baseHeight - baseY - 20);
+        
         ctx.lineTo(px,py);
     }
     ctx.lineTo(pad+gWidth, baseY); ctx.closePath(); ctx.fill(); ctx.stroke();
 }
-
+    
 function drawBeamProfile(L) {
     const canvas = document.getElementById('beamCanvas');
     const ctx = canvas.getContext('2d');
