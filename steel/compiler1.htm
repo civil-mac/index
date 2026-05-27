@@ -44,7 +44,7 @@
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, sans-serif; }
         body { background-color: var(--bg-color); color: var(--text-main); padding: 1.5rem; min-height: 100vh; }
-        .container { max-width: 1200px; margin: 0 auto; }
+        .container { max-width: 1600px; margin: 0 auto; width: 100%; }
         
         header { margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-color); }
         .nav-back { display: inline-flex; align-items: center; color: var(--text-muted); text-decoration: none; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.75rem; transition: color 0.2s; text-transform: uppercase; letter-spacing: 0.05em; }
@@ -53,58 +53,75 @@
         header h1 { font-size: 1.6rem; font-weight: 700; color: var(--text-main); }
         header p { color: var(--text-muted); font-size: 0.9rem; margin-top: 0.15rem; }
 
-        .bento-layout { display: grid; grid-template-columns: 1.2fr 1fr; gap: 1.5rem; }
-        @media (max-width: 960px) { .bento-layout { grid-template-columns: 1fr; } }
+        .bento-layout { display: grid; grid-template-columns: 2.1fr 1fr; gap: 1.5rem; align-items: start; }
+        @media (max-width: 1100px) { .bento-layout { grid-template-columns: 1fr; } }
 
-        .panel { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 1.5rem; height: fit-content; }
+        .panel { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 1.5rem; }
+        .panel-tall { display: flex; flex-direction: column; gap: 1.25rem; min-height: 100%; }
         .panel-title { font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 1.25rem; font-weight: 600; }
         .panel-subtitle { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin: 1.5rem 0 0.75rem 0; font-weight: 600; border-top: 1px solid var(--border-color); padding-top: 1.25rem; }
 
         .form-group { margin-bottom: 1.25rem; position: relative; }
         .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 1rem; }
         label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.4rem; font-weight: 500; }
-        select, input { width: 100%; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-main); padding: 0.75rem; font-size: 1rem; transition: border 0.2s; }
+        
+        select, input[type="number"] { width: 100%; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-main); padding: 0.75rem; font-size: 1rem; transition: border 0.2s; }
         select:focus, input:focus { outline: none; border-color: var(--accent-steel); }
         
-        /* Remove input number spin arrows */
         input::-webkit-outer-spin-button,
         input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         input[type=number] { -moz-appearance: textfield; }
 
         .unit-container { position: relative; }
         .unit-label { position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.8rem; pointer-events: none; }
-        input[type="number"] { padding-right: 2.5rem; }
+        input[type="number"].has-unit { padding-right: 2.5rem; }
 
-        .property-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-top: 0.75rem; background: #111827; padding: 1rem; border-radius: 12px; border: 1px dashed var(--border-color); }
+        .property-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-top: 0.75rem; background: #111827; padding: 1rem; border-radius: 12px; border: 1px dashed var(--border-color); }
         .factors-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; background: #111827; padding: 1rem; border-radius: 12px; border: 1px solid var(--border-color); }
         .factors-grid .read-only-box { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.75rem; font-family: monospace; font-size: 1.1rem; color: var(--accent-steel); text-align: center; font-weight: bold; }
         
-        /* Superimposed Load Grid Layout (Equally Sized Columns) */
-        .loads-grid-container { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.5rem; background: #111827; padding: 0.75rem; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 0.5rem; }
-        .form-group-sub { display: flex; flex-direction: column; text-align: center; }
-        .form-group-sub label { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem; font-weight: 600; text-transform: uppercase; }
-        .form-group-sub input { padding: 0.5rem 0.25rem; text-align: center; font-size: 0.95rem; border-radius: 6px; }
+        .engineering-notes { margin-top: 1rem; font-size: 0.75rem; color: var(--text-muted); line-height: 1.4; padding: 0.5rem 0.75rem; background: rgba(30, 41, 59, 0.5); border-left: 2px solid var(--accent-steel); border-radius: 0 4px 4px 0; }
+
+        /* Superimposed Load Matrix Grid Tables */
+        .loads-section { margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1.25rem; }
+        .loads-section-title { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600; margin-bottom: 0.75rem; }
+        .load-table-wrapper { overflow-x: auto; margin-bottom: 0.5rem; }
+        .load-table-container { min-width: 1100px; }
+
+        .loads-col-headers {
+            display: grid; gap: 0.5rem; align-items: center; padding: 0 0.5rem 0.5rem 0.5rem;
+            border-bottom: 1px solid var(--border-color); margin-bottom: 0.5rem;
+            font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); font-weight: 700;
+            grid-template-columns: 140px repeat(7, 1fr) 32px; text-align: center;
+        }
+        .load-card { background: #111827; border: 1px solid var(--border-color); border-radius: 10px; padding: 0.5rem; margin-bottom: 0.5rem; }
+        .load-card-row { display: grid; gap: 0.5rem; align-items: center; grid-template-columns: 140px repeat(7, 1fr) 32px; text-align: center; }
+
+        .lc-input { width: 100%; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-main); padding: 0.5rem 0.25rem; font-size: 0.82rem; text-align: center; transition: border 0.2s; }
+        .lc-input:focus { outline: none; border-color: var(--accent-steel); }
+        .lc-select { width: 100%; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-main); padding: 0.5rem 0.25rem; font-size: 0.82rem; cursor: pointer; transition: border 0.2s; }
+        .lc-col { display: flex; flex-direction: column; justify-content: center; height: 100%; }
+        .lc-delete-btn { background: none; border: none; color: #475569; cursor: pointer; font-size: 1.2rem; line-height: 1; padding: 0.2rem; border-radius: 4px; transition: color 0.2s; align-self: center; }
+        .lc-delete-btn:hover { color: var(--accent-red); }
+
+        .add-load-btn { width: 100%; margin-top: 0.5rem; background: transparent; border: 1px dashed var(--border-color); padding: 0.5rem; border-radius: 8px; color: var(--text-muted); cursor: pointer; font-size: 0.85rem; transition: all 0.2s; font-weight: 600; }
+        .add-load-btn:hover { border-color: var(--accent-steel); color: var(--accent-steel); }
+
+        .envelope-status-bar { font-size: 0.8rem; font-family: monospace; color: var(--accent-steel); background: rgba(56, 189, 248, 0.05); border: 1px dashed rgba(56, 189, 248, 0.2); text-align: center; padding: 0.65rem; border-radius: 8px; margin-top: 1rem; }
         
-        /* Unified Dynamic Load Controls */
-        .load-input-panel { background: #111827; padding: 1rem; border-radius: 12px; border: 1px solid var(--border-color); margin-top: 0.75rem; }
-        .load-type-select { margin-bottom: 1rem; }
-
-        .envelope-status-bar { font-size: 0.75rem; font-family: monospace; color: var(--accent-steel); background: rgba(56, 189, 248, 0.05); border: 1px dashed rgba(56, 189, 248, 0.2); text-align: center; padding: 0.5rem; border-radius: 8px; margin-top: 0.5rem; }
-        .engineering-notes { margin-top: 0.75rem; font-size: 0.75rem; color: var(--text-muted); line-height: 1.4; padding: 0.5rem 0.75rem; background: rgba(30, 41, 59, 0.5); border-left: 2px solid var(--border-color); border-radius: 0 4px 4px 0; }
-
-        /* Code Check Matrix Rows */
+        /* Code Check Rows */
         .report-row { display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-bottom: 1px solid var(--border-color); font-size: 0.95rem; }
         .report-row:last-child { border-bottom: none; }
         .report-values { font-weight: 600; font-size: 1.1rem; margin-right: 0.5rem; font-family: monospace; }
-        .status-pill { padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; min-width: 55px; text-align: center; }
+        .status-pill { padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; min-width: 55px; text-align: center; display: inline-block; }
         .status-pill.pass { background: #064e3b; color: var(--accent-green); }
         .status-pill.fail { background: #7f1d1d; color: var(--accent-red); }
         .sub-math { font-size: 0.75rem; color: var(--text-muted); display: block; margin-top: 0.2rem; font-family: monospace; }
 
-        /* Canvas Elements Stacked at 300px Heights */
+        /* Canvas Displays */
         .diagram-title { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin: 1.25rem 0 0.4rem 0; font-weight: 600; }
         .canvas-container { background: #111827; border-radius: 12px; border: 1px dashed var(--border-color); padding: 0.75rem; display: flex; justify-content: center; width: 100%; }
-        canvas { width: 100%; height: 300px; display: block; }
+        canvas { width: 100%; height: 160px; display: block; background: #111827; }
     </style>
 </head>
 <body>
@@ -113,14 +130,14 @@
     <header>
         <a href="../eng.htm" class="nav-back"><span>←</span> Return to Dashboard</a>
         <h1>Steel Beam Analysis Module</h1>
-        <p>Simple Span Wide-Flange Shape (AISC 360 ASD)</p>
+        <p>Simple Span Wide-Flange Shape (AISC 360 ASD Multi-Load Core)</p>
     </header>
 
     <div class="bento-layout">
         <div class="panel">
             <h2 class="panel-title">AISC Shape & Material Inputs</h2>
             
-            <div class="form-row" style="grid-template-columns: 2fr 1fr;">
+            <div class="form-row" style="grid-template-columns: 2fr 1fr; margin-bottom:1rem;">
                 <div class="form-group">
                     <label>AISC Profile Library</label>
                     <select id="input-material" onchange="loadShapeProperties()"></select>
@@ -134,56 +151,20 @@
                 </div>
             </div>
 
-            <label style="margin-bottom: -0.25rem;">Active Section Properties (AISC Table 1-1)</label>
+            <label>Active Section Properties (AISC Table 1-1)</label>
             <div class="property-grid">
-                <div class="form-group" style="margin-bottom:0;">
-                    <label>d (in)</label>
-                    <input type="number" id="prop-d" step="0.01" oninput="runAnalysis()">
-                </div>
-                <div class="form-group" style="margin-bottom:0;">
-                    <label>tw (in)</label>
-                    <input type="number" id="prop-tw" step="0.001" oninput="runAnalysis()">
-                </div>
-                <div class="form-group" style="margin-bottom:0;">
-                    <label>bf (in)</label>
-                    <input type="number" id="prop-bf" step="0.01" oninput="runAnalysis()">
-                </div>
-                <div class="form-group" style="margin-bottom:0;">
-                    <label>tf (in)</label>
-                    <input type="number" id="prop-tf" step="0.001" oninput="runAnalysis()">
-                </div>
-                <div class="form-group" style="margin-bottom:0;">
-                    <label>Ixx (in⁴)</label>
-                    <input type="number" id="prop-ix" step="0.1" oninput="runAnalysis()">
-                </div>
-                <div class="form-group" style="margin-bottom:0;">
-                    <label>Sxx (in³)</label>
-                    <input type="number" id="prop-sx" step="0.1" oninput="runAnalysis()">
-                </div>
-                <div class="form-group" style="margin-bottom:0;">
-                    <label>Zxx (in³)</label>
-                    <input type="number" id="prop-zx" step="0.1" oninput="runAnalysis()">
-                </div>
-                <div class="form-group" style="margin-bottom:0;">
-                    <label>rts (in)</label>
-                    <input type="number" id="prop-rts" step="0.01" oninput="runAnalysis()">
-                </div>
-                <div class="form-group" style="margin-bottom:0;">
-                    <label>J (in⁴)</label>
-                    <input type="number" id="prop-j" step="0.001" oninput="runAnalysis()">
-                </div>
-                <div class="form-group" style="margin-bottom:0;">
-                    <label>Cw (in⁶)</label>
-                    <input type="number" id="prop-cw" step="0.1" oninput="runAnalysis()">
-                </div>
-                <div class="form-group" style="margin-bottom:0;">
-                    <label>ho (in)</label>
-                    <input type="number" id="prop-ho" step="0.01" oninput="runAnalysis()">
-                </div>
-                <div class="form-group" style="margin-bottom:0;">
-                    <label>Weight (plf)</label>
-                    <input type="number" id="prop-weight" step="0.1" oninput="runAnalysis()">
-                </div>
+                <div class="form-group"><label>d (in)</label><input type="number" id="prop-d" step="0.01" oninput="runAnalysis()"></div>
+                <div class="form-group"><label>tw (in)</label><input type="number" id="prop-tw" step="0.001" oninput="runAnalysis()"></div>
+                <div class="form-group"><label>bf (in)</label><input type="number" id="prop-bf" step="0.01" oninput="runAnalysis()"></div>
+                <div class="form-group"><label>tf (in)</label><input type="number" id="prop-tf" step="0.001" oninput="runAnalysis()"></div>
+                <div class="form-group"><label>Ixx (in⁴)</label><input type="number" id="prop-ix" step="0.1" oninput="runAnalysis()"></div>
+                <div class="form-group"><label>Sxx (in³)</label><input type="number" id="prop-sx" step="0.1" oninput="runAnalysis()"></div>
+                <div class="form-group"><label>Zxx (in³)</label><input type="number" id="prop-zx" step="0.1" oninput="runAnalysis()"></div>
+                <div class="form-group"><label>rts (in)</label><input type="number" id="prop-rts" step="0.01" oninput="runAnalysis()"></div>
+                <div class="form-group"><label>J (in⁴)</label><input type="number" id="prop-j" step="0.001" oninput="runAnalysis()"></div>
+                <div class="form-group"><label>Cw (in⁶)</label><input type="number" id="prop-cw" step="0.1" oninput="runAnalysis()"></div>
+                <div class="form-group"><label>ho (in)</label><input type="number" id="prop-ho" step="0.01" oninput="runAnalysis()"></div>
+                <div class="form-group"><label>Weight (plf)</label><input type="number" id="prop-weight" step="0.1" oninput="runAnalysis()"></div>
             </div>
 
             <div class="panel-subtitle">AISC ASD Safety Factors</div>
@@ -198,7 +179,7 @@
                 </div>
             </div>
             <div class="engineering-notes">
-                <strong>AISC Standards Applied:</strong> Elastic Modulus $E = 29,000\text{ ksi}$ and Shear Modulus $G = 11,200\text{ ksi}$. Global logic defaults to conservative uniform moment coefficient $C_b = 1.14$.
+                <strong>AISC Standards Applied:</strong> Elastic Modulus $E = 29,000\text{ ksi}$ and Shear Modulus $G = 11,200\text{ ksi}$. Global calculation loops default to a conservative uniform moment lateral-torsional buckling coefficient $C_b = 1.14$.
             </div>
 
             <div class="panel-subtitle">Boundary Layout & Span Deflection Targets</div>
@@ -206,119 +187,40 @@
                 <div class="form-group">
                     <label>Span Length (L)</label>
                     <div class="unit-container">
-                        <input type="number" id="input-span" value="12" min="0.01" step="0.01" oninput="runAnalysis()">
+                        <input type="number" class="has-unit" id="input-span" value="12" min="0.01" step="0.01" oninput="syncSpanToRows(); runAnalysis();">
                         <span class="unit-label">ft</span>
                     </div>
                 </div>
                 <div class="form-group">
                     <label>Unbraced Length (Lb)</label>
                     <div class="unit-container">
-                        <input type="number" id="input-lb" value="0" min="0" step="0.01" oninput="runAnalysis()">
+                        <input type="number" class="has-unit" id="input-lb" value="0" min="0" step="0.01" oninput="runAnalysis()">
                         <span class="unit-label">ft</span>
                     </div>
                 </div>
             </div>
 
-            <div class="form-row" style="margin-bottom: 1rem;">
-                <div class="form-group" style="margin-bottom:0;">
-                    <label>Live Load Defl. Limit (L/)</label>
-                    <input type="number" id="input-ll-lim" value="240" min="1" step="1" oninput="runAnalysis()">
-                </div>
-                <div class="form-group" style="margin-bottom:0;">
-                    <label>Total Load Defl. Limit (L/)</label>
-                    <input type="number" id="input-tl-lim" value="360" min="1" step="1" oninput="runAnalysis()">
-                </div>
+            <div class="form-row">
+                <div class="form-group"><label>Live Load Defl. Limit (L/)</label><input type="number" id="input-ll-lim" value="240" min="1" step="1" oninput="runAnalysis()"></div>
+                <div class="form-group"><label>Total Load Defl. Limit (L/)</label><input type="number" id="input-tl-lim" value="360" min="1" step="1" oninput="runAnalysis()"></div>
             </div>
 
-            <div class="panel-subtitle" style="margin-top:0; padding-top:1rem;">Superimposed Configuration Loads</div>
-            <div class="load-input-panel">
-                <div class="form-group load-type-select">
-                    <label>Distribution Type Pattern</label>
-                    <select id="load-pattern-select" onchange="toggleLoadFields()">
-                        <option value="udl">Uniformly Distributed Load (UDL)</option>
-                        <option value="point">Concentrated Point Load</option>
-                        <option value="trap">Trapezoidal / Sloped Load</option>
-                    </select>
-                </div>
-
-                <div class="form-row" style="margin-bottom: 0.75rem;">
-                    <div class="form-group" style="margin-bottom:0;" id="box-start-loc">
-                        <label id="lbl-start-loc">Start Location</label>
-                        <div class="unit-container">
-                            <input type="number" id="input-start-loc" value="0" min="0" step="0.01" oninput="runAnalysis()">
-                            <span class="unit-label">ft</span>
+            <div class="loads-section">
+                <div class="loads-section-title">Superimposed Design Configuration Loads</div>
+                <div class="load-table-wrapper">
+                    <div class="load-table-container">
+                        <div class="loads-col-headers">
+                            <div>Load Type</div><div>Dead (plf/lbs)</div><div>Live (plf/lbs)</div><div>Snow</div><div>Wind</div><div>Seismic</div><div>Start (ft)</div><div>End (ft)</div><div></div>
                         </div>
-                    </div>
-                    <div class="form-group" style="margin-bottom:0;" id="box-end-loc">
-                        <label id="lbl-end-loc">End Location</label>
-                        <div class="unit-container">
-                            <input type="number" id="input-end-loc" value="12" min="0" step="0.01" oninput="runAnalysis()">
-                            <span class="unit-label">ft</span>
-                        </div>
+                        <div id="loads-table-body"></div>
                     </div>
                 </div>
-
-                <label style="margin-bottom: 0.4rem; display: block; font-size: 0.85rem; font-weight: 500; color: var(--text-muted);">
-                    Magnitude Vector Components (<span id="mag-unit-indicator">plf</span>)
-                </label>
-                <div class="loads-grid-container">
-                    <div class="form-group-sub">
-                        <label>Dead</label>
-                        <input type="number" id="load-d" value="150" min="0" step="1" oninput="runAnalysis()">
-                    </div>
-                    <div class="form-group-sub">
-                        <label>Live</label>
-                        <input type="number" id="load-l" value="400" min="0" step="1" oninput="runAnalysis()">
-                    </div>
-                    <div class="form-group-sub">
-                        <label>Snow</label>
-                        <input type="number" id="load-s" value="0" min="0" step="1" oninput="runAnalysis()">
-                    </div>
-                    <div class="form-group-sub">
-                        <label>Wind</label>
-                        <input type="number" id="load-w" value="0" min="0" step="1" oninput="runAnalysis()">
-                    </div>
-                    <div class="form-group-sub">
-                        <label>Seismic</label>
-                        <input type="number" id="load-e" value="0" min="0" step="1" oninput="runAnalysis()">
-                    </div>
-                </div>
-
-                <div id="trapezoidal-end-vector-box" style="display:none; margin-top:0.75rem;">
-                    <label style="margin-bottom: 0.4rem; display: block; font-size: 0.85rem; font-weight: 500; color: var(--text-muted);">
-                        End Magnitude Vector Components (plf)
-                    </label>
-                    <div class="loads-grid-container">
-                        <div class="form-group-sub">
-                            <label>Dead End</label>
-                            <input type="number" id="load-d-end" value="150" min="0" step="1" oninput="runAnalysis()">
-                        </div>
-                        <div class="form-group-sub">
-                            <label>Live End</label>
-                            <input type="number" id="load-l-end" value="400" min="0" step="1" oninput="runAnalysis()">
-                        </div>
-                        <div class="form-group-sub">
-                            <label>Snow End</label>
-                            <input type="number" id="load-s-end" value="0" min="0" step="1" oninput="runAnalysis()">
-                        </div>
-                        <div class="form-group-sub">
-                            <label>Wind End</label>
-                            <input type="number" id="load-w-end" value="0" min="0" step="1" oninput="runAnalysis()">
-                        </div>
-                        <div class="form-group-sub">
-                            <label>Seismic End</label>
-                            <input type="number" id="load-e-end" value="0" min="0" step="1" oninput="runAnalysis()">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="envelope-status-bar" id="controlling-comb-display">
-                    Controlling Combination: --
-                </div>
+                <button class="add-load-btn" onclick="addLoadRow()">+ Add Superimposed Load Row</button>
+                <div class="envelope-status-bar" id="controlling-comb-display">Controlling Combination: --</div>
             </div>
         </div>
 
-        <div class="panel" style="display: flex; flex-direction: column;">
+        <div class="panel panel-tall">
             <h2 class="panel-title">Code Check Matrix</h2>
             
             <div class="report-row">
@@ -368,11 +270,11 @@
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-top:0.25rem;">
                 <div style="background:#111827; padding:0.5rem; border-radius:8px; text-align:center;">
                     <div style="font-size:0.7rem; color:var(--text-muted);">R_A (Left Max)</div>
-                    <div id="react-ra" style="font-size:1.2rem; font-weight:700; color:var(--accent-blue);">—</div>
+                    <div id="react-ra" style="font-size:1.2rem; font-weight:700; color:var(--accent-steel);">—</div>
                 </div>
                 <div style="background:#111827; padding:0.5rem; border-radius:8px; text-align:center;">
                     <div style="font-size:0.7rem; color:var(--text-muted);">R_B (Right Max)</div>
-                    <div id="react-rb" style="font-size:1.2rem; font-weight:700; color:var(--accent-blue);">—</div>
+                    <div id="react-rb" style="font-size:1.2rem; font-weight:700; color:var(--accent-steel);">—</div>
                 </div>
             </div>
 
@@ -395,11 +297,7 @@
 </div>
 
 <script>
-// --- Global State Array for Superimposed Custom Loads ---
-let loadsArray = [
-    { id: Date.now(), type: 'udl', start: 0, end: 12, d: 150, l: 400, s: 0, w: 0, e: 0, dEnd: 150, lEnd: 400, sEnd: 0, wEnd: 0, eEnd: 0 }
-];
-
+// --- Standard AISC Wide Flange Reference Database ---
 const structuralLibrary = {
     "W27x539": { d: 32.50, tw: 1.970, bf: 15.30, tf: 3.540, ix: 25600.0, sx: 1570.0, zx: 1890.0, rts: 4.41, j: 496.000, cw: 443000.0, ho: 28.96, weight: 539.0 },
     "W27x368": { d: 30.40, tw: 1.380, bf: 14.70, tf: 2.480, ix: 16200.0, sx: 1060.0, zx: 1240.0, rts: 4.15, j: 170.000, cw: 255000.0, ho: 27.92, weight: 368.0 },
@@ -603,498 +501,454 @@ const structuralLibrary = {
     "W4X13": { d: 4.16, tw: 0.280, bf: 4.06, tf: 0.345, ix: 11.3, sx: 5.5, zx: 6.3, rts: 1.16, j: 0.151, cw: 14.0, ho: 3.82, weight: 13.0 }
 };
 
-const E = 29000; 
-const G = 11200; 
-const Cb = 1.14; 
+const ASD_COMBINATIONS = [
+    { name: "D Only",     D: 1.0, L: 0.0, S: 0.0, W: 0.0, E: 0.0 },
+    { name: "D + L",     D: 1.0, L: 1.0, S: 0.0, W: 0.0, E: 0.0 },
+    { name: "D + S",     D: 1.0, L: 0.0, S: 1.0, W: 0.0, E: 0.0 },
+    { name: "D + 0.6W",  D: 1.0, L: 0.0, S: 0.0, W: 0.6, E: 0.0 },
+    { name: "D + 0.75L + 0.75S + 0.75(0.6W)", D: 1.0, L: 0.75, S: 0.75, W: 0.45, E: 0.0 }
+];
 
-function initSelector() {
-    const matSel = document.getElementById('input-material');
-    matSel.innerHTML = '';
+// --- Initialization ---
+document.addEventListener('DOMContentLoaded', () => {
+    const selectEl = document.getElementById('input-material');
     Object.keys(structuralLibrary).forEach(shape => {
-        matSel.options[matSel.options.length] = new Option(shape, shape);
+        let opt = document.createElement('option');
+        opt.value = shape; opt.innerText = shape;
+        selectEl.appendChild(opt);
     });
-    matSel.value = "W8X10"; 
+    // Set a default profile
+    selectEl.value = "W8x31";
     loadShapeProperties();
-}
+
+    if (document.getElementById('loads-table-body').children.length === 0) {
+        addLoadRow(150, 400); // Seed initial row matching your baseline specs
+    }
+});
 
 function loadShapeProperties() {
-    const shapeName = document.getElementById('input-material').value;
-    const props = structuralLibrary[shapeName];
-    if(!props) return;
-    
-    document.getElementById('prop-d').value = props.d;
-    document.getElementById('prop-tw').value = props.tw;
-    document.getElementById('prop-bf').value = props.bf;
-    document.getElementById('prop-tf').value = props.tf;
-    document.getElementById('prop-ix').value = props.ix;
-    document.getElementById('prop-sx').value = props.sx;
-    document.getElementById('prop-zx').value = props.zx;
-    document.getElementById('prop-rts').value = props.rts;
-    document.getElementById('prop-j').value = props.j;
-    document.getElementById('prop-cw').value = props.cw;
-    document.getElementById('prop-ho').value = props.ho;
-    document.getElementById('prop-weight').value = props.weight;
-    
-    renderLoadRows();
-}
+    const key = document.getElementById('input-material').value;
+    const prop = structuralLibrary[key];
+    if (!prop) return;
 
-// --- Dynamic Architecture View Controls ---
-function renderLoadRows() {
-    const container = document.getElementById('dynamic-loads-container');
-    container.innerHTML = '';
-    const L_ft = parseFloat(document.getElementById('input-span').value) || 12;
+    document.getElementById('prop-d').value = prop.d;
+    document.getElementById('prop-tw').value = prop.tw;
+    document.getElementById('prop-bf').value = prop.bf;
+    document.getElementById('prop-tf').value = prop.tf;
+    document.getElementById('prop-ix').value = prop.ix;
+    document.getElementById('prop-sx').value = prop.sx;
+    document.getElementById('prop-zx').value = prop.zx;
+    document.getElementById('prop-rts').value = prop.rts;
+    document.getElementById('prop-j').value = prop.j;
+    document.getElementById('prop-cw').value = prop.cw;
+    document.getElementById('prop-ho').value = prop.ho;
+    document.getElementById('prop-weight').value = prop.weight;
 
-    loadsArray.forEach((load, idx) => {
-        const rowDiv = document.createElement('div');
-        rowDiv.className = 'load-input-panel';
-        rowDiv.style.position = 'relative';
-        rowDiv.style.marginTop = '0.5rem';
-        rowDiv.style.border = '1px solid var(--border-color)';
-        rowDiv.style.background = '#0b0f19';
-
-        const isPoint = load.type === 'point';
-        const isTrap = load.type === 'trap';
-
-        rowDiv.innerHTML = `
-            <button type="button" onclick="deleteLoadRow(${load.id})" style="position: absolute; right: 0.75rem; top: 0.5rem; background: transparent; border: none; color: var(--accent-red); font-size: 1.1rem; cursor: pointer; font-weight: bold; padding: 0.2rem;">&times;</button>
-            <div class="form-row" style="grid-template-columns: 1.5fr 1fr 1fr; gap: 0.5rem; margin-bottom: 0.5rem; width: calc(100% - 25px);">
-                <div class="form-group-sub" style="text-align: left;">
-                    <label style="text-align: left;">Type</label>
-                    <select onchange="updateLoadParam(${load.id}, 'type', this.value)" style="padding: 0.35rem; font-size: 0.85rem;">
-                        <option value="udl" ${load.type === 'udl' ? 'selected' : ''}>Uniform (UDL)</option>
-                        <option value="point" ${load.type === 'point' ? 'selected' : ''}>Point Load</option>
-                        <option value="trap" ${load.type === 'trap' ? 'selected' : ''}>Sloped (Trap)</option>
-                    </select>
-                </div>
-                <div class="form-group-sub">
-                    <label>${isPoint ? 'Location' : 'Start Loc'}</label>
-                    <input type="number" step="0.01" value="${load.start}" oninput="updateLoadParam(${load.id}, 'start', this.value)" style="padding: 0.35rem;">
-                </div>
-                <div class="form-group-sub" style="display: ${isPoint ? 'none' : 'flex'};">
-                    <label>End Loc</label>
-                    <input type="number" step="0.01" value="${load.end}" oninput="updateLoadParam(${load.id}, 'end', this.value)" style="padding: 0.35rem;">
-                </div>
-            </div>
-            <label style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem; display: block; font-weight: 500;">
-                Magnitude Vector (${isPoint ? 'lbs' : isTrap ? 'plf Start' : 'plf'})
-            </label>
-            <div class="loads-grid-container" style="padding: 0.5rem; gap: 0.35rem; background: #111827;">
-                <div class="form-group-sub"><label style="font-size:0.65rem;">D</label><input type="number" value="${load.d}" oninput="updateLoadParam(${load.id}, 'd', this.value)"></div>
-                <div class="form-group-sub"><label style="font-size:0.65rem;">L</label><input type="number" value="${load.l}" oninput="updateLoadParam(${load.id}, 'l', this.value)"></div>
-                <div class="form-group-sub"><label style="font-size:0.65rem;">S</label><input type="number" value="${load.s}" oninput="updateLoadParam(${load.id}, 's', this.value)"></div>
-                <div class="form-group-sub"><label style="font-size:0.65rem;">W</label><input type="number" value="${load.w}" oninput="updateLoadParam(${load.id}, 'w', this.value)"></div>
-                <div class="form-group-sub"><label style="font-size:0.65rem;">E</label><input type="number" value="${load.e}" oninput="updateLoadParam(${load.id}, 'e', this.value)"></div>
-            </div>
-            <div style="display: ${isTrap ? 'block' : 'none'}; margin-top: 0.5rem;">
-                <label style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem; display: block; font-weight: 500;">End Vector Component (plf)</label>
-                <div class="loads-grid-container" style="padding: 0.5rem; gap: 0.35rem; background: #111827; margin-bottom: 0;">
-                    <div class="form-group-sub"><label style="font-size:0.65rem;">D End</label><input type="number" value="${load.dEnd}" oninput="updateLoadParam(${load.id}, 'dEnd', this.value)"></div>
-                    <div class="form-group-sub"><label style="font-size:0.65rem;">L End</label><input type="number" value="${load.lEnd}" oninput="updateLoadParam(${load.id}, 'lEnd', this.value)"></div>
-                    <div class="form-group-sub"><label style="font-size:0.65rem;">S End</label><input type="number" value="${load.sEnd}" oninput="updateLoadParam(${load.id}, 'sEnd', this.value)"></div>
-                    <div class="form-group-sub"><label style="font-size:0.65rem;">W End</label><input type="number" value="${load.wEnd}" oninput="updateLoadParam(${load.id}, 'wEnd', this.value)"></div>
-                    <div class="form-group-sub"><label style="font-size:0.65rem;">E End</label><input type="number" value="${load.eEnd}" oninput="updateLoadParam(${load.id}, 'eEnd', this.value)"></div>
-                </div>
-            </div>
-        `;
-        container.appendChild(rowDiv);
-    });
     runAnalysis();
 }
 
-function addLoadRow() {
-    const L_ft = parseFloat(document.getElementById('input-span').value) || 12;
-    loadsArray.push({
-        id: Date.now() + Math.random(),
-        type: 'udl',
-        start: 0,
-        end: L_ft,
-        d: 0, l: 0, s: 0, w: 0, e: 0,
-        dEnd: 0, lEnd: 0, sEnd: 0, wEnd: 0, eEnd: 0
-    });
-    renderLoadRows();
+// --- Load Table Operations ---
+function addLoadRow(defaultD = 0, defaultL = 0) {
+    const tableBody = document.getElementById('loads-table-body');
+    const rowId = 'load-row-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
+    const currentSpan = parseFloat(document.getElementById('input-span').value) || 12;
+
+    const card = document.createElement('div');
+    card.className = 'load-card';
+    card.id = rowId;
+    card.innerHTML = `
+        <div class="load-card-row">
+            <div class="lc-col">
+                <select class="lc-select type-input" onchange="toggleRowFields('${rowId}'); runAnalysis();">
+                    <option value="Uniform" selected>Uniform (plf)</option>
+                    <option value="Point">Point (lbs)</option>
+                </select>
+            </div>
+            <div class="lc-col"><input type="number" class="lc-input dead-input" value="${defaultD}" oninput="runAnalysis()"></div>
+            <div class="lc-col"><input type="number" class="lc-input live-input" value="${defaultL}" oninput="runAnalysis()"></div>
+            <div class="lc-col"><input type="number" class="lc-input snow-input" value="0" oninput="runAnalysis()"></div>
+            <div class="lc-col"><input type="number" class="lc-input wind-input" value="0" oninput="runAnalysis()"></div>
+            <div class="lc-col"><input type="number" class="lc-input seismic-input" value="0" oninput="runAnalysis()"></div>
+            <div class="lc-col"><input type="number" class="lc-input start-input" value="0" step="0.1" oninput="runAnalysis()"></div>
+            <div class="lc-col"><input type="number" class="lc-input end-input" value="${currentSpan}" step="0.1" oninput="runAnalysis()"></div>
+            <div class="lc-col">
+                <button class="lc-delete-btn" onclick="removeLoadRow('${rowId}')" title="Remove Row">×</button>
+            </div>
+        </div>
+    `;
+    tableBody.appendChild(card);
+    runAnalysis();
 }
 
-function deleteLoadRow(id) {
-    loadsArray = loadsArray.filter(l => l.id !== id);
-    renderLoadRows();
-}
-
-function updateLoadParam(id, key, val) {
-    const target = loadsArray.find(l => l.id === id);
-    if (!target) return;
-    if (key === 'type') {
-        target.type = val;
-        const L_ft = parseFloat(document.getElementById('input-span').value) || 12;
-        if(val === 'udl' || val === 'trap') { target.start = 0; target.end = L_ft; }
-        renderLoadRows();
-        return;
+function removeLoadRow(rowId) {
+    const row = document.getElementById(rowId);
+    if (row) row.remove();
+    if (document.getElementById('loads-table-body').children.length === 0) {
+        addLoadRow(0, 0);
     }
-    target[key] = parseFloat(val) || 0;
     runAnalysis();
 }
 
-// --- Combined Element Structural Integration Suite ---
-function runAnalysis() {
-    const L_ft = Math.max(0.01, parseFloat(document.getElementById('input-span').value) || 0);
-    let Lb_ft = parseFloat(document.getElementById('input-lb').value) || 0;
-    if(Lb_ft > L_ft) Lb_ft = L_ft;
-    
-    const ll_lim = Math.max(1, parseFloat(document.getElementById('input-ll-lim').value) || 1);
-    const tl_lim = Math.max(1, parseFloat(document.getElementById('input-tl-lim').value) || 1);
+function toggleRowFields(rowId) {
+    const row = document.getElementById(rowId);
+    if (!row) return;
+    const type = row.querySelector('.type-input').value;
+    const endInput = row.querySelector('.end-input');
+    if (type === "Point") {
+        endInput.disabled = true;
+        endInput.style.opacity = "0.2";
+    } else {
+        endInput.disabled = false;
+        endInput.style.opacity = "1";
+    }
+}
 
-    const Fy = parseFloat(document.getElementById('prop-fy').value) || 50;
+function syncSpanToRows() {
+    const currentSpan = parseFloat(document.getElementById('input-span').value) || 0;
+    const rows = document.querySelectorAll('#loads-table-body .load-card');
+    rows.forEach(row => {
+        const type = row.querySelector('.type-input').value;
+        const startVal = parseFloat(row.querySelector('.start-input').value) || 0;
+        if (type === "Uniform" && startVal === 0) {
+            row.querySelector('.end-input').value = currentSpan;
+        }
+    });
+}
+
+function parseInputLoads() {
+    const loads = [];
+    const rows = document.querySelectorAll('#loads-table-body .load-card');
+    rows.forEach(row => {
+        loads.push({
+            type: row.querySelector('.type-input').value,
+            D: parseFloat(row.querySelector('.dead-input').value) || 0,
+            L: parseFloat(row.querySelector('.live-input').value) || 0,
+            S: parseFloat(row.querySelector('.snow-input').value) || 0,
+            W: parseFloat(row.querySelector('.wind-input').value) || 0,
+            E: parseFloat(row.querySelector('.seismic-input').value) || 0,
+            start: parseFloat(row.querySelector('.start-input').value) || 0,
+            end: parseFloat(row.querySelector('.end-input').value) || 0
+        });
+    });
+    return loads;
+}
+
+// --- AISC Steel Analysis Engine Core ---
+function runAnalysis() {
+    const span = parseFloat(document.getElementById('input-span').value) || 0;
+    const Lb = parseFloat(document.getElementById('input-lb').value) || 0;
+    const Fy = parseFloat(document.getElementById('prop-fy').value) || 0;
+
+    // Properties
     const d = parseFloat(document.getElementById('prop-d').value) || 0;
     const tw = parseFloat(document.getElementById('prop-tw').value) || 0;
     const bf = parseFloat(document.getElementById('prop-bf').value) || 0;
     const tf = parseFloat(document.getElementById('prop-tf').value) || 0;
-    const ix = parseFloat(document.getElementById('prop-ix').value) || 1;
-    const sx = parseFloat(document.getElementById('prop-sx').value) || 1;
-    const zx = parseFloat(document.getElementById('prop-zx').value) || 1;
-    const rts = parseFloat(document.getElementById('prop-rts').value) || 1;
-    const j = parseFloat(document.getElementById('prop-j').value) || 0;
-    const cw = parseFloat(document.getElementById('prop-cw').value) || 0;
+    const Ix = parseFloat(document.getElementById('prop-ix').value) || 0;
+    const Sx = parseFloat(document.getElementById('prop-sx').value) || 0;
+    const Zx = parseFloat(document.getElementById('prop-zx').value) || 0;
+    const rts = parseFloat(document.getElementById('prop-rts').value) || 0;
+    const J = parseFloat(document.getElementById('prop-j').value) || 0;
+    const Cw = parseFloat(document.getElementById('prop-cw').value) || 0;
     const ho = parseFloat(document.getElementById('prop-ho').value) || 0;
-    const weight = parseFloat(document.getElementById('prop-weight').value) || 0;
+    const weightplf = parseFloat(document.getElementById('prop-weight').value) || 0;
 
-    const combos = ["D Only", "D + L", "D + S", "D + 0.75L + 0.75S", "D + 0.6W", "D + 0.7E", "D + 0.75L + 0.75(0.6W) + 0.75S", "D + 0.75L + 0.75(0.7E) + 0.75S", "0.6D + 0.6W", "0.6D + 0.7E"];
-    
-    let maxV_global = 0, maxM_global = 0, critComboName = "";
-    let finalShearPoints = [], finalMomentPoints = [];
-    let finalTLDeflPoints = new Array(101).fill(0);
+    if (span <= 0 || d <= 0 || Ix <= 0 || Sx <= 0) return;
 
-    // EI stiffness factor baseline setup
-    const EI_constant = E * ix; // ksi * in^4
+    const parsedLoads = parseInputLoads();
 
-    combos.forEach(comb => {
-        let currentShear = new Array(101).fill(0);
-        let currentMoment = new Array(101).fill(0);
+    // Setup 100 sample intervals across the span length
+    const steps = 100;
+    const dx = span / steps;
+    const xCoords = [];
+    for (let i = 0; i <= steps; i++) xCoords.push(i * dx);
 
-        // Extract Multipliers
-        let mD = 1.0, mL = 0, mS = 0, mW = 0, mE = 0;
-        if(comb === "0.6D + 0.6W") { mD = 0.6; mW = 0.6; }
-        else if(comb === "0.6D + 0.7E") { mD = 0.6; mE = 0.7; }
-        else {
-            if(comb.includes("0.75L")) mL = 0.75; else if(comb.includes("L")) mL = 1.0;
-            if(comb.includes("0.75S")) mS = 0.75; else if(comb.includes("S")) mS = 1.0;
-            if(comb.includes("0.6W")) mW = comb.includes("0.75") ? 0.75 * 0.6 : 0.6;
-            if(comb.includes("0.7E")) mE = comb.includes("0.75") ? 0.75 * 0.7 : 0.7;
-        }
+    let absMaxM = 0;
+    let absMaxV = 0;
+    let controllingComboName = "D Only";
 
-        // Construct Composite Load State Matrix Profile
-        for(let i=0; i<=100; i++) {
-            let x = (i/100)*L_ft;
-            
-            // Self Weight response curve parameters
-            let swPlf = weight * mD;
-            let R_sw = (swPlf * L_ft) / 2;
-            currentShear[i] += R_sw - swPlf * x;
-            currentMoment[i] += (R_sw * x) - (swPlf * x * x / 2);
+    let envelopeV = new Array(steps + 1).fill(0);
+    let envelopeM = new Array(steps + 1).fill(0);
 
-            // Superimposed row tracking calculations loop
-            loadsArray.forEach(load => {
-                let sLoc = Math.min(L_ft, Math.max(0, load.start));
-                let eLoc = Math.min(L_ft, Math.max(sLoc, load.end));
+    // Evaluate ASD Envelopes
+    ASD_COMBINATIONS.forEach(combo => {
+        const localV = new Array(steps + 1).fill(0);
+        const localM = new Array(steps + 1).fill(0);
 
-                let wStart = load.d*mD + load.l*mL + load.s*mS + load.w*mW + load.e*mE;
-                let wEnd = load.type === 'trap' ? (load.dEnd*mD + load.lEnd*mL + load.sEnd*mS + load.wEnd*mW + load.eEnd*mE) : wStart;
+        let eqLoad = 0;
+        let momA = 0;
 
-                if(load.type === 'udl') {
-                    let len = eLoc - sLoc;
-                    if(len > 0) {
-                        let R2 = (wStart * len * (sLoc + len/2)) / L_ft;
-                        let R1 = (wStart * len) - R2;
-                        currentShear[i] += (x < sLoc) ? R1 : (x <= eLoc) ? (R1 - wStart*(x - sLoc)) : -R2;
-                        currentMoment[i] += (x < sLoc) ? R1*x : (x <= eLoc) ? (R1*x - wStart*Math.pow(x-sLoc,2)/2) : R2*(L_ft - x);
-                    }
-                } else if(load.type === 'point') {
-                    let P = wStart; 
-                    let a = sLoc, b = L_ft - a;
-                    let R1 = (P * b) / L_ft, R2 = (P * a) / L_ft;
-                    currentShear[i] += (x < a) ? R1 : -R2;
-                    currentMoment[i] += (x < a) ? R1*x : R2*(L_ft - x);
-                } else if(load.type === 'trap') {
-                    let len = eLoc - sLoc;
-                    if(len > 0) {
-                        let totalLoad = 0.5 * (wStart + wEnd) * len;
-                        let cg_from_start = (len / 3) * ((wStart + 2 * wEnd) / (wStart + wEnd));
-                        let load_cg = sLoc + cg_from_start;
-                        let R2 = (totalLoad * load_cg) / L_ft;
-                        let R1 = totalLoad - R2;
-                        
-                        if(x < sLoc) {
-                            currentShear[i] += R1; currentMoment[i] += R1 * x;
-                        } else if(x <= eLoc) {
-                            let tx = x - sLoc;
-                            let wx = wStart + (wEnd - wStart) * (tx / len);
-                            let segmentLoad = 0.5 * (wStart + wx) * tx;
-                            currentShear[i] += R1 - segmentLoad;
-                            let seg_cg = (tx / 3) * ((wStart + 2 * wx) / (wStart + wx));
-                            currentMoment[i] += R1 * x - segmentLoad * (tx - seg_cg);
-                        } else {
-                            currentShear[i] += -R2; currentMoment[i] += R2 * (L_ft - x);
-                        }
+        parsedLoads.forEach(load => {
+            // Convert component magnitudes to structural kips / kip-ft calculations cleanly
+            const plfToKft = 1000;
+            const combinedMag = ((load.D * combo.D) + (load.L * combo.L) + (load.S * combo.S) + (load.W * combo.W) + (load.E * combo.E)) / plfToKft;
+            if (combinedMag === 0) return;
+
+            if (load.type === "Uniform") {
+                const s = Math.max(0, Math.min(span, load.start));
+                const e = Math.max(s, Math.min(span, load.end));
+                const length = e - s;
+                if (length <= 0) return;
+
+                eqLoad += combinedMag * length;
+                momA += combinedMag * length * (s + length / 2);
+
+                for (let i = 0; i <= steps; i++) {
+                    const x = xCoords[i];
+                    if (x > s) {
+                        const loadedPast = Math.min(x, e) - s;
+                        localM[i] += 0.5 * combinedMag * loadedPast * (2 * (x - s) - loadedPast);
+                        localV[i] += combinedMag * loadedPast;
                     }
                 }
-            });
-        }
+            } else if (load.type === "Point") {
+                const pt = Math.max(0, Math.min(span, load.start));
+                eqLoad += combinedMag;
+                momA += combinedMag * pt;
 
-        // Numerical deflections conversion engine (Conjugate central difference integration)
-        let currentDefl = new Array(101).fill(0);
-        let dx = L_ft / 100;
-        let rot = new Array(101).fill(0);
-        
-        let sumM = 0;
-        for(let i=0; i<=100; i++) {
-            sumM += currentMoment[i] * (i === 0 || i === 100 ? 0.5 : 1.0);
-        }
-        let C1 = -(sumM * dx) / 2; 
-        
-        let curRot = C1;
-        rot[0] = curRot;
-        for(let i=1; i<=100; i++) {
-            let avgM = (currentMoment[i-1] + currentMoment[i]) / 2;
-            curRot += avgM * dx;
-            rot[i] = curRot;
-        }
-        
-        currentDefl[0] = 0;
-        for(let i=1; i<=100; i++) {
-            let avgRot = (rot[i-1] + rot[i]) / 2;
-            currentDefl[i] = currentDefl[i-1] + avgRot * dx;
-        }
-
-        // Scale factors: Convert k-ft^3 to inches over standard structural units conversion matrix
-        for(let i=0; i<=100; i++) {
-            currentDefl[i] = (currentDefl[i] * 1728) / EI_constant;
-        }
-
-        // Global Max Tracker checks
-        let maxM_cand = 0;
-        currentMoment.forEach(m => { if(Math.abs(m) > Math.abs(maxM_cand)) maxM_cand = m; });
-        if(Math.abs(maxM_cand) > Math.abs(maxM_global)) {
-            maxM_global = maxM_cand;
-            maxV_global = Math.max(...currentShear.map(Math.abs));
-            critComboName = comb;
-            finalShearPoints = currentShear.map(v => v / 1000); // Standard kips layout matching
-            finalMomentPoints = currentMoment.map(m => m / 1000); // Standard k-ft conversion
-            finalTLDeflPoints = currentDefl;
-        }
-    });
-
-    // --- Isolated Pure Serviceability Live Load Deflection Array Engine ---
-    let finalLLDeflPoints = new Array(101).fill(0);
-    let liveMoment = new Array(101).fill(0);
-    for(let i=0; i<=100; i++) {
-        let x = (i/100)*L_ft;
-        loadsArray.forEach(load => {
-            if(load.l === 0 && load.lEnd === 0) return;
-            let sLoc = Math.min(L_ft, Math.max(0, load.start));
-            let eLoc = Math.min(L_ft, Math.max(sLoc, load.end));
-
-            if(load.type === 'udl') {
-                let len = eLoc - sLoc;
-                if(len > 0) {
-                    let R2 = (load.l * len * (sLoc + len/2)) / L_ft;
-                    let R1 = (load.l * len) - R2;
-                    liveMoment[i] += (x < sLoc) ? R1*x : (x <= eLoc) ? (R1*x - load.l*Math.pow(x-sLoc,2)/2) : R2*(L_ft - x);
-                }
-            } else if(load.type === 'point') {
-                let a = sLoc, b = L_ft - a;
-                let R1 = (load.l * b) / L_ft, R2 = (load.l * a) / L_ft;
-                liveMoment[i] += (x < a) ? R1*x : R2*(L_ft - x);
-            } else if(load.type === 'trap') {
-                let len = eLoc - sLoc;
-                if(len > 0) {
-                    let totalLoad = 0.5 * (load.l + load.lEnd) * len;
-                    let load_cg = sLoc + (len / 3) * ((load.l + 2 * load.lEnd) / (load.l + load.lEnd));
-                    let R2 = (totalLoad * load_cg) / L_ft; let R1 = totalLoad - R2;
-                    if(x < sLoc) liveMoment[i] += R1*x;
-                    else if(x <= eLoc) {
-                        let lx = x - sLoc; let wx = load.l + (load.lEnd - load.l)*(lx/len);
-                        let sL = 0.5*(load.l + wx)*lx; let scg = (lx/3)*((load.l + 2*wx)/(load.l+wx));
-                        liveMoment[i] += R1*x - sL*(lx - scg);
-                    } else liveMoment[i] += R2*(L_ft - x);
+                for (let i = 0; i <= steps; i++) {
+                    const x = xCoords[i];
+                    if (x >= pt) {
+                        localV[i] += combinedMag;
+                        localM[i] += combinedMag * (x - pt);
+                    }
                 }
             }
         });
+
+        // Add self-weight (Dead component)
+        const swMag = (weightplf * combo.D) / 1000;
+        eqLoad += swMag * span;
+        momA += swMag * span * (span / 2);
+        for (let i = 0; i <= steps; i++) {
+            const x = xCoords[i];
+            localM[i] += 0.5 * swMag * x * x;
+            localV[i] += swMag * x;
+        }
+
+        const R_B = momA / span;
+        const R_A = eqLoad - R_B;
+
+        let maxComboM = 0;
+        let maxComboV = 0;
+
+        for (let i = 0; i <= steps; i++) {
+            const x = xCoords[i];
+            localV[i] = R_A - localV[i];
+            localM[i] = (R_A * x) - localM[i];
+
+            if (Math.abs(localM[i]) > maxComboM) maxComboM = Math.abs(localM[i]);
+            if (Math.abs(localV[i]) > maxComboV) maxComboV = Math.abs(localV[i]);
+        }
+
+        if (maxComboM > absMaxM) {
+            absMaxM = maxComboM;
+            absMaxV = maxComboV;
+            controllingComboName = combo.name;
+            for (let i = 0; i <= steps; i++) {
+                envelopeV[i] = localV[i];
+                envelopeM[i] = localM[i];
+            }
+        }
+    });
+
+    // --- Service Level Deflection Checking Arrays ---
+    const deflLL = new Array(steps + 1).fill(0);
+    const deflTL = new Array(steps + 1).fill(0);
+
+    parsedLoads.forEach(load => {
+        if (load.type === "Uniform") {
+            const s = Math.max(0, Math.min(span, load.start));
+            const e = Math.max(s, Math.min(span, load.end));
+            const len = e - s;
+            if (len <= 0) return;
+
+            for (let i = 0; i <= steps; i++) {
+                const x = xCoords[i];
+                const w_ll = load.L / 1000;
+                const w_tl = (load.D + load.L + load.S) / 1000;
+
+                const rb_ll = (w_ll * len * (s + len / 2)) / span;
+                let m_ll = (w_ll * len - rb_ll) * x;
+                if (x > s) m_ll -= 0.5 * w_ll * (x - s) * (x - s);
+                if (x > e) m_ll += 0.5 * w_ll * (x - e) * (x - e);
+
+                const rb_tl = (w_tl * len * (s + len / 2)) / span;
+                let m_tl = (w_tl * len - rb_tl) * x;
+                if (x > s) m_tl -= 0.5 * w_tl * (x - s) * (x - s);
+                if (x > e) m_tl += 0.5 * w_tl * (x - e) * (x - e);
+
+                deflLL[i] += m_ll; deflTL[i] += m_tl;
+            }
+        } else if (load.type === "Point") {
+            const pt = Math.max(0, Math.min(span, load.start));
+            for (let i = 0; i <= steps; i++) {
+                const x = xCoords[i];
+                const p_ll = load.L / 1000;
+                const p_tl = (load.D + load.L + load.S) / 1000;
+
+                let m_ll = (p_ll * (span - pt) / span) * x; if (x > pt) m_ll -= p_ll * (x - pt);
+                let m_tl = (p_tl * (span - pt) / span) * x; if (x > pt) m_tl -= p_tl * (x - pt);
+
+                deflLL[i] += m_ll; deflTL[i] += m_tl;
+            }
+        }
+    });
+
+    // Self weight profile deflection addition
+    for (let i = 0; i <= steps; i++) {
+        const x = xCoords[i];
+        const swKft = weightplf / 1000;
+        deflTL[i] += ((swKft * span / 2) * x) - (0.5 * swKft * x * x);
     }
 
-    let dx_ll = L_ft / 100;
-    let rot_ll = new Array(101).fill(0);
-    let sumM_ll = 0;
-    for(let i=0; i<=100; i++) sumM_ll += liveMoment[i] * (i === 0 || i === 100 ? 0.5 : 1.0);
-    let C1_ll = -(sumM_ll * dx_ll) / 2;
-    let curRot_ll = C1_ll; rot_ll[0] = curRot_ll;
-    for(let i=1; i<=100; i++) {
-        curRot_ll += ((liveMoment[i-1] + liveMoment[i])/2) * dx_ll;
-        rot_ll[i] = curRot_ll;
-    }
-    finalLLDeflPoints[0] = 0;
-    for(let i=1; i<=100; i++) {
-        finalLLDeflPoints[i] = finalLLDeflPoints[i-1] + ((rot_ll[i-1] + rot_ll[i])/2) * dx_ll;
-        finalLLDeflPoints[i-1] = (finalLLDeflPoints[i-1] * 1728) / EI_constant;
-    }
-    finalLLDeflPoints[100] = (finalLLDeflPoints[100] * 1728) / EI_constant;
+    let peakLLD = 0, peakTLD = 0;
+    const EI = 29000 * Ix; // ksi * in^4 vector scaling
 
-    document.getElementById('controlling-comb-display').innerText = `Controlling Combination: ${critComboName}`;
+    for (let i = 0; i <= steps; i++) {
+        const x = xCoords[i];
+        const factor = (x * (span - x)) / (2 * EI);
+        const dLL = Math.abs(deflLL[i] * factor * 1728); // Convert to inches
+        const dTL = Math.abs(deflTL[i] * factor * 1728);
 
-    // --- AISC CHAPTER F FLEXURAL CAPACITY CONFIGURATION ENGINE ---
-    const Lb_in = Lb_ft * 12;
-    const Mp = Fy * zx; 
+        if (dLL > peakLLD) peakLLD = dLL;
+        if (dTL > peakTLD) peakTLD = dTL;
+    }
+
+    // --- AISC Chapter F Bending Strength Specification (ASD) ---
+    const Cb = 1.14;
+    const Mp = Fy * Zx; // Kip-in
     let Mn = Mp;
-    let stateNote = "Yielding";
 
-    const Lp = 1.76 * rts * Math.sqrt(E / Fy);
-    const c = 1.0; 
-    const Lr = 1.95 * rts * (E / (0.7 * Fy)) * Math.sqrt((j * c / (sx * ho)) + Math.sqrt(Math.pow(j * c / (sx * ho), 2) + 6.76 * Math.pow((0.7 * Fy) / E, 2)));
+    // Plastic limits for compact wide flanges
+    const Lp = 1.76 * rts * Math.sqrt(29000 / Fy);
+    const Lb_in = Lb * 12;
 
     if (Lb_in > Lp) {
-        if (Lb_in <= Lr) {
-            Mn = Cb * (Mp - (Mp - 0.7 * Fy * sx) * ((Lb_in - Lp) / (Lr - Lp)));
-            Mn = Math.min(Mp, Mn);
-            stateNote = "Inelastic LTB";
-        } else {
-            const Fcr = (Cb * Math.PI * Math.PI * E / Math.pow(Lb_in / rts, 2)) * Math.sqrt(1 + 0.078 * (j * c / (sx * ho)) * Math.pow(Lb_in / rts, 2));
-            Mn = Fcr * sx;
-            Mn = Math.min(Mp, Mn);
-            stateNote = "Elastic LTB";
-        }
+        // Lateral Torsional Buckling calculation region
+        const rts2 = rts * rts;
+        const Lb_rts = Lb_in / rts;
+        const Fcr = (Cb * Math.PI * Math.PI * 29000 / (Lb_rts * Lb_rts)) * Math.sqrt(1 + 0.078 * (J * 1.0 / (Sx * ho)) * (Lb_rts * Lb_rts));
+        Mn = Math.min(Mp, Fcr * Sx);
     }
-    const Ma_kipft = (Mn / 1.67) / 12;
+    Mn = Math.min(Mp, Mn) / 12; // Convert nominal capacity back to Kip-ft
+    const allowable_M = Mn / 1.67;
 
-    // --- AISC CHAPTER G WEB SHEAR CAPACITY ENGINE ---
+    // --- AISC Chapter G Shear Capacity (ASD) ---
     const Aw = d * tw;
-    let Cv = 1.0;
-    const h_over_tw = d / tw; 
-    if (h_over_tw > 2.24 * Math.sqrt(E / Fy)) {
-        Cv = (2.24 * Math.sqrt(E / Fy)) / h_over_tw;
-    }
-    const Vn_kips = 0.6 * Fy * Aw * Cv;
-    const Va_kips = Vn_kips / 1.50;
+    const Cv1 = 1.0; // Web standard verification coefficient for typical compact shapes
+    const Vn = 0.6 * Fy * Aw * Cv1;
+    const allowable_V = Vn / 1.50;
 
-    // Deflection tracking max calculations
-    let maxLLDefl = Math.max(...finalLLDeflPoints.map(Math.abs));
-    let maxTLDefl = Math.max(...finalTLDeflPoints.map(Math.abs));
-    const L_in = L_ft * 12;
-    const ratio_ll_act = maxLLDefl > 0.001 ? Math.round(L_in / maxLLDefl) : 0;
-    const ratio_tl_act = maxTLDefl > 0.001 ? Math.round(L_in / maxTLDefl) : 0;
+    // Stress Utilization Ratios
+    const ratio_M = absMaxM / allowable_M;
+    const ratio_V = absMaxV / allowable_V;
 
-    // Update standard reporting rows
-    updateRow('flexure', Math.abs(maxM_global / 1000), Ma_kipft, `Mmax = ${Math.abs(maxM_global / 1000).toFixed(2)} k-ft vs Ma = ${Ma_kipft.toFixed(2)} k-ft (${stateNote})`);
-    updateRow('shear', maxV_global, Va_kips, `Vmax = ${maxV_global.toFixed(2)} kips vs Va = ${Va_kips.toFixed(2)} kips (Cv = ${Cv.toFixed(2)})`);
-    updateDeflRow('ll-defl', maxLLDefl, L_in / ll_lim, `Δll = ${maxLLDefl.toFixed(3)} in (Ratio: L/${ratio_ll_act})`, ll_lim, ratio_ll_act);
-    updateDeflRow('tl-defl', maxTLDefl, L_in / tl_lim, `Δtl = ${maxTLDefl.toFixed(3)} in (Ratio: L/${ratio_tl_act})`, tl_lim, ratio_tl_act);
+    const ll_limit_val = (span * 12) / parseFloat(document.getElementById('input-ll-lim').value);
+    const tl_limit_val = (span * 12) / parseFloat(document.getElementById('input-tl-lim').value);
 
-    // Continuous boundary reactions output tracking setup
-    document.getElementById('react-ra').innerText = `${Math.abs(finalShearPoints[0]).toFixed(2)} k`;
-    document.getElementById('react-rb').innerText = `${Math.abs(finalShearPoints[finalShearPoints.length - 1]).toFixed(2)} k`;
-    
-    // Redraw entire visual matrix output suite
-    drawInputVerification(L_ft);
-    drawDiagram('canvasShear', finalShearPoints, '#f87171', 'V');
-    drawDiagram('canvasMoment', finalMomentPoints, '#34d399', 'M');
+    const ratio_ll = peakLLD / ll_limit_val;
+    const ratio_tl = peakTLD / tl_limit_val;
+
+    // --- UI Layout Distribution Pipeline ---
+    document.getElementById('controlling-comb-display').innerText = `Controlling Combo: ${controllingComboName} | M_max = ${absMaxM.toFixed(1)} k-ft | V_max = ${absMaxV.toFixed(1)} kips`;
+
+    updateReportPill('flexure', ratio_M, `${absMaxM.toFixed(1)} / ${allowable_M.toFixed(1)} k-ft`);
+    updateReportPill('shear', ratio_V, `${absMaxV.toFixed(1)} / ${allowable_V.toFixed(1)} kips`);
+    updateReportPill('ll-defl', ratio_ll, `${peakLLD.toFixed(3)}" / ${ll_limit_val.toFixed(2)}"`);
+    updateReportPill('tl-defl', ratio_tl, `${peakTLD.toFixed(3)}" / ${tl_limit_val.toFixed(2)}"`);
+
+    document.getElementById('react-ra').innerText = `${Math.abs(envelopeV[0]).toFixed(1)} kips`;
+    document.getElementById('react-rb').innerText = `${Math.abs(envelopeV[steps]).toFixed(1)} kips`;
+
+    // Visual Graphing Engines
+    renderCanvas('canvasShear', xCoords, envelopeV, '#38bdf8');
+    renderCanvas('canvasMoment', xCoords, envelopeM, '#fbbf24');
+    renderInputVerification('canvasInput', span, parsedLoads);
 }
 
-function updateRow(id, actual, allowable, mathText) {
-    const ratio = allowable > 0 ? (actual / allowable) : 0;
-    const ratioEl = document.getElementById(`ratio-${id}`);
+function updateReportPill(id, ratio, mathStr) {
+    const valEl = document.getElementById(`ratio-${id}`);
     const pillEl = document.getElementById(`pill-${id}`);
-    document.getElementById(`math-${id}`).innerText = mathText;
-    ratioEl.innerText = ratio.toFixed(3);
-    if (ratio <= 1.0005) {
-        pillEl.innerText = "Pass"; pillEl.className = "status-pill pass"; ratioEl.style.color = "var(--accent-green)";
+    const mathEl = document.getElementById(`math-${id}`);
+
+    valEl.innerText = ratio.toFixed(3);
+    mathEl.innerText = mathStr;
+
+    if (ratio <= 1.0) {
+        pillEl.innerText = "Pass"; pillEl.className = "status-pill pass";
     } else {
-        pillEl.innerText = "Fail"; pillEl.className = "status-pill fail"; ratioEl.style.color = "var(--accent-red)";
+        pillEl.innerText = "Fail"; pillEl.className = "status-pill fail";
     }
 }
 
-function updateDeflRow(id, actual, allowable, mathText, limitCode, actualRatio) {
-    const ratioEl = document.getElementById(`ratio-${id}`);
-    const pillEl = document.getElementById(`pill-${id}`);
-    document.getElementById(`math-${id}`).innerText = mathText;
-    const ucRatio = allowable > 0 ? (actual / allowable) : 0;
-    ratioEl.innerText = ucRatio.toFixed(3);
-    if ((actualRatio >= limitCode && actualRatio > 0) || actual < 0.002) {
-        pillEl.innerText = "Pass"; pillEl.className = "status-pill pass"; ratioEl.style.color = "var(--accent-green)";
-    } else {
-        pillEl.innerText = "Fail"; pillEl.className = "status-pill fail"; ratioEl.style.color = "var(--accent-red)";
-    }
-}
-
-function drawInputVerification(L_ft) {
-    const canvas = document.getElementById('canvasInput');
+function renderCanvas(canvasId, xArr, yArr, color) {
+    const canvas = document.getElementById(canvasId);
     const ctx = canvas.getContext('2d');
-    canvas.width = canvas.offsetWidth * 2; canvas.height = 300 * 2;
-    ctx.scale(2,2); ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const W = canvas.clientWidth, H = canvas.clientHeight;
+    canvas.width = W; canvas.height = H;
 
-    const baseW = canvas.offsetWidth; const pad = 40;
-    const gWidth = baseW - 80; const beamY = 180;
+    ctx.clearRect(0, 0, W, H);
+    const pad = 20;
+    const gW = W - (pad * 2), gH = H - (pad * 2);
+    let maxVal = Math.max(...yArr.map(Math.abs));
+    if (maxVal === 0) maxVal = 1;
 
-    // Draw Wide Flange member silhouette
-    ctx.fillStyle = "#475569"; ctx.fillRect(pad, beamY - 6, gWidth, 12);
+    const zeroY = pad + gH / 2;
 
-    // Support vectors
-    ctx.strokeStyle = "#94a3b8"; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(pad, beamY+6); ctx.lineTo(pad-8, beamY+20); ctx.lineTo(pad+8, beamY+20); ctx.closePath(); ctx.stroke();
-    ctx.beginPath(); ctx.arc(pad + gWidth, beamY + 12, 6, 0, Math.PI*2); ctx.stroke();
+    // Reference baseline
+    ctx.beginPath(); ctx.strokeStyle = '#334155'; ctx.moveTo(pad, zeroY); ctx.lineTo(W - pad, zeroY); ctx.stroke();
 
-    // Composite overlay iteration loop
-    loadsArray.forEach(load => {
-        let sX = pad + (Math.min(L_ft, Math.max(0, load.start)) / L_ft) * gWidth;
-        let eX = pad + (Math.min(L_ft, Math.max(load.start, load.end)) / L_ft) * gWidth;
+    ctx.beginPath(); ctx.lineWidth = 2; ctx.strokeStyle = color;
+    for (let i = 0; i < xArr.length; i++) {
+        const scrX = pad + (i / (xArr.length - 1)) * gW;
+        const scrY = zeroY - (yArr[i] / maxVal) * (gH / 2);
+        if (i === 0) ctx.moveTo(scrX, scrY); else ctx.lineTo(scrX, scrY);
+    }
+    ctx.stroke();
+}
 
-        ctx.strokeStyle = "var(--accent-steel)"; ctx.fillStyle = "rgba(56, 189, 248, 0.12)"; ctx.lineWidth = 1.5;
-        if(load.type === 'udl') {
-            ctx.fillRect(sX, beamY - 50, eX - sX, 44);
-            ctx.strokeRect(sX, beamY - 50, eX - sX, 44);
-        } else if(load.type === 'point') {
-            ctx.beginPath(); ctx.moveTo(sX, beamY - 60); ctx.lineTo(sX, beamY - 8); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(sX-4, beamY-15); ctx.lineTo(sX, beamY-8); ctx.lineTo(sX+4, beamY-15); ctx.stroke();
-        } else if(load.type === 'trap') {
-            ctx.beginPath(); ctx.moveTo(sX, beamY - 6);
-            ctx.lineTo(sX, beamY - 50); ctx.lineTo(eX, beamY - 30);
-            ctx.lineTo(eX, beamY - 6); ctx.closePath(); ctx.fill(); ctx.stroke();
+function renderInputVerification(canvasId, span, loads) {
+    const canvas = document.getElementById(canvasId);
+    const ctx = canvas.getContext('2d');
+    const W = canvas.clientWidth, H = canvas.clientHeight;
+    canvas.width = W; canvas.height = H;
+
+    ctx.clearRect(0, 0, W, H);
+    const pad = 40;
+    const gW = W - (pad * 2);
+    const beamY = H - 40;
+
+    // Steel profile beam representation
+    ctx.fillStyle = '#475569'; ctx.fillRect(pad, beamY, gW, 10);
+    ctx.fillStyle = '#94a3b8';
+    ctx.beginPath(); ctx.moveTo(pad, beamY + 10); ctx.lineTo(pad - 8, beamY + 22); ctx.lineTo(pad + 8, beamY + 22); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(pad + gW, beamY + 10); ctx.lineTo(pad + gW - 8, beamY + 22); ctx.lineTo(pad + gW + 8, beamY + 22); ctx.fill();
+
+    loads.forEach(load => {
+        ctx.strokeStyle = '#f87171'; ctx.fillStyle = 'rgba(248, 113, 113, 0.15)'; ctx.lineWidth = 1.5;
+        if (load.type === "Uniform" && (load.D + load.L + load.S + load.W + load.E) > 0) {
+            const sPct = Math.max(0, load.start / span);
+            const ePct = Math.min(1, load.end / span);
+            const xS = pad + sPct * gW;
+            const xE = pad + ePct * gW;
+            if ((xE - xS) <= 0) return;
+
+            ctx.fillRect(xS, beamY - 30, xE - xS, 30);
+            ctx.strokeRect(xS, beamY - 30, xE - xS, 30);
+            for (let p = xS; p <= xE; p += 25) {
+                ctx.beginPath(); ctx.moveTo(p, beamY - 30); ctx.lineTo(p, beamY); ctx.stroke();
+            }
+        } else if (load.type === "Point" && (load.D + load.L + load.S + load.W + load.E) > 0) {
+            const pPct = Math.max(0, Math.min(1, load.start / span));
+            const xPt = pad + pPct * gW;
+
+            ctx.beginPath(); ctx.moveTo(xPt, beamY - 45); ctx.lineTo(xPt, beamY); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(xPt - 5, beamY - 8); ctx.lineTo(xPt, beamY); ctx.lineTo(xPt + 5, beamY - 8);
+            ctx.fillStyle = '#f87171'; ctx.fill();
         }
     });
 }
-
-function drawDiagram(canvasId, points, color, labelText) {
-    const canvas = document.getElementById(canvasId);
-    const ctx = canvas.getContext('2d');
-    canvas.width = canvas.offsetWidth * 2; canvas.height = 300 * 2;
-    ctx.scale(2,2); ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    const baseW = canvas.offsetWidth; const baseH = 300;
-    const pad = 40; const graphW = baseW - 80; const centerY = baseH / 2;
-
-    ctx.strokeStyle = "#334155"; ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.moveTo(pad, centerY); ctx.lineTo(baseW - pad, centerY); ctx.stroke();
-
-    if(!points || points.length === 0) return;
-
-    let maxVal = Math.max(...points.map(Math.abs));
-    let scale = maxVal > 0 ? (centerY - 40) / maxVal : 1;
-
-    ctx.strokeStyle = color; ctx.lineWidth = 2.5;
-    ctx.fillStyle = color + "1a";
-
-    ctx.beginPath();
-    ctx.moveTo(pad, centerY);
-    for(let i=0; i<=100; i++) {
-        let x = pad + (i/100)*graphW;
-        let y = centerY - (points[i] * scale);
-        ctx.lineTo(x, y);
-    }
-    ctx.lineTo(baseW - pad, centerY);
-    ctx.closePath(); ctx.fill(); ctx.stroke();
-
-    ctx.fillStyle = "var(--text-main)"; ctx.font = "bold 11px monospace";
-    let extremeValue = points[0];
-    points.forEach(v => { if(Math.abs(v) > Math.abs(extremeValue)) extremeValue = v; });
-    ctx.fillText(`${labelText}max: ${extremeValue.toFixed(2)}`, pad, 25);
-}
-
-window.onload = () => { initSelector(); };
 </script>
 </body>
 </html>
