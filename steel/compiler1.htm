@@ -365,6 +365,17 @@
                 </div>
             </div>
 
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-top:0.25rem;">
+                <div style="background:#111827; padding:0.5rem; border-radius:8px; text-align:center;">
+                    <div style="font-size:0.7rem; color:var(--text-muted);">R_A (Left Max)</div>
+                    <div id="react-ra" style="font-size:1.2rem; font-weight:700; color:var(--accent-blue);">—</div>
+                </div>
+                <div style="background:#111827; padding:0.5rem; border-radius:8px; text-align:center;">
+                    <div style="font-size:0.7rem; color:var(--text-muted);">R_B (Right Max)</div>
+                    <div id="react-rb" style="font-size:1.2rem; font-weight:700; color:var(--accent-blue);">—</div>
+                </div>
+            </div>
+
             <div class="diagram-title">Input Verification Layout</div>
             <div class="canvas-container">
                 <canvas id="canvasInput"></canvas>
@@ -920,6 +931,10 @@ function runAnalysis() {
     updateDeflRow('ll-defl', maxLLDefl, L_in / ll_lim, `Δll = ${maxLLDefl.toFixed(3)} in (Ratio: L/${ratio_ll_act})`, ll_lim, ratio_ll_act);
     updateDeflRow('tl-defl', maxTLDefl, L_in / tl_lim, `Δtl = ${maxTLDefl.toFixed(3)} in (Ratio: L/${ratio_tl_act})`, tl_lim, ratio_tl_act);
 
+    // Paste this near the end of your run() function in s_compiler1.htm:
+document.getElementById('react-ra').innerText = `${(Math.abs(V_arr[0]) / 1000).toFixed(2)} k`;
+document.getElementById('react-rb').innerText = `${(Math.abs(V_arr[V_arr.length-1]) / 1000).toFixed(2)} k`;
+    
     // Redraw entire visual matrix output suite
     drawInputVerification(L_ft, sLoc, eLoc, pattern);
     drawDiagram('canvasShear', finalShearPoints, '#f87171', 'V');
