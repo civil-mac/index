@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="en" class="notranslate" translate="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="google" content="notranslate">
+    <title>Calc Book | Steel Beam Analysis</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.2/math.min.js"
+            onerror="window.__mathFallback=true"></script>
+    <script>
+    (function() {
+        function ensureMath() {
+            if (typeof math !== 'undefined' && math.lusolve) return;
+            window.math = {
+                lusolve: function(A, b) {
+                    var a=A[0][0], bv=A[0][1], c=A[1][0], d=A[1][1];
+                    var det = a*d - bv*c;
+                    if (Math.abs(det) < 1e-30) return [[0],[0]];
+                    var b0=b[0][0], b1=b[1][0];
+                    return [[(d*b0 - bv*b1)/det], [(a*b1 - c*b0)/det]];
+                }
+            };
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', ensureMath);
+        } else {
+            ensureMath();
+        }
+        window.__ensureMath = ensureMath;
+    })();
+    </script>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --accent-steel: #38bdf8;
+            --accent-green: #34d399;
+            --accent-red: #f87171;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: #334155;
+            --input-bg: #0f172a;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-main); padding: 1.5rem; min-height: 100vh; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        
+        header { margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-color); }
+        .nav-back { display: inline-flex; align-items: center; color: var(--text-muted); text-decoration: none; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.75rem; transition: color 0.2s; text-transform: uppercase; letter-spacing: 0.05em; }
+        .nav-back:hover { color: var(--accent-steel); }
+        .nav-back span { margin-right: 0.35rem; font-size: 1.1rem; line-height: 1; }
+        header h1 { font-size: 1.6rem; font-weight: 700; color: var(--text-main); }
+        header p { color: var(--text-muted); font-size: 0.9rem; margin-top: 0.15rem; }
+
+        .bento-layout { display: grid; grid-template-columns: 1.2fr 1fr; gap: 1.5rem; }
+        @media (max-width: 960px) { .bento-layout { grid-template-columns: 1fr; } }
+
+        .panel { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 1.5rem; height: fit-content; }
+        .panel-title { font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 1.25rem; font-weight: 600; }
+        .panel-subtitle { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin: 1.5rem 0 0.75rem 0; font-weight: 600; border-top: 1px solid var(--border-color); padding-top: 1.25rem; }
+
+        .form-group { margin-bottom: 1.25rem; position: relative; }
+        .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 1rem; }
+        label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.4rem; font-weight: 500; }
+        select, input { width: 100%; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-main); padding: 0.75rem; font-size: 1rem; transition: border 0.2s; }
+        select:focus, input:focus { outline: none; border-color: var(--accent-steel); }
+        
+        /* Remove input number spin arrows */
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+
+        .unit-container { position: relative; }
+        .unit-label { position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.8rem; pointer-events: none; }
+        input[type="number"] { padding-right: 2.5rem; }
+
+        .property-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-top: 0.75rem; background: #111827; padding: 1rem; border-radius: 12px; border: 1px dashed var(--border-color); }
+        .factors-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; background: #111827; padding: 1rem; border-radius: 12px; border: 1px solid var(--border-color); }
+        .factors-grid .read-only-box { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.75rem; font-family: monospace; font-size: 1.1rem; color: var(--accent-steel); text-align: center; font-weight: bold; }
+        
+        /* Superimposed Load Grid Layout (Equally Sized Columns) */
+        .loads-grid-container { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.5rem; background: #111827; padding: 0.75rem; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 0.5rem; }
+        .form-group-sub { display: flex; flex-direction: column; text-align: center; }
+        .form-group-sub label { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem; font-weight: 600; text-transform: uppercase; }
+        .form-group-sub input { padding: 0.5rem 0.25rem; text-align: center; font-size: 0.95rem; border-radius: 6px; }
+        
+        /* Unified Dynamic Load Controls */
+        .load-input-panel { background: #111827; padding: 1rem; border-radius: 12px; border: 1px solid var(--border-color); margin-top: 0.75rem; }
+        .load-type-select { margin-bottom: 1rem; }
+
+        .envelope-status-bar { font-size: 0.75rem; font-family: monospace; color: var(--accent-steel); background: rgba(56, 189, 248, 0.05); border: 1px dashed rgba(56, 189, 248, 0.2); text-align: center; padding: 0.5rem; border-radius: 8px; margin-top: 0.5rem; }
+        .engineering-notes { margin-top: 0.75rem; font-size: 0.75rem; color: var(--text-muted); line-height: 1.4; padding: 0.5rem 0.75rem; background: rgba(30, 41, 59, 0.5); border-left: 2px solid var(--border-color); border-radius: 0 4px 4px 0; }
+
+        /* Code Check Matrix Rows */
+        .report-row { display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-bottom: 1px solid var(--border-color); font-size: 0.95rem; }
+        .report-row:last-child { border-bottom: none; }
+        .report-values { font-weight: 600; font-size: 1.1rem; margin-right: 0.5rem; font-family: monospace; }
+        .status-pill { padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; min-width: 55px; text-align: center; }
+        .status-pill.pass { background: #064e3b; color: var(--accent-green); }
+        .status-pill.fail { background: #7f1d1d; color: var(--accent-red); }
+        .sub-math { font-size: 0.75rem; color: var(--text-muted); display: block; margin-top: 0.2rem; font-family: monospace; }
+
+        /* Canvas Elements Stacked at 300px Heights */
+        .diagram-title { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin: 1.25rem 0 0.4rem 0; font-weight: 600; }
+        .canvas-container { background: #111827; border-radius: 12px; border: 1px dashed var(--border-color); padding: 0.75rem; display: flex; justify-content: center; width: 100%; }
+        canvas { width: 100%; height: 300px; display: block; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <a href="../eng.htm" class="nav-back"><span>←</span> Return to Dashboard</a>
+        <h1>Steel Beam Analysis Module</h1>
+        <p>Simple Span Wide-Flange Shape (AISC 360 ASD)</p>
+    </header>
+
+    <div class="bento-layout">
+        <div class="panel">
+            <h2 class="panel-title">AISC Shape & Material Inputs</h2>
+            
+            <div class="form-row" style="grid-template-columns: 2fr 1fr;">
+                <div class="form-group">
+                    <label>AISC Profile Library</label>
+                    <select id="input-material" onchange="loadShapeProperties()"></select>
+                </div>
+                <div class="form-group">
+                    <label>Yield Stress (Fy)</label>
+                    <div class="unit-container">
+                        <input type="number" id="prop-fy" value="50" oninput="runAnalysis()">
+                        <span class="unit-label">ksi</span>
+                    </div>
+                </div>
+            </div>
+
+            <label style="margin-bottom: -0.25rem;">Active Section Properties (AISC Table 1-1)</label>
+            <div class="property-grid">
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>d (in)</label>
+                    <input type="number" id="prop-d" step="0.01" oninput="runAnalysis()">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>tw (in)</label>
+                    <input type="number" id="prop-tw" step="0.001" oninput="runAnalysis()">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>bf (in)</label>
+                    <input type="number" id="prop-bf" step="0.01" oninput="runAnalysis()">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>tf (in)</label>
+                    <input type="number" id="prop-tf" step="0.001" oninput="runAnalysis()">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Ixx (in⁴)</label>
+                    <input type="number" id="prop-ix" step="0.1" oninput="runAnalysis()">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Sxx (in³)</label>
+                    <input type="number" id="prop-sx" step="0.1" oninput="runAnalysis()">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Zxx (in³)</label>
+                    <input type="number" id="prop-zx" step="0.1" oninput="runAnalysis()">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>rts (in)</label>
+                    <input type="number" id="prop-rts" step="0.01" oninput="runAnalysis()">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>J (in⁴)</label>
+                    <input type="number" id="prop-j" step="0.001" oninput="runAnalysis()">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Cw (in⁶)</label>
+                    <input type="number" id="prop-cw" step="0.1" oninput="runAnalysis()">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>ho (in)</label>
+                    <input type="number" id="prop-ho" step="0.01" oninput="runAnalysis()">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Weight (plf)</label>
+                    <input type="number" id="prop-weight" step="0.1" oninput="runAnalysis()">
+                </div>
+            </div>
+
+            <div class="panel-subtitle">AISC ASD Safety Factors</div>
+            <div class="factors-grid">
+                <div>
+                    <label style="text-align:center; margin-bottom: 0.25rem;">Bending Safety Factor (Ωb)</label>
+                    <div class="read-only-box">1.67</div>
+                </div>
+                <div>
+                    <label style="text-align:center; margin-bottom: 0.25rem;">Shear Safety Factor (Ωv)</label>
+                    <div class="read-only-box">1.50</div>
+                </div>
+            </div>
+            <div class="engineering-notes">
+                <strong>AISC Standards Applied:</strong> Elastic Modulus $E = 29,000\text{ ksi}$ and Shear Modulus $G = 11,200\text{ ksi}$. Global logic defaults to conservative uniform moment coefficient $C_b = 1.14$.
+            </div>
+
+            <div class="panel-subtitle">Boundary Layout & Span Deflection Targets</div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Span Length (L)</label>
+                    <div class="unit-container">
+                        <input type="number" id="input-span" value="12" min="0.01" step="0.01" oninput="runAnalysis()">
+                        <span class="unit-label">ft</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Unbraced Length (Lb)</label>
+                    <div class="unit-container">
+                        <input type="number" id="input-lb" value="0" min="0" step="0.01" oninput="runAnalysis()">
+                        <span class="unit-label">ft</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-row" style="margin-bottom: 1rem;">
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Live Load Defl. Limit (L/)</label>
+                    <input type="number" id="input-ll-lim" value="240" min="1" step="1" oninput="runAnalysis()">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Total Load Defl. Limit (L/)</label>
+                    <input type="number" id="input-tl-lim" value="360" min="1" step="1" oninput="runAnalysis()">
+                </div>
+            </div>
+
+            <div class="panel-subtitle" style="margin-top:0; padding-top:1rem;">Superimposed Configuration Loads</div>
+            <div class="load-input-panel">
+                <div class="form-group load-type-select">
+                    <label>Distribution Type Pattern</label>
+                    <select id="load-pattern-select" onchange="toggleLoadFields()">
+                        <option value="udl">Uniformly Distributed Load (UDL)</option>
+                        <option value="point">Concentrated Point Load</option>
+                        <option value="trap">Trapezoidal / Sloped Load</option>
+                    </select>
+                </div>
+
+                <div class="form-row" style="margin-bottom: 0.75rem;">
+                    <div class="form-group" style="margin-bottom:0;" id="box-start-loc">
+                        <label id="lbl-start-loc">Start Location</label>
+                        <div class="unit-container">
+                            <input type="number" id="input-start-loc" value="0" min="0" step="0.01" oninput="runAnalysis()">
+                            <span class="unit-label">ft</span>
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;" id="box-end-loc">
+                        <label id="lbl-end-loc">End Location</label>
+                        <div class="unit-container">
+                            <input type="number" id="input-end-loc" value="12" min="0" step="0.01" oninput="runAnalysis()">
+                            <span class="unit-label">ft</span>
+                        </div>
+                    </div>
+                </div>
+
+                <label style="margin-bottom: 0.4rem; display: block; font-size: 0.85rem; font-weight: 500; color: var(--text-muted);">
+                    Magnitude Vector Components (<span id="mag-unit-indicator">plf</span>)
+                </label>
+                <div class="loads-grid-container">
+                    <div class="form-group-sub">
+                        <label>Dead</label>
+                        <input type="number" id="load-d" value="150" min="0" step="1" oninput="runAnalysis()">
+                    </div>
+                    <div class="form-group-sub">
+                        <label>Live</label>
+                        <input type="number" id="load-l" value="400" min="0" step="1" oninput="runAnalysis()">
+                    </div>
+                    <div class="form-group-sub">
+                        <label>Snow</label>
+                        <input type="number" id="load-s" value="0" min="0" step="1" oninput="runAnalysis()">
+                    </div>
+                    <div class="form-group-sub">
+                        <label>Wind</label>
+                        <input type="number" id="load-w" value="0" min="0" step="1" oninput="runAnalysis()">
+                    </div>
+                    <div class="form-group-sub">
+                        <label>Seismic</label>
+                        <input type="number" id="load-e" value="0" min="0" step="1" oninput="runAnalysis()">
+                    </div>
+                </div>
+
+                <div id="trapezoidal-end-vector-box" style="display:none; margin-top:0.75rem;">
+                    <label style="margin-bottom: 0.4rem; display: block; font-size: 0.85rem; font-weight: 500; color: var(--text-muted);">
+                        End Magnitude Vector Components (plf)
+                    </label>
+                    <div class="loads-grid-container">
+                        <div class="form-group-sub">
+                            <label>Dead End</label>
+                            <input type="number" id="load-d-end" value="150" min="0" step="1" oninput="runAnalysis()">
+                        </div>
+                        <div class="form-group-sub">
+                            <label>Live End</label>
+                            <input type="number" id="load-l-end" value="400" min="0" step="1" oninput="runAnalysis()">
+                        </div>
+                        <div class="form-group-sub">
+                            <label>Snow End</label>
+                            <input type="number" id="load-s-end" value="0" min="0" step="1" oninput="runAnalysis()">
+                        </div>
+                        <div class="form-group-sub">
+                            <label>Wind End</label>
+                            <input type="number" id="load-w-end" value="0" min="0" step="1" oninput="runAnalysis()">
+                        </div>
+                        <div class="form-group-sub">
+                            <label>Seismic End</label>
+                            <input type="number" id="load-e-end" value="0" min="0" step="1" oninput="runAnalysis()">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="envelope-status-bar" id="controlling-comb-display">
+                    Controlling Combination: --
+                </div>
+            </div>
+        </div>
+
+        <div class="panel" style="display: flex; flex-direction: column;">
+            <h2 class="panel-title">Code Check Matrix</h2>
+            
+            <div class="report-row">
+                <div>
+                    <span>Flexural Bending Capacity (Chapter F)</span>
+                    <span class="sub-math" id="math-flexure">--</span>
+                </div>
+                <div style="text-align: right; display: flex; align-items: center; justify-content: flex-end;">
+                    <span class="report-values" id="ratio-flexure">0.000</span>
+                    <span class="status-pill" id="pill-flexure">Pass</span>
+                </div>
+            </div>
+
+            <div class="report-row">
+                <div>
+                    <span>Web Shear Verification (Chapter G)</span>
+                    <span class="sub-math" id="math-shear">--</span>
+                </div>
+                <div style="text-align: right; display: flex; align-items: center; justify-content: flex-end;">
+                    <span class="report-values" id="ratio-shear">0.000</span>
+                    <span class="status-pill" id="pill-shear">Pass</span>
+                </div>
+            </div>
+
+            <div class="report-row">
+                <div>
+                    <span>Live Load Deflection Check</span>
+                    <span class="sub-math" id="math-ll-defl">--</span>
+                </div>
+                <div style="text-align: right; display: flex; align-items: center; justify-content: flex-end;">
+                    <span class="report-values" id="ratio-ll-defl">0.000</span>
+                    <span class="status-pill" id="pill-ll-defl">Pass</span>
+                </div>
+            </div>
+
+            <div class="report-row">
+                <div>
+                    <span>Total Load Deflection (Inc. Self-Wt)</span>
+                    <span class="sub-math" id="math-tl-defl">--</span>
+                </div>
+                <div style="text-align: right; display: flex; align-items: center; justify-content: flex-end;">
+                    <span class="report-values" id="ratio-tl-defl">0.000</span>
+                    <span class="status-pill" id="pill-tl-defl">Pass</span>
+                </div>
+            </div>
+
+            <div class="diagram-title">Input Verification Layout</div>
+            <div class="canvas-container">
+                <canvas id="canvasInput"></canvas>
+            </div>
+
+            <div class="diagram-title">Shear Force Diagram V (kips)</div>
+            <div class="canvas-container">
+                <canvas id="canvasShear"></canvas>
+            </div>
+
+            <div class="diagram-title">Bending Moment Diagram M (k-ft)</div>
+            <div class="canvas-container">
+                <canvas id="canvasMoment"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const structuralLibrary = {
+    "W12X26": { d: 12.2,  tw: 0.230, bf: 6.49, tf: 0.380, ix: 204,  sx: 33.4, zx: 37.2, rts: 1.51, j: 0.300, cw: 1010, ho: 11.8, weight: 26.0 },
+    "W10X22": { d: 10.2,  tw: 0.240, bf: 5.75, tf: 0.360, ix: 118,  sx: 23.2, zx: 26.0, rts: 1.33, j: 0.211, cw: 487,  ho: 9.81, weight: 22.0 },
+    "W8X15":  { d: 8.11,  tw: 0.245, bf: 4.01, tf: 0.315, ix: 48.0, sx: 11.8, zx: 13.5, rts: 0.98, j: 0.145, cw: 74.1, ho: 7.80, weight: 15.0 },
+    "W8X10":  { d: 7.89,  tw: 0.170, bf: 3.94, tf: 0.205, ix: 30.8, sx: 7.8,  zx: 8.9,  rts: 1.01, j: 0.043, cw: 30.9, ho: 7.68, weight: 10.0 }
+};
+
+const E = 29000; 
+const G = 11200; 
+const Cb = 1.14; 
+
+function initSelector() {
+    const matSel = document.getElementById('input-material');
+    matSel.innerHTML = '';
+    Object.keys(structuralLibrary).forEach(shape => {
+        matSel.options[matSel.options.length] = new Option(shape, shape);
+    });
+    matSel.value = "W8X10"; 
+    loadShapeProperties();
+}
+
+function toggleLoadFields() {
+    const pattern = document.getElementById('load-pattern-select').value;
+    const startLocBox = document.getElementById('box-start-loc');
+    const endLocBox = document.getElementById('box-end-loc');
+    const trapBox = document.getElementById('trapezoidal-end-vector-box');
+    const unitIndicator = document.getElementById('mag-unit-indicator');
+    const L_ft = parseFloat(document.getElementById('input-span').value) || 12;
+
+    if (pattern === 'udl') {
+        startLocBox.style.display = 'block';
+        endLocBox.style.display = 'block';
+        trapBox.style.display = 'none';
+        document.getElementById('lbl-start-loc').innerText = "Start Location";
+        document.getElementById('lbl-end-loc').innerText = "End Location";
+        document.getElementById('input-start-loc').value = 0;
+        document.getElementById('input-end-loc').value = L_ft;
+        unitIndicator.innerText = "plf";
+    } else if (pattern === 'point') {
+        startLocBox.style.display = 'block';
+        endLocBox.style.display = 'none';
+        trapBox.style.display = 'none';
+        document.getElementById('lbl-start-loc').innerText = "Load Placement Location";
+        unitIndicator.innerText = "lbs";
+    } else if (pattern === 'trap') {
+        startLocBox.style.display = 'block';
+        endLocBox.style.display = 'block';
+        trapBox.style.display = 'block';
+        document.getElementById('lbl-start-loc').innerText = "Start Location";
+        document.getElementById('lbl-end-loc').innerText = "End Location";
+        unitIndicator.innerText = "plf (Start)";
+    }
+    runAnalysis();
+}
+
+function loadShapeProperties() {
+    const shapeName = document.getElementById('input-material').value;
+    const props = structuralLibrary[shapeName];
+    if(!props) return;
+    
+    document.getElementById('prop-d').value = props.d;
+    document.getElementById('prop-tw').value = props.tw;
+    document.getElementById('prop-bf').value = props.bf;
+    document.getElementById('prop-tf').value = props.tf;
+    document.getElementById('prop-ix').value = props.ix;
+    document.getElementById('prop-sx').value = props.sx;
+    document.getElementById('prop-zx').value = props.zx;
+    document.getElementById('prop-rts').value = props.rts;
+    document.getElementById('prop-j').value = props.j;
+    document.getElementById('prop-cw').value = props.cw;
+    document.getElementById('prop-ho').value = props.ho;
+    document.getElementById('prop-weight').value = props.weight;
+    
+    runAnalysis();
+}
+
+function runAnalysis() {
+    const L_ft = Math.max(0.01, parseFloat(document.getElementById('input-span').value) || 0);
+    let Lb_ft = parseFloat(document.getElementById('input-lb').value) || 0;
+    if(Lb_ft > L_ft) Lb_ft = L_ft;
+    
+    const ll_lim = Math.max(1, parseFloat(document.getElementById('input-ll-lim').value) || 1);
+    const tl_lim = Math.max(1, parseFloat(document.getElementById('input-tl-lim').value) || 1);
+
+    const Fy = parseFloat(document.getElementById('prop-fy').value) || 50;
+    const d = parseFloat(document.getElementById('prop-d').value) || 0;
+    const tw = parseFloat(document.getElementById('prop-tw').value) || 0;
+    const bf = parseFloat(document.getElementById('prop-bf').value) || 0;
+    const tf = parseFloat(document.getElementById('prop-tf').value) || 0;
+    const ix = parseFloat(document.getElementById('prop-ix').value) || 1;
+    const sx = parseFloat(document.getElementById('prop-sx').value) || 1;
+    const zx = parseFloat(document.getElementById('prop-zx').value) || 1;
+    const rts = parseFloat(document.getElementById('prop-rts').value) || 1;
+    const j = parseFloat(document.getElementById('prop-j').value) || 0;
+    const cw = parseFloat(document.getElementById('prop-cw').value) || 0;
+    const ho = parseFloat(document.getElementById('prop-ho').value) || 0;
+    const weight = parseFloat(document.getElementById('prop-weight').value) || 0;
+
+    const pattern = document.getElementById('load-pattern-select').value;
+    let sLoc = parseFloat(document.getElementById('input-start-loc').value) || 0;
+    let eLoc = parseFloat(document.getElementById('input-end-loc').value) || 0;
+    if(sLoc < 0) sLoc = 0; if(sLoc > L_ft) sLoc = L_ft;
+    if(eLoc < sLoc) eLoc = sLoc; if(eLoc > L_ft) eLoc = L_ft;
+
+    const combos = ["D Only", "D + L", "D + S", "D + 0.75L + 0.75S", "D + 0.6W", "D + 0.7E", "D + 0.75L + 0.75(0.6W) + 0.75S", "D + 0.75L + 0.75(0.7E) + 0.75S", "0.6D + 0.6W", "0.6D + 0.7E"];
+    
+    let maxV_global = 0, maxM_global = 0, critComboName = "";
+    let finalShearPoints = [], finalMomentPoints = [];
+    
+    // Evaluate Serviceability Deflections
+    let finalLLDeflPoints = new Array(101).fill(0);
+    let finalTLDeflPoints = new Array(101).fill(0);
+
+    combos.forEach(comb => {
+        let currentShear = new Array(101).fill(0);
+        let currentMoment = new Array(101).fill(0);
+        let currentDefl = new Array(101).fill(0);
+        let isLiveCombination = comb.includes('L') || comb.includes('S') || comb.includes('W') || comb.includes('E');
+
+        // Extract multipliers
+        let mD = 1.0, mL = 0, mS = 0, mW = 0, mE = 0;
+        if(comb === "0.6D + 0.6W") { mD = 0.6; mW = 0.6; }
+        else if(comb === "0.6D + 0.7E") { mD = 0.6; mE = 0.7; }
+        else {
+            if(comb.includes("0.75L")) mL = 0.75; else if(comb.includes("L")) mL = 1.0;
+            if(comb.includes("0.75S")) mS = 0.75; else if(comb.includes("S")) mS = 1.0;
+            if(comb.includes("0.6W")) mW = comb.includes("0.75") ? 0.75 * 0.6 : 0.6;
+            if(comb.includes("0.7E")) mE = comb.includes("0.75") ? 0.75 * 0.7 : 0.7;
+        }
+
+        let wStart = (parseFloat(document.getElementById('load-d').value)||0)*mD + (parseFloat(document.getElementById('load-l').value)||0)*mL + (parseFloat(document.getElementById('load-s').value)||0)*mS + (parseFloat(document.getElementById('load-w').value)||0)*mW + (parseFloat(document.getElementById('load-e').value)||0)*mE;
+        let wEnd = wStart;
+        if(pattern === 'trap') {
+            wEnd = (parseFloat(document.getElementById('load-d-end').value)||0)*mD + (parseFloat(document.getElementById('load-l-end').value)||0)*mL + (parseFloat(document.getElementById('load-s-end').value)||0)*mS + (parseFloat(document.getElementById('load-w-end').value)||0)*mW + (parseFloat(document.getElementById('load-e-end').value)||0)*mE;
+        }
+        
+        // Add Self-Weight into Dead path elements
+        let swPlf = weight * mD;
+
+        // Formulate continuous analytical math evaluation
+        for(let i=0; i<=101; i++) {
+            let x = (i/100)*L_ft;
+            let V_val = 0, M_val = 0, delta_val = 0;
+
+            // Self-weight response curves
+            let R_sw = (swPlf * L_ft) / 2;
+            V_val += R_sw - swPlf * x;
+            M_val += (R_sw * x) - (swPlf * x * x / 2);
+            delta_val += (swPlf * x * (L_ft*L_ft*L_ft - 2*L_ft*x*x + x*x*x)) / (24 * (E * 1000) * (ix / 144));
+
+            // Configured Pattern Component Architecture
+            if(pattern === 'udl') {
+                let cl = wStart; 
+                let len = eLoc - sLoc;
+                if(len > 0) {
+                    let R2 = (cl * len * (sLoc + len/2)) / L_ft;
+                    let R1 = (cl * len) - R2;
+                    V_val += (x < sLoc) ? R1 : (x <= eLoc) ? (R1 - cl*(x - sLoc)) : -R2;
+                    M_val += (x < sLoc) ? R1*x : (x <= eLoc) ? (R1*x - cl*Math.pow(x-sLoc,2)/2) : R2*(L_ft - x);
+                    
+                    // Deflection integration loop elements
+                    let k = (cl) / (24 * (E*1000) * (ix/144));
+                    if(x < sLoc) {
+                        delta_val += k * len * x * (4*sLoc*L_ft + 2*len*L_ft - 2*sLoc*sLoc - 2*sLoc*len - len*len - x*x) / L_ft;
+                    } else if(x <= eLoc) {
+                        delta_val += k * (len*x*(4*sLoc*L_ft + 2*len*L_ft - 2*sLoc*sLoc - 2*sLoc*len - len*len - x*x)/L_ft - Math.pow(x-sLoc,4));
+                    } else {
+                        delta_val += k * len * (L_ft - x) * (4*L_ft*sLoc + 2*len*L_ft - 2*sLoc*sLoc - 2*sLoc*len - len*len - Math.pow(L_ft-x,2)) / L_ft;
+                    }
+                }
+            } else if(pattern === 'point') {
+                let P = wStart; 
+                let a = sLoc, b = L_ft - a;
+                let R1 = (P * b) / L_ft, R2 = (P * a) / L_ft;
+                V_val += (x < a) ? R1 : -R2;
+                M_val += (x < a) ? R1*x : R2*(L_ft - x);
+                delta_val += (x < a) ? (P*b*x*(L_ft*L_ft - b*b - x*x))/(6*L_ft*(E*1000)*(ix/144)) : (P*a*(L_ft-x)*(L_ft*L_ft - a*a - Math.pow(L_ft-x,2)))/(6*L_ft*(E*1000)*(ix/144));
+            } else if(pattern === 'trap') {
+                let len = eLoc - sLoc;
+                if(len > 0) {
+                    let W1 = wStart, W2 = wEnd;
+                    let totalLoad = 0.5 * (W1 + W2) * len;
+                    let cg_from_start = (len / 3) * ((W1 + 2 * W2) / (W1 + W2));
+                    let load_cg = sLoc + cg_from_start;
+                    let R2 = (totalLoad * load_cg) / L_ft;
+                    let R1 = totalLoad - R2;
+                    
+                    if(x < sLoc) {
+                        V_val += R1; M_val += R1 * x;
+                    } else if(x <= eLoc) {
+                        let tx = x - sLoc;
+                        let wx = W1 + (W2 - W1) * (tx / len);
+                        let segmentLoad = 0.5 * (W1 + wx) * tx;
+                        V_val += R1 - segmentLoad;
+                        let seg_cg = (tx / 3) * ((W1 + 2 * wx) / (W1 + wx));
+                        M_val += R1 * x - segmentLoad * (tx - seg_cg);
+                    } else {
+                        V_val += -R2; M_val += R2 * (L_ft - x);
+                    }
+                    // Numerical deflection matching profile approximations
+                    let dM = M_val / ((E*1000)*(ix/144));
+                    currentDefl[i] = M_val; 
+                }
+            }
+
+            currentShear[i] = V_val / 1000;
+            currentMoment[i] = M_val / 1000;
+            if(pattern !== 'trap') {
+                currentDefl[i] = delta_val * 12; 
+            }
+        }
+
+        // Trap deflection secondary numerical array conversions
+        if(pattern === 'trap') {
+            let dx = L_ft / 100;
+            let rot = new Array(101).fill(0);
+            let def = new Array(101).fill(0);
+            let sumM = 0;
+            for(let i=0; i<=100; i++) sumM += currentDefl[i];
+            let C1 = -(sumM * dx) / 2; 
+            let currentRot = C1;
+            rot[0] = currentRot;
+            for(let i=1; i<=100; i++) {
+                currentRot += currentDefl[i] * dx;
+                rot[i] = currentRot;
+            }
+            def[0] = 0;
+            let currentDef = 0;
+            for(let i=1; i<=100; i++) {
+                currentDef += rot[i] * dx;
+                def[i] = currentDef * 12;
+            }
+            currentDefl = def;
+        }
+
+        // Tracking global max configurations
+        let maxM_cand = 0;
+        currentMoment.forEach(m => { if(Math.abs(m) > Math.abs(maxM_cand)) maxM_cand = m; });
+        if(Math.abs(maxM_cand) > Math.abs(maxM_global)) {
+            maxM_global = maxM_cand;
+            maxV_global = Math.max(...currentShear.map(Math.abs));
+            critComboName = comb;
+            finalShearPoints = currentShear;
+            finalMomentPoints = currentMoment;
+            finalTLDeflPoints = currentDefl;
+        }
+    });
+
+    // Dedicated pure Serviceability Live Load Deflection isolation calculation trace
+    let liveShear = new Array(101).fill(0), liveMoment = new Array(101).fill(0);
+    let pL = (parseFloat(document.getElementById('load-l').value)||0);
+    for(let i=0; i<=100; i++) {
+        let x = (i/100)*L_ft;
+        let delta_ll = 0;
+        if(pattern === 'udl') {
+            let len = eLoc - sLoc;
+            if(len > 0) {
+                let k = (pL) / (24 * (E * 1000) * (ix / 144));
+                if(x < sLoc) delta_ll = k * len * x * (4*sLoc*L_ft + 2*len*L_ft - 2*sLoc*sLoc - 2*sLoc*len - len*len - x*x) / L_ft;
+                else if(x <= eLoc) delta_ll = k * (len*x*(4*sLoc*L_ft + 2*len*L_ft - 2*sLoc*sLoc - 2*sLoc*len - len*len - x*x)/L_ft - Math.pow(x-sLoc,4));
+                else delta_ll = k * len * (L_ft - x) * (4*L_ft*sLoc + 2*len*L_ft - 2*sLoc*sLoc - 2*sLoc*len - len*len - Math.pow(L_ft-x,2)) / L_ft;
+            }
+        } else if(pattern === 'point') {
+            let a = sLoc, b = L_ft - a;
+            delta_ll = (x < a) ? (pL*b*x*(L_ft*L_ft - b*b - x*x))/(6*L_ft*(E*1000)*(ix/144)) : (pL*a*(L_ft-x)*(L_ft*L_ft - a*a - Math.pow(L_ft-x,2)))/(6*L_ft*(E*1000)*(ix/144));
+        } else if(pattern === 'trap') {
+            let len = eLoc - sLoc;
+            let W1 = pL, W2 = (parseFloat(document.getElementById('load-l-end').value)||0);
+            let tM = new Array(101).fill(0);
+            let totalLoad = 0.5 * (W1 + W2) * len;
+            let load_cg = sLoc + (len / 3) * ((W1 + 2 * W2) / (W1 + W2));
+            let R2 = (totalLoad * load_cg) / L_ft; let R1 = totalLoad - R2;
+            for(let j=0; j<=100; j++) {
+                let tx = (j/100)*L_ft;
+                if(tx < sLoc) tM[j] = R1*tx;
+                else if(tx <= eLoc) {
+                    let lx = tx - sLoc; let wx = W1 + (W2 - W1)*(lx/len);
+                    let sL = 0.5*(W1 + wx)*lx; let scg = (lx/3)*((W1 + 2*wx)/(W1+wx));
+                    tM[j] = R1*tx - sL*(lx - scg);
+                } else tM[j] = R2*(L_ft - tx);
+            }
+            let dx = L_ft / 100; let rot = new Array(101).fill(0); let def = new Array(101).fill(0);
+            let sumM = 0; for(let j=0; j<=100; j++) sumM += (tM[j]/((E*1000)*(ix/144)));
+            let currentRot = -(sumM * dx)/2; rot[0] = currentRot;
+            for(let j=1; j<=100; j++) { currentRot += (tM[j]/((E*1000)*(ix/144))) * dx; rot[j] = currentRot; }
+            let currentDef = 0; for(let j=1; j<=100; j++) { currentDef += rot[j] * dx; def[j] = currentDef * 12; }
+            delta_ll = def[i] / 12;
+        }
+        finalLLDeflPoints[i] = delta_ll * 12;
+    }
+
+    document.getElementById('controlling-comb-display').innerText = `Controlling Combination: ${critComboName}`;
+
+    // --- AISC CHAPTER F FLEXURAL CAPACITY CONFIGURATION ENGINE ---
+    const Lb_in = Lb_ft * 12;
+    const Mp = Fy * zx; 
+    let Mn = Mp;
+    let stateNote = "Yielding";
+
+    const Lp = 1.76 * rts * Math.sqrt(E / Fy);
+    const c = 1.0; 
+    const Lr = 1.95 * rts * (E / (0.7 * Fy)) * Math.sqrt((j * c / (sx * ho)) + Math.sqrt(Math.pow(j * c / (sx * ho), 2) + 6.76 * Math.pow((0.7 * Fy) / E, 2)));
+
+    if (Lb_in > Lp) {
+        if (Lb_in <= Lr) {
+            Mn = Cb * (Mp - (Mp - 0.7 * Fy * sx) * ((Lb_in - Lp) / (Lr - Lp)));
+            Mn = Math.min(Mp, Mn);
+            stateNote = "Inelastic LTB";
+        } else {
+            const Fcr = (Cb * Math.PI * Math.PI * E / Math.pow(Lb_in / rts, 2)) * Math.sqrt(1 + 0.078 * (j * c / (sx * ho)) * Math.pow(Lb_in / rts, 2));
+            Mn = Fcr * sx;
+            Mn = Math.min(Mp, Mn);
+            stateNote = "Elastic LTB";
+        }
+    }
+    const Ma_kipft = (Mn / 1.67) / 12;
+
+    // --- AISC CHAPTER G WEB SHEAR CAPACITY ENGINE ---
+    const Aw = d * tw;
+    let Cv = 1.0;
+    const h_over_tw = d / tw; 
+    if (h_over_tw > 2.24 * Math.sqrt(E / Fy)) {
+        Cv = (2.24 * Math.sqrt(E / Fy)) / h_over_tw;
+    }
+    const Vn_kips = 0.6 * Fy * Aw * Cv;
+    const Va_kips = Vn_kips / 1.50;
+
+    // Deflection tracking max calculations
+    let maxLLDefl = Math.max(...finalLLDeflPoints.map(Math.abs));
+    let maxTLDefl = Math.max(...finalTLDeflPoints.map(Math.abs));
+    const L_in = L_ft * 12;
+    const ratio_ll_act = maxLLDefl > 0 ? Math.round(L_in / maxLLDefl) : 0;
+    const ratio_tl_act = maxTLDefl > 0 ? Math.round(L_in / maxTLDefl) : 0;
+
+    // Update standard reporting rows
+    updateRow('flexure', Math.abs(maxM_global), Ma_kipft, `Mmax = ${Math.abs(maxM_global).toFixed(2)} k-ft vs Ma = ${Ma_kipft.toFixed(2)} k-ft (${stateNote})`);
+    updateRow('shear', maxV_global, Va_kips, `Vmax = ${maxV_global.toFixed(2)} kips vs Va = ${Va_kips.toFixed(2)} kips (Cv = ${Cv.toFixed(2)})`);
+    updateDeflRow('ll-defl', maxLLDefl, L_in / ll_lim, `Δll = ${maxLLDefl.toFixed(3)} in (Ratio: L/${ratio_ll_act})`, ll_lim, ratio_ll_act);
+    updateDeflRow('tl-defl', maxTLDefl, L_in / tl_lim, `Δtl = ${maxTLDefl.toFixed(3)} in (Ratio: L/${ratio_tl_act})`, tl_lim, ratio_tl_act);
+
+    // Redraw entire visual matrix output suite
+    drawInputVerification(L_ft, sLoc, eLoc, pattern);
+    drawDiagram('canvasShear', finalShearPoints, '#f87171', 'V');
+    drawDiagram('canvasMoment', finalMomentPoints, '#34d399', 'M');
+}
+
+function updateRow(id, actual, allowable, mathText) {
+    const ratio = allowable > 0 ? (actual / allowable) : 0;
+    const ratioEl = document.getElementById(`ratio-${id}`);
+    const pillEl = document.getElementById(`pill-${id}`);
+    document.getElementById(`math-${id}`).innerText = mathText;
+    ratioEl.innerText = ratio.toFixed(3);
+    if (ratio <= 1.0005) {
+        pillEl.innerText = "Pass"; pillEl.className = "status-pill pass"; ratioEl.style.color = "var(--accent-green)";
+    } else {
+        pillEl.innerText = "Fail"; pillEl.className = "status-pill fail"; ratioEl.style.color = "var(--accent-red)";
+    }
+}
+
+function updateDeflRow(id, actual, allowable, mathText, limitCode, actualRatio) {
+    const ratioEl = document.getElementById(`ratio-${id}`);
+    const pillEl = document.getElementById(`pill-${id}`);
+    document.getElementById(`math-${id}`).innerText = mathText;
+    const ucRatio = actual / allowable;
+    ratioEl.innerText = ucRatio.toFixed(3);
+    if (actualRatio >= limitCode || actual === 0) {
+        pillEl.innerText = "Pass"; pillEl.className = "status-pill pass"; ratioEl.style.color = "var(--accent-green)";
+    } else {
+        pillEl.innerText = "Fail"; pillEl.className = "status-pill fail"; ratioEl.style.color = "var(--accent-red)";
+    }
+}
+
+function drawInputVerification(L_ft, sLoc, eLoc, pattern) {
+    const canvas = document.getElementById('canvasInput');
+    const ctx = canvas.getContext('2d');
+    canvas.width = canvas.offsetWidth * 2; canvas.height = 300 * 2;
+    ctx.scale(2,2); ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const baseW = canvas.offsetWidth; const pad = 40;
+    const gWidth = baseW - 80; const beamY = 180;
+
+    // Draw Wide Flange member silhouette background line
+    ctx.fillStyle = "#475569"; ctx.fillRect(pad, beamY - 6, gWidth, 12);
+
+    // Supports
+    ctx.strokeStyle = "#94a3b8"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(pad, beamY+6); ctx.lineTo(pad-8, beamY+20); ctx.lineTo(pad+8, beamY+20); ctx.closePath(); ctx.stroke();
+    ctx.beginPath(); ctx.arc(pad + gWidth, beamY + 12, 6, 0, Math.PI*2); ctx.stroke();
+
+    // Graphical Load Profiles representation overlay
+    let sX = pad + (sLoc / L_ft) * gWidth;
+    let eX = pad + (eLoc / L_ft) * gWidth;
+
+    ctx.strokeStyle = "var(--accent-steel)"; ctx.fillStyle = "rgba(56, 189, 248, 0.15)"; ctx.lineWidth = 2;
+    if(pattern === 'udl') {
+        ctx.fillRect(sX, beamY - 60, eX - sX, 54);
+        ctx.strokeRect(sX, beamY - 60, eX - sX, 54);
+    } else if(pattern === 'point') {
+        ctx.beginPath(); ctx.moveTo(sX, beamY - 70); ctx.lineTo(sX, beamY - 8); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(sX-5, beamY-18); ctx.lineTo(sX, beamY-8); ctx.lineTo(sX+5, beamY-18); ctx.stroke();
+    } else if(pattern === 'trap') {
+        ctx.beginPath(); ctx.moveTo(sX, beamY - 6);
+        ctx.lineTo(sX, beamY - 60); ctx.lineTo(eX, beamY - 30);
+        ctx.lineTo(eX, beamY - 6); ctx.closePath(); ctx.fill(); ctx.stroke();
+    }
+}
+
+function drawDiagram(canvasId, points, color, labelText) {
+    const canvas = document.getElementById(canvasId);
+    const ctx = canvas.getContext('2d');
+    canvas.width = canvas.offsetWidth * 2; canvas.height = 300 * 2;
+    ctx.scale(2,2); ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const baseW = canvas.offsetWidth; const baseH = 300;
+    const pad = 40; const graphW = baseW - 80; const centerY = baseH / 2;
+
+    // Baseline axis vector
+    ctx.strokeStyle = "#334155"; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(pad, centerY); ctx.lineTo(baseW - pad, centerY); ctx.stroke();
+
+    if(!points || points.length === 0) return;
+
+    let maxVal = Math.max(...points.map(Math.abs));
+    let scale = maxVal > 0 ? (centerY - 30) / maxVal : 1;
+
+    ctx.strokeStyle = color; ctx.lineWidth = 2.5;
+    ctx.fillStyle = color + "1a"; // Added transparency for fill transitions
+
+    ctx.beginPath();
+    ctx.moveTo(pad, centerY);
+    for(let i=0; i<=100; i++) {
+        let x = pad + (i/100)*graphW;
+        let y = centerY - (points[i] * scale);
+        ctx.lineTo(x, y);
+    }
+    ctx.lineTo(baseW - pad, centerY);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+
+    // Critical extrema textual layout overlays
+    ctx.fillStyle = "var(--text-main)"; ctx.font = "bold 11px monospace";
+    let extremeValue = points[0];
+    points.forEach(v => { if(Math.abs(v) > Math.abs(extremeValue)) extremeValue = v; });
+    ctx.fillText(`${labelText}max: ${extremeValue.toFixed(2)}`, pad, 25);
+}
+
+window.onload = () => { initSelector(); toggleLoadFields(); };
+</script>
+</body>
+</html>
