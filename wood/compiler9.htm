@@ -783,7 +783,7 @@ function drawMomentDiagram(M) {
         let px = pad + (i/(M.length-1))*gWidth;
         
         // CHANGED: Baseline is shifted down, and the multiplier is bounded cleanly
-        let py = baseY - (M[i]/maxM)*(baseHeight - baseY - 30);
+        let py = baseY - (M[i]/maxM)*(baseHeight - baseY - 5);
         
         ctx.lineTo(px,py);
     }
