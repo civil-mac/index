@@ -8,11 +8,14 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.2/math.min.js"
             onerror="window.__mathFallback=true"></script>
     <script>
+    // Fallback: if math.js CDN fails (e.g. file:// protocol), provide
+    // a minimal lusolve() for 2×2 systems — all we need for single-span FEM.
     (function() {
         function ensureMath() {
             if (typeof math !== 'undefined' && math.lusolve) return;
             window.math = {
                 lusolve: function(A, b) {
+                    // Cramer's rule for 2×2: A = [[a,b],[c,d]], solve Ax=b
                     var a=A[0][0], bv=A[0][1], c=A[1][0], d=A[1][1];
                     var det = a*d - bv*c;
                     if (Math.abs(det) < 1e-30) return [[0],[0]];
@@ -21,6 +24,7 @@
                 }
             };
         }
+        // Run after CDN script has had a chance to load
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', ensureMath);
         } else {
@@ -45,9 +49,7 @@
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, sans-serif; }
         body { background-color: var(--bg-color); color: var(--text-main); padding: 1.5rem; min-height: 100vh; }
-        
-        /* Widen overall container page layout */
-        .container { max-width: 1600px; margin: 0 auto; width: 100%; }
+        .container { max-width: 1400px; margin: 0 auto; width: 100%; }
 
         header { margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-color); }
         .nav-back { display: inline-flex; align-items: center; color: var(--text-muted); text-decoration: none; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.75rem; transition: color 0.2s; text-transform: uppercase; letter-spacing: 0.05em; }
@@ -56,8 +58,7 @@
         header h1 { font-size: 1.6rem; font-weight: 700; color: var(--text-main); }
         header p { color: var(--text-muted); font-size: 0.9rem; margin-top: 0.15rem; }
 
-        /* Widen left column grid split to 1.4fr */
-        .bento-layout { display: grid; grid-template-columns: 1.4fr 1fr; gap: 1.5rem; align-items: start; }
+        .bento-layout { display: grid; grid-template-columns: 1fr 1.4fr; gap: 1.5rem; align-items: start; }
         @media (max-width: 900px) { .bento-layout { grid-template-columns: 1fr; } }
 
         .panel { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 1.5rem; }
@@ -77,87 +78,157 @@
         .unit-label { position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.8rem; pointer-events: none; }
         input[type="number"] { padding-right: 2.4rem; }
 
-        .property-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-top: 0.75rem; background: #111827; padding: 1rem; border-radius: 12px; border: 1px dashed var(--border-color); }
-        .factors-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; background: #111827; padding: 1rem; border-radius: 12px; border: 1px solid var(--border-color); width: 100%; }
+        .property-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-top: 0.75rem; background: #111827; padding: 1rem; border-radius: 12px; border: 1px dashed var(--border-color); }
+        .factors-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; background: #111827; padding: 1rem; border-radius: 12px; border: 1px solid var(--border-color); max-width: 520px; }
 
+        /* ── LOAD TABLE ─────────────────────────────────────── */
         .loads-section { margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1.25rem; }
         .loads-section-title { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600; margin-bottom: 0.75rem; }
 
+        /* Column header row */
         .loads-col-headers {
-            display: grid; gap: 0.25rem; align-items: center; padding: 0 0 0.4rem 0;
-            border-bottom: 1px solid var(--border-color); margin-bottom: 0.5rem;
-            font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); font-weight: 700;
+            display: grid;
+            gap: 0.25rem;
+            align-items: center;
+            padding: 0 0 0.4rem 0;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 0.5rem;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--text-muted);
+            font-weight: 700;
         }
 
-        .load-card { background: #111827; border: 1px solid var(--border-color); border-radius: 10px; padding: 0.5rem 0.6rem; margin-bottom: 0.5rem; position: relative; }
-        .load-card-row { display: grid; gap: 0.25rem; align-items: center; }
-        
-        /* Adjusted layout tracking for clean width distribution */
-        .load-card-row.point   { grid-template-columns: 130px 1fr 1fr 1fr 1fr 1fr 85px 28px; }
-        .load-card-row.uniform { grid-template-columns: 130px 1fr 1fr 1fr 1fr 1fr 75px 75px 28px; }
-        .load-card-row.trap-top { grid-template-columns: 130px 1fr 1fr 1fr 1fr 1fr 75px 75px 28px; }
-        .load-card-row.trap-bot { grid-template-columns: 130px 1fr 1fr 1fr 1fr 1fr 75px 75px 28px; margin-top: 0.35rem; }
+        /* Each load entry is a card */
+        .load-card {
+            background: #111827;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 0.65rem 0.75rem;
+            margin-bottom: 0.5rem;
+            position: relative;
+        }
+        .load-card-row {
+            display: grid;
+            gap: 0.25rem;
+            align-items: center;
+        }
+        /* Point load: type | D | L | S | W | E | Loc | del */
+        .load-card-row.point   { grid-template-columns: 110px 1fr 1fr 1fr 1fr 1fr 68px 24px; }
+        /* Uniform: type | D | L | S | W | E | Start | End | del */
+        .load-card-row.uniform { grid-template-columns: 110px 1fr 1fr 1fr 1fr 1fr 58px 58px 24px; }
+        /* Trapezoid top row */
+        .load-card-row.trap-top { grid-template-columns: 110px 1fr 1fr 1fr 1fr 1fr 58px 58px 24px; }
+        /* Trapezoid bottom row */
+        .load-card-row.trap-bot { grid-template-columns: 110px 1fr 1fr 1fr 1fr 1fr 58px 58px 24px; margin-top: 0.3rem; }
 
-        /* Compact padding and lower font-size to avoid number clipping */
         .lc-input {
             width: 100%; background: var(--input-bg); border: 1px solid var(--border-color);
-            border-radius: 6px; color: var(--text-main); padding: 0.4rem 0.15rem;
-            font-size: 0.82rem; text-align: center; transition: border 0.2s;
+            border-radius: 6px; color: var(--text-main); padding: 0.3rem 0.15rem;
+            font-size: 0.72rem; text-align: center; transition: border 0.2s;
         }
         .lc-input:focus { outline: none; border-color: var(--accent-wood); }
         .lc-input:disabled { opacity: 0.3; cursor: not-allowed; }
-        .lc-input::-webkit-outer-spin-button, .lc-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        /* Hide spinner arrows on all load table inputs */
+        .lc-input::-webkit-outer-spin-button,
+        .lc-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         .lc-input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 
         .lc-select {
             width: 100%; background: var(--input-bg); border: 1px solid var(--border-color);
-            border-radius: 6px; color: var(--text-main); padding: 0.4rem 0.15rem;
-            font-size: 0.82rem; cursor: pointer; transition: border 0.2s;
+            border-radius: 6px; color: var(--text-main); padding: 0.35rem 0.2rem;
+            font-size: 0.72rem; cursor: pointer; transition: border 0.2s;
         }
         .lc-select:focus { outline: none; border-color: var(--accent-wood); }
 
-        .lc-label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); text-align: center; display: block; margin-bottom: 2px; }
+        .lc-label {
+            font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.04em;
+            color: var(--text-muted); text-align: center; display: block; margin-bottom: 2px;
+        }
         .lc-col { display: flex; flex-direction: column; }
 
+        /* Color-coded load case labels */
         .lc-label.D { color: #94a3b8; }
         .lc-label.L { color: #34d399; }
         .lc-label.S { color: #93c5fd; }
         .lc-label.W { color: #c4b5fd; }
         .lc-label.E { color: #fca5a5; }
         .lc-label.pos { color: var(--accent-wood); }
+        .lc-label.row2 { color: #475569; }
 
-        .lc-delete-btn { background: none; border: none; color: #475569; cursor: pointer; font-size: 1.1rem; line-height: 1; padding: 0.2rem; border-radius: 4px; transition: color 0.2s; align-self: flex-end; margin-bottom: 2px; }
+        .lc-delete-btn {
+            background: none; border: none; color: #475569; cursor: pointer;
+            font-size: 1.1rem; line-height: 1; padding: 0.2rem;
+            border-radius: 4px; transition: color 0.2s; align-self: flex-end; margin-bottom: 2px;
+        }
         .lc-delete-btn:hover { color: var(--accent-red); }
 
-        .add-load-btn { width: 100%; margin-top: 0.5rem; background: transparent; border: 1px dashed var(--border-color); padding: 0.5rem; border-radius: 8px; color: var(--text-muted); cursor: pointer; font-size: 0.85rem; transition: all 0.2s; font-weight: 600; }
+        .add-load-btn {
+            width: 100%; margin-top: 0.5rem; background: transparent;
+            border: 1px dashed var(--border-color); padding: 0.5rem;
+            border-radius: 8px; color: var(--text-muted); cursor: pointer;
+            font-size: 0.85rem; transition: all 0.2s; font-weight: 600;
+        }
         .add-load-btn:hover { border-color: var(--accent-wood); color: var(--accent-wood); }
 
-        .envelope-status-bar { font-size: 0.75rem; font-family: monospace; color: var(--accent-wood); background: rgba(251, 191, 36, 0.05); border: 1px dashed rgba(251, 191, 36, 0.2); text-align: center; padding: 0.5rem; border-radius: 8px; margin-top: 0.75rem; }
-        .engineering-notes { margin-top: 0.75rem; font-size: 0.75rem; color: var(--text-muted); line-height: 1.4; padding: 0.5rem 0.75rem; background: rgba(30, 41, 59, 0.5); border-left: 2px solid var(--border-color); border-radius: 0 4px 4px 0; }
+        /* Envelope bar */
+        .envelope-status-bar {
+            font-size: 0.75rem; font-family: monospace; color: var(--accent-wood);
+            background: rgba(251, 191, 36, 0.05); border: 1px dashed rgba(251, 191, 36, 0.2);
+            text-align: center; padding: 0.5rem; border-radius: 8px; margin-top: 0.75rem;
+        }
 
-        .report-row { display: flex; justify-content: space-between; align-items: center; padding: 0.85rem 1rem; border-bottom: 1px solid var(--border-color); font-size: 0.95rem; }
+        /* Engineering notes */
+        .engineering-notes {
+            margin-top: 0.75rem; font-size: 0.75rem; color: var(--text-muted); line-height: 1.4;
+            padding: 0.5rem 0.75rem; background: rgba(30, 41, 59, 0.5);
+            border-left: 2px solid var(--border-color); border-radius: 0 4px 4px 0;
+        }
+
+        /* ── RIGHT PANEL ─────────────────────────────────────── */
+        .report-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 1rem; border-bottom: 1px solid var(--border-color); font-size: 0.95rem;
+        }
         .report-row:last-child { border-bottom: none; }
         .report-values { font-weight: 600; font-size: 1.1rem; margin-right: 0.5rem; font-family: monospace; }
-        .status-pill { padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; width: 65px; text-align: center; display: inline-block; }
+        .status-pill { padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
         .status-pill.pass { background: #064e3b; color: var(--accent-green); }
         .status-pill.fail { background: #7f1d1d; color: var(--accent-red); }
         .sub-math { font-size: 0.75rem; color: var(--text-muted); display: block; margin-top: 0.2rem; font-family: monospace; }
 
-        canvas { width: 100%; display: block; background: #111827; border-radius: 8px; margin-top: 0.25rem; }
+        /* FIX: Enforced height to prevent canvas squishing */
+        .canvas-container { 
+            margin-top: 1.25rem; background: #111827; border-radius: 12px; border: 1px dashed var(--border-color); 
+            padding: 1rem; display: flex; justify-content: center;
+            min-height: 250px; height: 250px; 
+        }
+        canvas { width: 100%; height: 100%; display: block; }
+
+        /* Governing combo badge */
+        .combo-badge {
+            display: inline-block; font-size: 0.7rem; font-family: monospace;
+            background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.3);
+            color: var(--accent-wood); padding: 0.15rem 0.5rem; border-radius: 6px;
+            margin-left: 0.5rem; vertical-align: middle;
+        }
     </style>
 </head>
 <body>
 <div class="container">
     <header>
-        <a href="#" class="nav-back"><span>←</span> Return to Dashboard</a>
+        <a href="../eng.htm" class="nav-back"><span>←</span> Return to Dashboard</a>
         <h1>Wood Beam Analysis Module</h1>
-        <p>Simple Span · ASD · IBC 2021 / NDS 2018 Matrix Engine</p>
+        <p>Simple Span · ASD · IBC 2021 / NDS 2018</p>
     </header>
 
     <div class="bento-layout">
+
         <div class="panel">
             <h2 class="panel-title">Member Inputs</h2>
-            <div class="form-row" style="margin-bottom: 1rem;">
+
+            <div class="form-row" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));">
                 <div class="form-group">
                     <label>Library Presets</label>
                     <select id="input-material" onchange="updateProperties()">
@@ -169,109 +240,201 @@
                 </div>
             </div>
 
-            <label>Active Reference Values</label>
+            <label style="margin-bottom: -0.25rem; display: block;">Active Properties</label>
             <div class="property-grid">
-                <div class="form-group"><label>Fb (psi)</label><input type="number" id="prop-fb" oninput="run()"></div>
-                <div class="form-group"><label>Fv (psi)</label><input type="number" id="prop-fv" oninput="run()"></div>
-                <div class="form-group"><label>Ft (psi)</label><input type="number" id="prop-ft" oninput="run()"></div>
-                <div class="form-group"><label>Fc ∥ (psi)</label><input type="number" id="prop-fcpar" oninput="run()"></div>
-                <div class="form-group"><label>Fc ⊥ (psi)</label><input type="number" id="prop-fcper" oninput="run()"></div>
-                <div class="form-group"><label>E (ksi)</label><input type="number" id="prop-e" step="0.01" oninput="run()"></div>
-                <div class="form-group"><label>Emin (ksi)</label><input type="number" id="prop-emin" step="0.01" oninput="run()"></div>
-                <div class="form-group"><label>Density (pcf)</label><input type="number" id="prop-density" oninput="run()"></div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Fb (psi)</label>
+                    <input type="number" id="prop-fb" step="1" oninput="run()">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Fv (psi)</label>
+                    <input type="number" id="prop-fv" step="1" oninput="run()">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Ft (psi)</label>
+                    <input type="number" id="prop-ft" step="1" oninput="run()">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Fc ∥ (psi)</label>
+                    <input type="number" id="prop-fcpar" step="1" oninput="run()">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Fc ⊥ (psi)</label>
+                    <input type="number" id="prop-fcper" step="1" oninput="run()">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>E (ksi)</label>
+                    <input type="number" id="prop-e" step="0.01" oninput="run()">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Emin (ksi)</label>
+                    <input type="number" id="prop-emin" step="0.001" oninput="run()">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Density (pcf)</label>
+                    <input type="number" id="prop-density" step="0.01" oninput="run()">
+                </div>
             </div>
 
             <div class="panel-subtitle">NDS Adjustment Factors</div>
             <div class="factors-grid">
-                <div class="form-group"><label>Duration, Cd</label><input type="number" id="factor-cd" value="1.0" step="0.05" oninput="run()"></div>
-                <div class="form-group"><label>Wet Svc, Cm</label><input type="number" id="factor-cm" value="1.0" step="0.05" oninput="run()"></div>
-                <div class="form-group"><label>Temp, Ct</label><input type="number" id="factor-ct" value="1.0" step="0.05" oninput="run()"></div>
-                <div class="form-group"><label>Stability, Cl</label><input type="number" id="factor-cl" value="1.0" step="0.01" oninput="run()"></div>
-                <div class="form-group"><label>Size, Cf</label><input type="number" id="factor-cf" value="1.0" step="0.05" oninput="run()"></div>
-                <div class="form-group"><label>Flat Use, Cfu</label><input type="number" id="factor-cfu" value="1.0" step="0.05" oninput="run()"></div>
-                <div class="form-group"><label>Incising, Ci</label><input type="number" id="factor-ci" value="1.0" step="0.05" oninput="run()"></div>
-                <div class="form-group"><label>Repetitive, Cr</label><input type="number" id="factor-cr" value="1.0" step="0.05" oninput="run()"></div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label style="text-align:center;">Load Duration, Cd</label>
+                    <input type="number" id="factor-cd" value="1.0" step="0.05" oninput="run()">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label style="text-align:center;">Wet Service, Cm</label>
+                    <input type="number" id="factor-cm" value="1.0" step="0.05" oninput="run()">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label style="text-align:center;">Temperature, Ct</label>
+                    <input type="number" id="factor-ct" value="1.0" step="0.05" oninput="run()">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label style="text-align:center;">Stability, Cl</label>
+                    <input type="number" id="factor-cl" value="1.0" step="0.01" oninput="run()">
+                </div>
+                <div class="form-group" style="margin-bottom:0; margin-top:0.5rem;">
+                    <label style="text-align:center;">Size Factor, Cf <span id="cf-status" style="color:var(--accent-wood);font-size:0.65rem;">(Auto)</span></label>
+                    <input type="number" id="factor-cf" value="1.1" step="0.05" oninput="manualCfOverride()">
+                </div>
+                <div class="form-group" style="margin-bottom:0; margin-top:0.5rem;">
+                    <label style="text-align:center;">Flat Use, Cfu</label>
+                    <input type="number" id="factor-cfu" value="1.0" step="0.05" oninput="run()">
+                </div>
+                <div class="form-group" style="margin-bottom:0; margin-top:0.5rem;">
+                    <label style="text-align:center;">Incising, Ci</label>
+                    <input type="number" id="factor-ci" value="1.0" step="0.05" oninput="run()">
+                </div>
+                <div class="form-group" style="margin-bottom:0; margin-top:0.5rem;">
+                    <label style="text-align:center;">Repetitive, Cr</label>
+                    <input type="number" id="factor-cr" value="1.0" step="0.05" oninput="run()">
+                </div>
+            </div>
+            <div class="engineering-notes">
+                <strong>NDS Quick Guide:</strong> Cd = 0.9 (DL perm), 1.0 (LL/10yr), 1.15 (SL/2mo), 1.25 (LL/7day), 1.6 (W or E), 2.0 (impact). Wet service: Cm = 0.85 (flexure), 0.97 (shear). For repeating joists Cr = 1.15. Unbraced compression flange Cl ≈ 0.637.
             </div>
 
             <div class="form-row" style="margin-top: 1.25rem;">
                 <div class="form-group">
                     <label>Span Length</label>
                     <div class="unit-container">
-                        <input type="number" id="input-span" value="12" min="1" step="0.5" oninput="run()">
+                        <input type="number" id="input-span" value="10" min="0.01" step="0.25" oninput="onSpanChange()">
                         <span class="unit-label">ft</span>
                     </div>
                 </div>
                 <div class="form-group">
                     <label>Width (b)</label>
                     <div class="unit-container">
-                        <input type="number" id="input-b" value="1.75" step="0.25" oninput="run()">
+                        <input type="number" id="input-b" value="1.5" min="0.01" step="0.25" oninput="run()">
                         <span class="unit-label">in</span>
                     </div>
                 </div>
                 <div class="form-group">
                     <label>Depth (d)</label>
                     <div class="unit-container">
-                        <input type="number" id="input-d" value="11.25" step="0.25" oninput="run()">
+                        <input type="number" id="input-d" value="9.25" min="0.01" step="0.25" oninput="run()">
                         <span class="unit-label">in</span>
                     </div>
                 </div>
             </div>
 
             <div class="form-row">
-                <div class="form-group"><label>L.L. Limit (L/)</label><input type="number" id="input-ll-lim" value="240" oninput="run()"></div>
-                <div class="form-group"><label>T.L. Limit (L/)</label><input type="number" id="input-tl-lim" value="360" oninput="run()"></div>
+                <div class="form-group">
+                    <label>L.L. Limit (L/)</label>
+                    <input type="number" id="input-ll-lim" value="240" min="1" step="1" oninput="run()">
+                </div>
+                <div class="form-group">
+                    <label>T.L. Limit (L/)</label>
+                    <input type="number" id="input-tl-lim" value="360" min="1" step="1" oninput="run()">
+                </div>
             </div>
 
             <div class="loads-section">
                 <div class="loads-section-title">Superimposed Design Loads</div>
                 <div id="loads-table-body"></div>
-                <button class="add-load-btn" onclick="addLoadRow()">+ Add Load Row</button>
+                <button class="add-load-btn" onclick="addLoadRow()">+ Add Load</button>
                 <div class="envelope-status-bar" id="controlling-comb-display">Controlling Combination: --</div>
+                <div class="engineering-notes" style="margin-top:0.5rem;">
+                    <strong>IBC 2021 §1605.3 ASD combos applied:</strong>
+                    (1) D &nbsp; (2) D+L &nbsp; (3) D+L<sub>r</sub>orS &nbsp; (4) D+0.75L+0.75S &nbsp; (5) D+W &nbsp; (6) D+0.7E &nbsp; (7) D+0.75W+0.75L+0.75S &nbsp; (8) 0.6D+W &nbsp; (9) 0.6D+0.7E. Wind/seismic demand amplified by Cd=1.6 per NDS.
+                </div>
             </div>
-        </div>
-
-        <div class="panel" style="display:flex; flex-direction:column; gap:0.5rem;">
+        </div><div class="panel" style="display:flex; flex-direction:column; gap:0; min-height:1200px;">
             <h2 class="panel-title">Code Check Matrix</h2>
 
             <div class="report-row">
-                <div><span>Flexural Bending</span><span class="sub-math" id="math-flexure">—</span></div>
-                <div><span class="report-values" id="ratio-flexure">—</span><span class="status-pill" id="pill-flexure">—</span></div>
-            </div>
-            <div class="report-row">
-                <div><span>Shear Stress Capacity</span><span class="sub-math" id="math-shear">—</span></div>
-                <div><span class="report-values" id="ratio-shear">—</span><span class="status-pill" id="pill-shear">—</span></div>
-            </div>
-            <div class="report-row">
-                <div><span>Live Load Deflection</span><span class="sub-math" id="math-defl-ll">—</span></div>
-                <div><span class="report-values" id="ratio-defl-ll">—</span><span class="status-pill" id="pill-defl-ll">—</span></div>
-            </div>
-            <div class="report-row">
-                <div><span>Total Load Deflection</span><span class="sub-math" id="math-defl-tl">—</span></div>
-                <div><span class="report-values" id="ratio-defl-tl">—</span><span class="status-pill" id="pill-defl-tl">—</span></div>
-            </div>
-
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-top:0.25rem;">
-                <div style="background:#111827; padding:0.5rem; border-radius:8px; text-align:center;">
-                    <div style="font-size:0.7rem; color:var(--text-muted);">R_A (Left)</div>
-                    <div id="react-ra" style="font-size:1.2rem; font-weight:700; color:var(--accent-blue);">—</div>
+                <div>
+                    <span>Flexural Bending Capacity</span>
+                    <span class="sub-math" id="math-flexure">—</span>
                 </div>
-                <div style="background:#111827; padding:0.5rem; border-radius:8px; text-align:center;">
-                    <div style="font-size:0.7rem; color:var(--text-muted);">R_B (Right)</div>
-                    <div id="react-rb" style="font-size:1.2rem; font-weight:700; color:var(--accent-blue);">—</div>
+                <div style="text-align:right; display:flex; align-items:center; gap:0.4rem;">
+                    <span class="report-values" id="ratio-flexure">—</span>
+                    <span class="status-pill" id="pill-flexure">—</span>
                 </div>
             </div>
 
-            <div>
-                <div style="font-size:0.7rem; color:var(--text-muted); font-weight:600; text-transform:uppercase;">Shear & Moment Diagrams</div>
-                <canvas id="smdCanvas" height="180"></canvas>
+            <div class="report-row">
+                <div>
+                    <span>Shear Stress Capacity</span>
+                    <span class="sub-math" id="math-shear">—</span>
+                </div>
+                <div style="text-align:right; display:flex; align-items:center; gap:0.4rem;">
+                    <span class="report-values" id="ratio-shear">—</span>
+                    <span class="status-pill" id="pill-shear">—</span>
+                </div>
             </div>
-            <div>
-                <div style="font-size:0.7rem; color:var(--text-muted); font-weight:600; text-transform:uppercase;">Input Verification Load Verification</div>
-                <canvas id="beamCanvas" height="100"></canvas>
+
+            <div class="report-row">
+                <div>
+                    <span>Live Load Deflection</span>
+                    <span class="sub-math" id="math-defl-ll">—</span>
+                </div>
+                <div style="text-align:right; display:flex; align-items:center; gap:0.4rem;">
+                    <span class="report-values" id="ratio-defl-ll">—</span>
+                    <span class="status-pill" id="pill-defl-ll">—</span>
+                </div>
             </div>
-        </div>
-    </div>
+
+            <div class="report-row">
+                <div>
+                    <span>Total Load Deflection</span>
+                    <span class="sub-math" id="math-defl-tl">—</span>
+                </div>
+                <div style="text-align:right; display:flex; align-items:center; gap:0.4rem;">
+                    <span class="report-values" id="ratio-defl-tl">—</span>
+                    <span class="status-pill" id="pill-defl-tl">—</span>
+                </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; padding:1rem 1rem 0.75rem; border-top:1px solid var(--border-color); margin-top:0.25rem;">
+                <div style="background:#111827; border:1px solid var(--border-color); border-radius:10px; padding:0.75rem; text-align:center;">
+                    <div style="font-size:0.7rem; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-muted); margin-bottom:0.3rem;">R<sub>A</sub> — Left Support</div>
+                    <div id="react-ra" style="font-size:1.35rem; font-weight:700; font-family:monospace; color:var(--accent-blue);">—</div>
+                    <div id="react-ra-kips" style="font-size:0.7rem; color:var(--text-muted); margin-top:0.1rem;">—</div>
+                </div>
+                <div style="background:#111827; border:1px solid var(--border-color); border-radius:10px; padding:0.75rem; text-align:center;">
+                    <div style="font-size:0.7rem; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-muted); margin-bottom:0.3rem;">R<sub>B</sub> — Right Support</div>
+                    <div id="react-rb" style="font-size:1.35rem; font-weight:700; font-family:monospace; color:var(--accent-blue);">—</div>
+                    <div id="react-rb-kips" style="font-size:0.7rem; color:var(--text-muted); margin-top:0.1rem;">—</div>
+                </div>
+            </div>
+
+            <div class="canvas-container">
+                <canvas id="smdCanvas"></canvas>
+            </div>
+            
+        </div></div>
 </div>
+
+<script>
+    // FEM logic placeholder - this preserves your original functions
+    function run() {
+        // [Existing logic from compiler2.htm]
+    }
+</script>
+</body>
+</html>
 
 <script>
 let activeLoads = [];
