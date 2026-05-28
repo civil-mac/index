@@ -282,17 +282,17 @@
 
             <div class="canvas-container">
                 <div class="canvas-title"><span style="color:var(--accent-steel);">Shear Diagram (V)</span><span id="label-max-v">MAX: 0 kips</span></div>
-                <canvas id="shearCanvas" height="300"></canvas>
+                <canvas id="shearCanvas" height="450"></canvas>
             </div>
 
             <div class="canvas-container">
                 <div class="canvas-title"><span style="color:#fbbf24;">Moment Diagram (M)</span><span id="label-max-m">MAX: 0 k-ft</span></div>
-                <canvas id="momentCanvas" height="300"></canvas>
+                <canvas id="momentCanvas" height="450"></canvas>
             </div>
 
             <div class="canvas-container">
                 <div class="canvas-title"><span>Input Verification Load Profile</span></div>
-                <canvas id="beamCanvas" height="160"></canvas>
+                <canvas id="beamCanvas" height="450"></canvas>
             </div>
         </div>
     </div>
@@ -1002,7 +1002,8 @@ function drawShearDiagram(V) {
     ctx.moveTo(pad, midY);
     for (let i = 0; i < V.length; i++) {
         let px = pad + (i / (V.length - 1)) * gWidth;
-        let py = midY - (V[i] / maxV) * (midY - 15);
+        const amplitude = midY - 20;
+        let py = midY - (V[i] / maxV) * amplitude;
         ctx.lineTo(px, py);
     }
     ctx.lineTo(pad + gWidth, midY); ctx.closePath(); ctx.fill(); ctx.stroke();
@@ -1020,8 +1021,13 @@ function drawMomentDiagram(M) {
     const baseHeight = canvas.offsetHeight;
     const pad = 25;
     const gWidth = baseWidth - 50;
-    const baseY = 140;
-
+    const maxPos = Math.max(0, ...M);
+    const maxNeg = Math.abs(Math.min(0, ...M));
+    const totalRange = (maxPos + maxNeg) || 1;
+    const margin = 20;
+    const drawHeight = baseHeight - margin * 2;
+    const baseY = margin + (maxPos / totalRange) * drawHeight;
+    const scale = drawHeight / totalRange;
     ctx.fillStyle = "#111827"; ctx.fillRect(0, 0, baseWidth, baseHeight);
     ctx.strokeStyle = "#334155"; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(pad, baseY); ctx.lineTo(pad + gWidth, baseY); ctx.stroke();
@@ -1033,7 +1039,7 @@ function drawMomentDiagram(M) {
     ctx.moveTo(pad, baseY);
     for (let i = 0; i < M.length; i++) {
         let px = pad + (i / (M.length - 1)) * gWidth;
-        let py = baseY - (M[i] / maxM) * 100;
+        let py = baseY - (M[i] / maxM) * scale;
         ctx.lineTo(px, py);
     }
     ctx.lineTo(pad + gWidth, baseY); ctx.closePath(); ctx.fill(); ctx.stroke();
@@ -1052,6 +1058,9 @@ function drawBeamProfile(L) {
     const pad = 25;
     const gWidth = baseWidth - 50;
     const beamY = baseHeight - 35;
+    const arrowSpace = beamY - 20;
+    const arrowH = Math.min(arrowSpace * 0.7, 120);
+    const arrowTop = beamY - arrowH;
 
     ctx.fillStyle = "#111827"; ctx.fillRect(0, 0, baseWidth, baseHeight);
     ctx.fillStyle = "#475569"; ctx.fillRect(pad, beamY, gWidth, 10);
@@ -1072,7 +1081,7 @@ function drawBeamProfile(L) {
             if (pX >= pad && pX <= pad + gWidth) {
                 ctx.strokeStyle = "#f87171"; ctx.lineWidth = 2;
                 ctx.beginPath();
-                ctx.moveTo(pX, beamY - 40); ctx.lineTo(pX, beamY - 2);
+                ctx.moveTo(pX, arrowTop); ctx.lineTo(pX, beamY - 2);
                 ctx.moveTo(pX - 4, beamY - 10); ctx.lineTo(pX, beamY - 2); ctx.lineTo(pX + 4, beamY - 10);
                 ctx.stroke();
             }
@@ -1085,15 +1094,15 @@ function drawBeamProfile(L) {
             ctx.fillStyle = "rgba(52, 211, 153, 0.12)";
             ctx.strokeStyle = "var(--accent-green)"; ctx.lineWidth = 1;
             ctx.beginPath();
-            ctx.moveTo(sX, beamY - 2); ctx.lineTo(sX, beamY - 35);
-            ctx.lineTo(eX, beamY - 35); ctx.lineTo(eX, beamY - 2);
+            ctx.moveTo(sX, beamY - 2); ctx.lineTo(sX, arrowTop);
+            ctx.lineTo(eX, arrowTop); ctx.lineTo(eX, beamY - 2);
             ctx.closePath(); ctx.fill(); ctx.stroke();
 
             const steps = 5;
             for (let i = 0; i <= steps; i++) {
                 let arrowX = sX + (i / steps) * (eX - sX);
                 ctx.beginPath();
-                ctx.moveTo(arrowX, beamY - 35); ctx.lineTo(arrowX, beamY - 2);
+                ctx.moveTo(arrowX, arrowTop); ctx.lineTo(arrowX, beamY - 2);
                 ctx.moveTo(arrowX - 3, beamY - 8); ctx.lineTo(arrowX, beamY - 2); ctx.lineTo(arrowX + 3, beamY - 8);
                 ctx.stroke();
             }
