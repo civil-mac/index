@@ -668,11 +668,8 @@ function parseInputLoads() {
     const rows = document.querySelectorAll('#loads-table-body .load-card');
     rows.forEach(row => {
         const type = row.querySelector('.type-input').value;
-        const getVal = (cls) => parseFloat(row.querySelector(`.${cls}`)?.value) || 0;
-        const getVal2 = (cls) => {
-            const els = row.querySelectorAll(`.${cls}`);
-            return els.length > 1 ? (parseFloat(els[1].value) || 0) : (parseFloat(els[0]?.value) || 0);
-        };
+        const getVal  = (cls) => parseFloat(row.querySelector(`.${cls}`)?.value)  || 0;
+        const getVal2 = (cls) => parseFloat(row.querySelector(`.${cls}2`)?.value ?? row.querySelector(`.${cls}`)?.value) || 0;
 
         loads.push({
             type,
