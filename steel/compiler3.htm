@@ -688,266 +688,209 @@ function parseInputLoads() {
 // --- AISC Steel Analysis Engine Core ---
 function run() {
     const span = parseFloat(document.getElementById('input-span').value) || 0;
-    const Lb = parseFloat(document.getElementById('input-lb').value) || 0;
-    const Fy = parseFloat(document.getElementById('prop-fy').value) || 0;
+    const Lb   = parseFloat(document.getElementById('input-lb').value)   || 0;
+    const Fy   = parseFloat(document.getElementById('prop-fy').value)    || 0;
 
-    // Properties
-    const d = parseFloat(document.getElementById('prop-d').value) || 0;
-    const tw = parseFloat(document.getElementById('prop-tw').value) || 0;
-    const bf = parseFloat(document.getElementById('prop-bf').value) || 0;
-    const tf = parseFloat(document.getElementById('prop-tf').value) || 0;
-    const Ix = parseFloat(document.getElementById('prop-ix').value) || 0;
-    const Sx = parseFloat(document.getElementById('prop-sx').value) || 0;
-    const Zx = parseFloat(document.getElementById('prop-zx').value) || 0;
-    const rts = parseFloat(document.getElementById('prop-rts').value) || 0;
-    const J = parseFloat(document.getElementById('prop-j').value) || 0;
-    const Cw = parseFloat(document.getElementById('prop-cw').value) || 0;
-    const ho = parseFloat(document.getElementById('prop-ho').value) || 0;
+    const d        = parseFloat(document.getElementById('prop-d').value)      || 0;
+    const tw       = parseFloat(document.getElementById('prop-tw').value)     || 0;
+    const Ix       = parseFloat(document.getElementById('prop-ix').value)     || 0;
+    const Sx       = parseFloat(document.getElementById('prop-sx').value)     || 0;
+    const Zx       = parseFloat(document.getElementById('prop-zx').value)     || 0;
+    const rts      = parseFloat(document.getElementById('prop-rts').value)    || 0;
+    const J        = parseFloat(document.getElementById('prop-j').value)      || 0;
+    const ho       = parseFloat(document.getElementById('prop-ho').value)     || 0;
     const weightplf = parseFloat(document.getElementById('prop-weight').value) || 0;
 
     if (span <= 0 || d <= 0 || Ix <= 0 || Sx <= 0) return;
 
+    const EI       = 29000 * Ix;          // kip·in²
+    const L_in     = span * 12;
+    const ll_lim   = parseFloat(document.getElementById('input-ll-lim').value) || 240;
+    const tl_lim   = parseFloat(document.getElementById('input-tl-lim').value) || 360;
+    const selfWeightKLF = weightplf / 1000;
+
     const parsedLoads = parseInputLoads();
+    const nSteps = 100;
+    const step_ft = span / nSteps;
 
-    // Setup 100 sample intervals across the span length
-    const steps = 100;
-    const xCoords = [];
-    for (let i = 0; i <= steps; i++) xCoords.push((i / steps) * span);
+    let maxRatio = -1, controllingComboName = 'D Only';
+    let absMaxM = 0, absMaxV = 0;
+    let envelopeV = new Array(nSteps + 1).fill(0);
+    let envelopeM = new Array(nSteps + 1).fill(0);
+    let summaryData = {};
 
-    let absMaxM = 0;
-    let absMaxV = 0;
-    let controllingComboName = "D Only";
-
-    let envelopeV = new Array(steps + 1).fill(0);
-    let envelopeM = new Array(steps + 1).fill(0);
-
-    // Evaluate ASD Envelopes
     ASD_COMBINATIONS.forEach(combo => {
-        const localV = new Array(steps + 1).fill(0);
-        const localM = new Array(steps + 1).fill(0);
+        const V_arr    = new Array(nSteps + 1).fill(0);
+        const M_arr    = new Array(nSteps + 1).fill(0);
+        const M_arr_ll = new Array(nSteps + 1).fill(0);
 
-        let eqLoad = 0;
-        let momA = 0;
+        // --- Solve reactions directly (same pattern as wood engine) ---
+        let R_A_tl = (selfWeightKLF * combo.D * span) / 2;
+        let R_A_ll = 0;
 
         parsedLoads.forEach(load => {
-            // Convert component magnitudes to structural kips / kip-ft calculations cleanly
-            const plfToKft = 1000;
-            const combinedMag = ((load.D * combo.D) + (load.L * combo.L) + (load.S * combo.S) + (load.W * combo.W) + (load.E * combo.E)) / plfToKft;
-            if (combinedMag === 0) return;
+            const w1_tl = (load.D * combo.D + load.L * combo.L + load.S * combo.S + load.W * combo.W + load.E * combo.E) / 1000;
+            const w2_tl = (load.D2 * combo.D + load.L2 * combo.L + load.S2 * combo.S + load.W2 * combo.W + load.E2 * combo.E) / 1000;
+            const w1_ll = load.L / 1000;
+            const w2_ll = load.L2 / 1000;
 
-            if (load.type === "Uniform") {
-                const s = Math.max(0, Math.min(span, load.start));
-                const e = Math.max(s, Math.min(span, load.end));
-                const length = e - s;
-                if (length <= 0) return;
-
-                eqLoad += combinedMag * length;
-                momA += combinedMag * length * (s + length / 2);
-
-                for (let i = 0; i <= steps; i++) {
-                    const x = xCoords[i];
-                    if (x > s) {
-                        const loadedPast = Math.min(x, e) - s;
-                        localM[i] += 0.5 * combinedMag * loadedPast * (2 * (x - s) - loadedPast);
-                        localV[i] += combinedMag * loadedPast;
-                    }
-                }
-            } else if (load.type === "Trapezoid") {
-                const s = Math.max(0, Math.min(span, load.start));
-                const e = Math.max(s, Math.min(span, load.end));
-                const length = e - s;
-                if (length <= 0) return;
-
-                const combinedMag2 = ((load.D2 * combo.D) + (load.L2 * combo.L) + (load.S2 * combo.S) + (load.W2 * combo.W) + (load.E2 * combo.E)) / 1000;
-                const wAvg = (combinedMag + combinedMag2) / 2;
-                // Centroid of trapezoid from start: (L/3) * (w1 + 2*w2) / (w1 + w2)
-                const centroidFromStart = (combinedMag + combinedMag2) > 0
-                    ? (length / 3) * (combinedMag + 2 * combinedMag2) / (combinedMag + combinedMag2)
-                    : length / 2;
-
-                eqLoad += wAvg * length;
-                momA += wAvg * length * (s + centroidFromStart);
-
-                for (let i = 0; i <= steps; i++) {
-                    const x = xCoords[i];
-                    if (x > s) {
-                        const t = Math.min(x, e) - s;
-                        const tFrac = t / length;
-                        const wAtT = combinedMag + (combinedMag2 - combinedMag) * tFrac;
-                        const wAvgT = (combinedMag + wAtT) / 2;
-                        const centT = (combinedMag + combinedMag2) > 0
-                            ? (t / 3) * (combinedMag + 2 * wAtT) / (combinedMag + wAtT)
-                            : t / 2;
-                        localV[i] += wAvgT * t;
-                        localM[i] += wAvgT * t * ((x - s) - centT);
-                    }
-                }
-            } else if (load.type === "Point") {
+            if (load.type === 'Point') {
                 const pt = Math.max(0, Math.min(span, load.start));
-                eqLoad += combinedMag;
-                momA += combinedMag * pt;
+                R_A_tl += w1_tl * (span - pt) / span;
+                R_A_ll += w1_ll * (span - pt) / span;
+            } else {
+                const s = Math.max(0, Math.min(span, load.start));
+                const e = Math.max(s, Math.min(span, load.end));
+                const load_L = e - s;
+                if (load_L <= 0) return;
 
-                for (let i = 0; i <= steps; i++) {
-                    const x = xCoords[i];
-                    if (x >= pt) {
-                        localV[i] += combinedMag;
-                        localM[i] += combinedMag * (x - pt);
-                    }
+                // Rectangular base (min of w1/w2)
+                const w_rect_tl = Math.min(w1_tl, w2_tl);
+                const w_rect_ll = Math.min(w1_ll, w2_ll);
+                R_A_tl += (w_rect_tl * load_L * (span - (s + load_L / 2))) / span;
+                R_A_ll += (w_rect_ll * load_L * (span - (s + load_L / 2))) / span;
+
+                // Triangular remainder
+                const tri_tl = Math.abs(w2_tl - w1_tl);
+                const tri_ll = Math.abs(w2_ll - w1_ll);
+                if (tri_tl > 0) {
+                    const cent = (w2_tl > w1_tl) ? s + (2/3) * load_L : s + (1/3) * load_L;
+                    R_A_tl += (0.5 * tri_tl * load_L * (span - cent)) / span;
+                }
+                if (tri_ll > 0) {
+                    const cent = (w2_ll > w1_ll) ? s + (2/3) * load_L : s + (1/3) * load_L;
+                    R_A_ll += (0.5 * tri_ll * load_L * (span - cent)) / span;
                 }
             }
         });
 
-        // Add self-weight (Dead component)
-        const swMag = (weightplf * combo.D) / 1000;
-        eqLoad += swMag * span;
-        momA += swMag * span * (span / 2);
-        for (let i = 0; i <= steps; i++) {
-            const x = xCoords[i];
-            localM[i] += 0.5 * swMag * x * x;
-            localV[i] += swMag * x;
+        // --- Build V/M arrays point by point ---
+        for (let i = 0; i <= nSteps; i++) {
+            const x = (i / nSteps) * span;
+
+            let V_x    = R_A_tl - selfWeightKLF * combo.D * x;
+            let M_x    = R_A_tl * x - 0.5 * selfWeightKLF * combo.D * x * x;
+            let M_x_ll = R_A_ll * x;
+
+            parsedLoads.forEach(load => {
+                const w1_tl = (load.D * combo.D + load.L * combo.L + load.S * combo.S + load.W * combo.W + load.E * combo.E) / 1000;
+                const w2_tl = (load.D2 * combo.D + load.L2 * combo.L + load.S2 * combo.S + load.W2 * combo.W + load.E2 * combo.E) / 1000;
+                const w1_ll = load.L / 1000;
+                const w2_ll = load.L2 / 1000;
+
+                if (load.type === 'Point') {
+                    if (x > load.start) {
+                        V_x    -= w1_tl;
+                        M_x    -= w1_tl * (x - load.start);
+                        M_x_ll -= w1_ll * (x - load.start);
+                    }
+                } else {
+                    const s = Math.max(0, Math.min(span, load.start));
+                    const e = Math.max(s, Math.min(span, load.end));
+                    const load_L = e - s;
+                    if (load_L <= 0 || x <= s) return;
+
+                    const current_x = Math.min(x, e) - s;
+                    const slope_tl  = (w2_tl - w1_tl) / load_L;
+                    const slope_ll  = (w2_ll - w1_ll) / load_L;
+                    const w_x_tl    = w1_tl + slope_tl * current_x;
+                    const w_x_ll    = w1_ll + slope_ll * current_x;
+
+                    const area_tl = 0.5 * (w1_tl + w_x_tl) * current_x;
+                    const area_ll = 0.5 * (w1_ll + w_x_ll) * current_x;
+
+                    const arm_tl = (w1_tl + w_x_tl > 0) ? current_x * (w1_tl + 2 * w_x_tl) / (3 * (w1_tl + w_x_tl)) : 0;
+                    const arm_ll = (w1_ll + w_x_ll > 0) ? current_x * (w1_ll + 2 * w_x_ll) / (3 * (w1_ll + w_x_ll)) : 0;
+
+                    V_x    -= area_tl;
+                    M_x    -= area_tl * (x - s - current_x + arm_tl);
+                    M_x_ll -= area_ll * (x - s - current_x + arm_ll);
+                }
+            });
+
+            V_arr[i]    = V_x;
+            M_arr[i]    = M_x;
+            M_arr_ll[i] = M_x_ll;
         }
 
-        const R_B = momA / span;
-        const R_A = eqLoad - R_B;
+        // --- Deflection via Simpson's rule virtual work (same as wood engine) ---
+        const defl_TL = new Array(nSteps + 1).fill(0);
+        const defl_LL = new Array(nSteps + 1).fill(0);
 
-        let maxComboM = 0;
-        let maxComboV = 0;
+        for (let i = 1; i < nSteps; i++) {
+            const x_target = (i / nSteps) * span;
+            let sum_tl = 0, sum_ll = 0;
 
-        for (let i = 0; i <= steps; i++) {
-            const x = xCoords[i];
-            localV[i] = R_A - localV[i];
-            localM[i] = (R_A * x) - localM[i];
-
-            if (Math.abs(localM[i]) > maxComboM) maxComboM = Math.abs(localM[i]);
-            if (Math.abs(localV[i]) > maxComboV) maxComboV = Math.abs(localV[i]);
+            for (let j = 0; j <= nSteps; j++) {
+                const x_eval = (j / nSteps) * span;
+                const m_virt = (x_eval <= x_target)
+                    ? (span - x_target) * x_eval / span
+                    : x_target * (span - x_eval) / span;
+                const w = (j === 0 || j === nSteps) ? 1 : (j % 2 === 1 ? 4 : 2);
+                sum_tl += w * (M_arr[j]    * 12) * (m_virt * 12);
+                sum_ll += w * (M_arr_ll[j] * 12) * (m_virt * 12);
+            }
+            defl_TL[i] = (sum_tl * (step_ft * 12) / 3) / EI;
+            defl_LL[i] = (sum_ll * (step_ft * 12) / 3) / EI;
         }
 
-        if (maxComboM > absMaxM) {
-            absMaxM = maxComboM;
-            absMaxV = maxComboV;
+        const maxM_kft   = Math.max(...M_arr.map(v => Math.abs(v)));
+        const maxV_kips  = Math.max(...V_arr.map(v => Math.abs(v)));
+        const maxD_TL    = Math.max(...defl_TL.map(v => Math.abs(v)));
+        const maxD_LL    = Math.max(...defl_LL.map(v => Math.abs(v)));
+
+        // --- AISC Chapter F Bending Strength (ASD) ---
+        const Cb = 1.14;
+        const Mp = Fy * Zx;           // kip·in
+        let Mn = Mp;
+        const Lp = 1.76 * rts * Math.sqrt(29000 / Fy);
+        const Lb_in = Lb * 12;
+        if (Lb_in > Lp) {
+            const Lb_rts = Lb_in / rts;
+            const Fcr = (Cb * Math.PI * Math.PI * 29000 / (Lb_rts * Lb_rts))
+                      * Math.sqrt(1 + 0.078 * (J / (Sx * ho)) * (Lb_rts * Lb_rts));
+            Mn = Math.min(Mp, Fcr * Sx);
+        }
+        const allowable_M = Math.min(Mp, Mn) / 12 / 1.67;  // kip·ft
+
+        // --- AISC Chapter G Shear Capacity (ASD) ---
+        const allowable_V = (0.6 * Fy * d * tw) / 1.50;    // kips
+
+        const ll_limit_in = L_in / ll_lim;
+        const tl_limit_in = L_in / tl_lim;
+
+        const ratio_M  = maxM_kft  / allowable_M;
+        const ratio_V  = maxV_kips / allowable_V;
+        const ratio_ll = maxD_LL   / ll_limit_in;
+        const ratio_tl = maxD_TL   / tl_limit_in;
+
+        const govRatio = Math.max(ratio_M, ratio_V, ratio_ll, ratio_tl);
+        if (govRatio > maxRatio) {
+            maxRatio = govRatio;
             controllingComboName = combo.name;
-            for (let i = 0; i <= steps; i++) {
-                envelopeV[i] = localV[i];
-                envelopeM[i] = localM[i];
-            }
+            absMaxM = maxM_kft;
+            absMaxV = maxV_kips;
+            envelopeV = V_arr.slice();
+            envelopeM = M_arr.slice();
+            summaryData = {
+                flexure: { ratio: ratio_M,  mathStr: `${maxM_kft.toFixed(1)} / ${allowable_M.toFixed(1)} k-ft` },
+                shear:   { ratio: ratio_V,  mathStr: `${maxV_kips.toFixed(1)} / ${allowable_V.toFixed(1)} kips` },
+                'll-defl': { ratio: ratio_ll, mathStr: `${maxD_LL.toFixed(3)}" / ${ll_limit_in.toFixed(2)}"` },
+                'tl-defl': { ratio: ratio_tl, mathStr: `${maxD_TL.toFixed(3)}" / ${tl_limit_in.toFixed(2)}"` }
+            };
         }
     });
 
-    // --- Service Level Deflection Checking Arrays ---
-    const deflLL = new Array(steps + 1).fill(0);
-    const deflTL = new Array(steps + 1).fill(0);
+    // --- Update UI ---
+    document.getElementById('controlling-comb-display').innerText =
+        `Governing Combo: ${controllingComboName} | M_max = ${absMaxM.toFixed(1)} k-ft | V_max = ${absMaxV.toFixed(1)} kips`;
 
-    parsedLoads.forEach(load => {
-        if (load.type === "Uniform" || load.type === "Trapezoid") {
-            const s = Math.max(0, Math.min(span, load.start));
-            const e = Math.max(s, Math.min(span, load.end));
-            const len = e - s;
-            if (len <= 0) return;
-
-            // For deflection use average of w1/w2 for trap (conservative approximation)
-            const L2 = load.L2 !== undefined ? load.L2 : load.L;
-            const D2 = load.D2 !== undefined ? load.D2 : load.D;
-            const S2 = load.S2 !== undefined ? load.S2 : load.S;
-            const w_ll_1 = load.L / 1000, w_ll_2 = L2 / 1000;
-            const w_tl_1 = (load.D + load.L + load.S) / 1000;
-            const w_tl_2 = (D2 + L2 + S2) / 1000;
-            const w_ll = (w_ll_1 + w_ll_2) / 2;
-            const w_tl = (w_tl_1 + w_tl_2) / 2;
-
-            for (let i = 0; i <= steps; i++) {
-                const x = xCoords[i];
-
-                const rb_ll = (w_ll * len * (s + len / 2)) / span;
-                let m_ll = (w_ll * len - rb_ll) * x;
-                if (x > s) m_ll -= 0.5 * w_ll * (x - s) * (x - s);
-                if (x > e) m_ll += 0.5 * w_ll * (x - e) * (x - e);
-
-                const rb_tl = (w_tl * len * (s + len / 2)) / span;
-                let m_tl = (w_tl * len - rb_tl) * x;
-                if (x > s) m_tl -= 0.5 * w_tl * (x - s) * (x - s);
-                if (x > e) m_tl += 0.5 * w_tl * (x - e) * (x - e);
-
-                deflLL[i] += m_ll; deflTL[i] += m_tl;
-            }
-        } else if (load.type === "Point") {
-            const pt = Math.max(0, Math.min(span, load.start));
-            for (let i = 0; i <= steps; i++) {
-                const x = xCoords[i];
-                const p_ll = load.L / 1000;
-                const p_tl = (load.D + load.L + load.S) / 1000;
-
-                let m_ll = (p_ll * (span - pt) / span) * x; if (x > pt) m_ll -= p_ll * (x - pt);
-                let m_tl = (p_tl * (span - pt) / span) * x; if (x > pt) m_tl -= p_tl * (x - pt);
-
-                deflLL[i] += m_ll; deflTL[i] += m_tl;
-            }
-        }
+    Object.entries(summaryData).forEach(([key, data]) => {
+        updateReportPill(key, data.ratio, data.mathStr);
     });
-
-    // Self weight profile deflection addition
-    for (let i = 0; i <= steps; i++) {
-        const x = xCoords[i];
-        const swKft = weightplf / 1000;
-        deflTL[i] += ((swKft * span / 2) * x) - (0.5 * swKft * x * x);
-    }
-
-    let peakLLD = 0, peakTLD = 0;
-    const EI = 29000 * Ix; // ksi * in^4 vector scaling
-
-    for (let i = 0; i <= steps; i++) {
-        const x = xCoords[i];
-        const factor = (x * (span - x)) / (2 * EI);
-        const dLL = Math.abs(deflLL[i] * factor * 1728); // Convert to inches
-        const dTL = Math.abs(deflTL[i] * factor * 1728);
-
-        if (dLL > peakLLD) peakLLD = dLL;
-        if (dTL > peakTLD) peakTLD = dTL;
-    }
-
-    // --- AISC Chapter F Bending Strength Specification (ASD) ---
-    const Cb = 1.14;
-    const Mp = Fy * Zx; // Kip-in
-    let Mn = Mp;
-
-    // Plastic limits for compact wide flanges
-    const Lp = 1.76 * rts * Math.sqrt(29000 / Fy);
-    const Lb_in = Lb * 12;
-
-    if (Lb_in > Lp) {
-        const Lb_rts = Lb_in / rts;
-        const Fcr = (Cb * Math.PI * Math.PI * 29000 / (Lb_rts * Lb_rts)) * Math.sqrt(1 + 0.078 * (J * 1.0 / (Sx * ho)) * (Lb_rts * Lb_rts));
-        Mn = Math.min(Mp, Fcr * Sx);
-    }
-    Mn = Math.min(Mp, Mn) / 12; // Convert nominal capacity back to Kip-ft
-    const allowable_M = Mn / 1.67;
-
-    // --- AISC Chapter G Shear Capacity (ASD) ---
-    const Aw = d * tw;
-    const Cv1 = 1.0; // Web standard verification coefficient for typical compact shapes
-    const Vn = 0.6 * Fy * Aw * Cv1;
-    const allowable_V = Vn / 1.50;
-
-    // Stress Utilization Ratios
-    const ratio_M = absMaxM / allowable_M;
-    const ratio_V = absMaxV / allowable_V;
-
-    const ll_limit_val = (span * 12) / parseFloat(document.getElementById('input-ll-lim').value);
-    const tl_limit_val = (span * 12) / parseFloat(document.getElementById('input-tl-lim').value);
-
-    const ratio_ll = peakLLD / ll_limit_val;
-    const ratio_tl = peakTLD / tl_limit_val;
-
-    // --- UI Layout Distribution Pipeline ---
-    document.getElementById('controlling-comb-display').innerText = `Governing Combo: ${controllingComboName} | M_max = ${absMaxM.toFixed(1)} k-ft | V_max = ${absMaxV.toFixed(1)} kips`;
-
-    updateReportPill('flexure', ratio_M, `${absMaxM.toFixed(1)} / ${allowable_M.toFixed(1)} k-ft`);
-    updateReportPill('shear', ratio_V, `${absMaxV.toFixed(1)} / ${allowable_V.toFixed(1)} kips`);
-    updateReportPill('ll-defl', ratio_ll, `${peakLLD.toFixed(3)}" / ${ll_limit_val.toFixed(2)}"`);
-    updateReportPill('tl-defl', ratio_tl, `${peakTLD.toFixed(3)}" / ${tl_limit_val.toFixed(2)}"`);
 
     document.getElementById('react-ra').innerText = `${Math.abs(envelopeV[0]).toFixed(1)} kips`;
-    document.getElementById('react-rb').innerText = `${Math.abs(envelopeV[steps]).toFixed(1)} kips`;
-
+    document.getElementById('react-rb').innerText = `${Math.abs(envelopeV[envelopeV.length - 1]).toFixed(1)} kips`;
     document.getElementById('label-max-v').innerText = `MAX: ${absMaxV.toFixed(1)} kips`;
     document.getElementById('label-max-m').innerText = `MAX: ${absMaxM.toFixed(1)} k-ft`;
 
