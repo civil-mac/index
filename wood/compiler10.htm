@@ -838,14 +838,14 @@ function drawBeamProfile(L) {
                 ctx.moveTo(pX - 4, beamY - 10); ctx.lineTo(pX, beamY - 2); ctx.lineTo(pX + 4, beamY - 10);
                 ctx.stroke();
             }
-        } else {
+        } else if (ld.type === 'uniform') {
             let sX = pad + (ld.start / L) * gWidth;
             let eX = pad + (ld.end / L) * gWidth;
             if(sX < pad) sX = pad; if(eX > pad+gWidth) eX = pad+gWidth;
 
             ctx.fillStyle = "rgba(52, 211, 153, 0.12)";
             ctx.strokeStyle = "var(--accent-green)"; ctx.lineWidth = 1;
-            
+
             ctx.beginPath();
             ctx.moveTo(sX, beamY - 2);
             ctx.lineTo(sX, arrowTop);
@@ -858,6 +858,38 @@ function drawBeamProfile(L) {
                 let arrowX = sX + (i / steps) * (eX - sX);
                 ctx.beginPath();
                 ctx.moveTo(arrowX, arrowTop); ctx.lineTo(arrowX, beamY - 2);
+                ctx.moveTo(arrowX - 3, beamY - 8); ctx.lineTo(arrowX, beamY - 2); ctx.lineTo(arrowX + 3, beamY - 8);
+                ctx.stroke();
+            }
+        } else if (ld.type === 'trap') {
+            let sX = pad + (ld.start / L) * gWidth;
+            let eX = pad + (ld.end / L) * gWidth;
+            if(sX < pad) sX = pad; if(eX > pad+gWidth) eX = pad+gWidth;
+
+            const mag1 = ld.d1 + ld.l1 + ld.s1 + ld.w1 + ld.e1;
+            const mag2 = ld.d2 + ld.l2 + ld.s2 + ld.w2 + ld.e2;
+            const maxMag = Math.max(mag1, mag2) || 1;
+
+            const topY1 = beamY - 2 - (mag1 / maxMag) * arrowH;
+            const topY2 = beamY - 2 - (mag2 / maxMag) * arrowH;
+
+            ctx.fillStyle = "rgba(251, 191, 36, 0.10)";
+            ctx.strokeStyle = "#fbbf24"; ctx.lineWidth = 1;
+
+            ctx.beginPath();
+            ctx.moveTo(sX, beamY - 2);
+            ctx.lineTo(sX, topY1);
+            ctx.lineTo(eX, topY2);
+            ctx.lineTo(eX, beamY - 2);
+            ctx.closePath(); ctx.fill(); ctx.stroke();
+
+            const steps = 5;
+            for (let i = 0; i <= steps; i++) {
+                const t = i / steps;
+                const arrowX = sX + t * (eX - sX);
+                const arrowTopY = topY1 + t * (topY2 - topY1);
+                ctx.beginPath();
+                ctx.moveTo(arrowX, arrowTopY); ctx.lineTo(arrowX, beamY - 2);
                 ctx.moveTo(arrowX - 3, beamY - 8); ctx.lineTo(arrowX, beamY - 2); ctx.lineTo(arrowX + 3, beamY - 8);
                 ctx.stroke();
             }
