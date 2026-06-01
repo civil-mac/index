@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ARI AT EVERYTHING</title>
+<meta name="description" content="1,177 tracks of fully improvised ARIatHOME music, properly shuffled.">
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js');
+  }
+</script>
+<style>
+:root {
+    --bg:        #080c14;
+    --surface:   #0f1623;
+    --border:    #1a2236;
+    --accent:    #6366f1;
+    --accent2:   #38bdf8;
+    --muted:     #3a4a63;
+    --text:      #e2e8f0;
+    --text-dim:  #64748b;
+    --text-faint:#2d3f58;
+    --now:       #38bdf8;
+    --radius:    12px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 0 40px;
+    /* subtle noise grain overlay */
+    background-image:
+        radial-gradient(ellipse 80% 50% at 50% -10%, rgba(99,102,241,0.12) 0%, transparent 70%),
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+}
+
+/* ── HEADER ─────────────────────────────────────────────────────────────── */
+#header {
+    width: 100%;
+    padding: 24px 20px 16px;
+    text-align: center;
+    position: relative;
+}
+
+.label-tag {
+    display: inline-block;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+    text-transform: uppercase;
+    border: 1px solid rgba(99,102,241,0.3);
+    border-radius: 4px;
+    padding: 3px 8px;
+    margin-bottom: 10px;
+}
+
+h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(1.8rem, 7vw, 2.8rem);
+    letter-spacing: 0.06em;
+    line-height: 1;
+    color: #ffffff;
+}
+
+/* ── PLAYER ──────────────────────────────────────────────────────────────── */
+#player-wrapper {
+    width: 100%;
+    max-width: 680px;
+    aspect-ratio: 16 / 9;
+    background: #000;
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.6), 0 0 0 1px var(--border);
+    margin: 0 auto 14px;
+    padding: 0 16px;
+    box-sizing: border-box;
+}
+
+#player-wrapper > div {
+    width: 100%;
+    height: 100%;
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+
+#player { width: 100%; height: 100%; display: block; }
+
+/* ── TRACK COUNTER ───────────────────────────────────────────────────────── */
+#info {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text-faint);
+    letter-spacing: 0.12em;
+    text-align: center;
+    margin-bottom: 12px;
+}
+
+/* ── CONTROLS ────────────────────────────────────────────────────────────── */
+.controls {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-bottom: 20px;
+    padding: 0 16px;
+    width: 100%;
+    max-width: 680px;
+}
+
+.btn {
+    flex: 1;
+    max-width: 200px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 14px 0;
+    border-radius: 10px;
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.btn:active { transform: scale(0.97); }
+
+.btn:hover {
+    background: #818cf8;
+    box-shadow: 0 0 20px rgba(99,102,241,0.4);
+}
+
+.btn.prev {
+    background: var(--surface);
+    border: 1px solid var(--border);
+}
+
+.btn.prev:hover { background: #1a2a42; }
+
+/* ── FEED CARD ───────────────────────────────────────────────────────────── */
+#feed-container {
+    width: calc(100% - 32px);
+    max-width: 648px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 24px;
+}
+
+#feed-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px 9px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(99,102,241,0.06);
+}
+
+#feed-header span {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+}
+
+#feed-header .dots {
+    display: flex;
+    gap: 5px;
+}
+
+#feed-header .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--border);
+}
+
+#feed-header .dot.live { background: #22c55e; animation: pulse-dot 2s infinite; }
+
+@keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+#feed-list {
+    list-style: none;
+}
+
+.feed-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 14px;
+    border-bottom: 1px solid rgba(26,34,54,0.7);
+    min-height: 40px;
+    overflow: hidden;
+}
+
+.feed-item:last-child { border-bottom: none; }
+
+.feed-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    flex-shrink: 0;
+    width: 64px;
+    text-align: right;
+}
+
+.feed-title {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+}
+
+/* Last played row */
+.feed-item.last-played .feed-label { color: var(--text-faint); }
+.feed-item.last-played .feed-title { color: var(--text-faint); font-style: italic; }
+
+/* Now playing row — marquee */
+.feed-item.now-playing {
+    background: linear-gradient(90deg, rgba(99,102,241,0.12) 0%, rgba(56,189,248,0.06) 100%);
+    border-left: 2px solid var(--accent);
+    padding-left: 12px;
+    border-bottom: 1px solid rgba(99,102,241,0.2);
+}
+
+.feed-item.now-playing .feed-label {
+    color: var(--accent);
+    font-weight: 500;
+}
+
+/* Marquee container */
+.marquee-wrap.short .marquee-inner {
+    animation: none;
+    padding-left: 0;
+    color: #ffffff; 
+}
+
+.marquee-wrap::before,
+.marquee-wrap::after {
+    content: '';
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 18px;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.marquee-wrap::before {
+    left: 0;
+    background: linear-gradient(to right, rgba(15,22,35,1), transparent);
+}
+
+.marquee-wrap::after {
+    right: 0;
+    background: linear-gradient(to left, rgba(15,22,35,1), transparent);
+}
+
+.marquee-inner {
+    display: inline-block;
+    white-space: nowrap;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: #ffffff; 
+    animation: marquee-scroll 18s linear infinite;
+    padding-left: 100%;
+}
+
+/* Only scroll if text is actually long — controlled via JS class */
+.marquee-wrap.short .marquee-inner {
+    animation: none;
+    padding-left: 0;
+    color: var(--now);
+}
+
+@keyframes marquee-scroll {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-100%); }
+}
+
+/* Next rows */
+.feed-item.next-track .feed-label { color: var(--text-faint); }
+.feed-item.next-track .feed-title { color: var(--text-dim); font-size: 0.76rem; }
+.feed-item.next-track:nth-child(4) .feed-title { color: #4a5a72; }
+.feed-item.next-track:nth-child(5) .feed-title { color: #36465c; }
+.feed-item.next-track:nth-child(6) .feed-title { color: #2a3849; }
+.feed-item.next-track:nth-child(7) .feed-title { color: #1e2a38; }
+
+/* ── SEARCH INTERFACE ARCHITECTURE ──────────────────────────────────────── */
+.search-container-frame {
+    width: calc(100% - 32px);
+    max-width: 648px;
+    margin: 0 auto 24px;
+}
+
+.search-input-wrapper {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.search-field-element {
+    flex: 1;
+    padding: 14px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: var(--radius);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.88rem;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.search-field-element:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 12px rgba(99,102,241,0.15);
+}
+
+.search-action-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 0 24px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.35rem;
+    letter-spacing: 0.06em;
+    transition: background 0.15s, transform 0.1s;
+}
+
+.search-action-btn:hover { background: #818cf8; }
+.search-action-btn:active { transform: scale(0.97); }
+
+#search-scroll-viewport {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    max-height: 380px;
+    overflow-y: auto;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+}
+
+#search-runtime-status {
+    padding: 12px 16px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--border);
+    background: rgba(8,12,20,0.5);
+}
+
+.search-pool-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 13px 16px;
+    border-bottom: 1px solid rgba(26,34,54,0.6);
+    cursor: pointer;
+    transition: background 0.12s;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.search-pool-row:last-child { border-bottom: none; }
+
+.search-pool-row:hover {
+    background: linear-gradient(90deg, rgba(99,102,241,0.08) 0%, transparent 100%);
+}
+
+.slot-text-payload {
+    font-size: 0.82rem;
+    color: var(--text);
+    font-weight: 400;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-right: 16px;
+    flex: 1;
+}
+
+.slot-badge-indicator {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.64rem;
+    color: var(--accent2);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border: 1px solid rgba(56,189,248,0.22);
+    padding: 4px 8px;
+    border-radius: 5px;
+    background: rgba(56,189,248,0.03);
+    flex-shrink: 0;
+}
+
+/* ── DESCRIPTION (fine print, below feed) ────────────────────────────────── */
+#description {
+    width: calc(100% - 32px);
+    max-width: 648px;
+    font-size: 0.68rem;
+    line-height: 1.65;
+    color: #2d3f58;
+    text-align: center;
+    padding: 0 4px;
+}
+</style>
+</head>
+<body>
+
+<audio id="silent-audio-track"
+    src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAAAA"
+    loop preload="auto"></audio>
+
+<div id="header">
+    <div class="label-tag">Improv Music Playlist Shuffler</div>
+    <h1>ARI AT EVERYTHING</h1>
+</div>
+
+<div id="player-wrapper">
+    <div><div id="player"></div></div>
+</div>
+
+<div id="info">Track 1 of 1177</div>
+
+<div class="controls">
+    <button class="btn prev" id="btn-prev" onclick="prevTrack()">&#9664; Prev</button>
+    <button class="btn" onclick="nextTrack()">Next &#9654;</button>
+</div>
+
+<div id="feed-container">
+    <div id="feed-header">
+        <span>Live Activity Feed</span>
+        <div class="dots">
+            <div class="dot live"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+        </div>
+    </div>
+    <ul id="feed-list"></ul>
+</div>
+
+<div class="search-container-frame">
+    <div class="search-input-wrapper">
+        <input type="text" id="search-field-input" placeholder="Type title keywords or track numbers..." onkeydown="if(event.key === 'Enter') executeClientQuery();" autocomplete="off">
+        <button class="search-action-btn" onclick="executeClientQuery();">SEARCH</button>
+    </div>
+
+    <div id="search-scroll-viewport" style="display: none;">
+        <div id="search-runtime-status" style="display: none;"></div>
+        <div id="dynamic-slots-envelope"></div>
+    </div>
+</div>
+
+<p id="description">
+    All music by ARIatHOME &mdash; fully improvised on the spot. Hand-picked by @civil_mac.
+    Compiled from @civil_mac, @ariathome2 (2026), @ARIatHOMEUnofficial (2021&ndash;2025),
+    @ARIatHOMEMusic and others, including fan-edited releases, unedited IRL and @Home content
+    from previous ARIatHOME streams.
+</p>
+
+<script>
+// ── DATA ─────────────────────────────────────────────────────────────────────
+const masterList = ["Gyc0PQqhB68","..."];
+
+const masterTrackMap = {"Gyc0PQqhB68":"Clap With Me (feat. dream_rockyloves) [Fan Edited ARIatHOME Song]","..."};
+
+// ── STATE ────────────────────────────────────────────────────────────────────
+let pool = [];
+let currentIndex = 0;
+let currentTrackTitle = '';
+let player = null;
+
+// ── FISHER-YATES SHUFFLE ─────────────────────────────────────────────────────
+function shufflePool() {
+    pool = [...masterList];
+    for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    currentIndex = 0;
+}
+
+// ── NAVIGATION ───────────────────────────────────────────────────────────────
+function nextTrack() {
+    if (!pool || pool.length === 0) return;
+    currentIndex = (currentIndex < pool.length - 1) ? currentIndex + 1 : 0;
+    keepSilentAudioAlive();
+    playCurrentTrack();
+}
+
+function prevTrack() {
+    if (!pool || pool.length === 0 || currentIndex === 0) return;
+    currentIndex--;
+    keepSilentAudioAlive();
+    playCurrentTrack();
+}
+
+// ── SILENT AUDIO KEEPALIVE ───────────────────────────────────────────────────
+function keepSilentAudioAlive() {
+    const sa = document.getElementById('silent-audio-track');
+    if (sa && sa.paused) sa.play().catch(() => {});
+}
+
+// ── PLAYBACK ─────────────────────────────────────────────────────────────────
+function playCurrentTrack() {
+    const videoId = pool[currentIndex];
+    if (!videoId) return;
+    currentTrackTitle = masterTrackMap[videoId] || videoId;
+
+    if (player && typeof player.loadVideoById === 'function') {
+        player.loadVideoById({ videoId });
+    }
+
+    document.getElementById('info').innerText =
+        'Track ' + (currentIndex + 1) + ' of ' + pool.length;
+
+    updateFeedUI();
+    updatePrevButton();
+
+    if ('mediaSession' in navigator) {
+        navigator.mediaSession.metadata = new MediaMetadata({
+            title: currentTrackTitle,
+            artist: 'ARIatHOME',
+            album: 'ARI AT EVERYTHING'
+        });
+    }
+}
+
+// ── MEDIA SESSION POSITION HEARTBEAT ─────────────────────────────────────────
+let positionTimer = null;
+
+function startPositionHeartbeat() {
+    stopPositionHeartbeat();
+    sendPositionState(); 
+    positionTimer = setInterval(sendPositionState, 5000);
+}
+
+function stopPositionHeartbeat() {
+    if (positionTimer) { clearInterval(positionTimer); positionTimer = null; }
+}
+
+function sendPositionState() {
+    if (!player || typeof player.getCurrentTime !== 'function') return;
+    if (player.getPlayerState() !== YT.PlayerState.PLAYING) return;
+    if (!('mediaSession' in navigator) || !navigator.mediaSession.setPositionState) return;
+    const position = player.getCurrentTime();
+    const duration = player.getDuration();
+    if (duration > 0) {
+        try {
+            navigator.mediaSession.setPositionState({
+                duration: duration,
+                playbackRate: 1,
+                position: Math.min(position, duration)
+            });
+        } catch(e) {}
+    }
+}
+
+// ── VISIBILITY CHANGE ────────────────────────────────────────────────────────
+document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'hidden') {
+        keepSilentAudioAlive();
+        sendPositionState();
+    } else {
+        if (player && player.getPlayerState() === YT.PlayerState.PLAYING) {
+            startPositionHeartbeat();
+        }
+    }
+});
+
+// ── YOUTUBE IFRAME API CALLBACK ───────────────────────────────────────────────
+function onYouTubeIframeAPIReady() {
+    shufflePool();
+    const firstVideoId = pool[0];
+    currentTrackTitle = masterTrackMap[firstVideoId] || firstVideoId;
+
+    player = new YT.Player('player', {
+        videoId: firstVideoId,
+        playerVars: { autoplay: 1, controls: 1, modestbranding: 1, rel: 0 },
+        events: {
+            onReady: function(e) {
+                e.target.playVideo();
+                updateFeedUI();
+                updatePrevButton();
+            },
+            onStateChange: function(e) {
+                if (e.data === YT.PlayerState.PLAYING) {
+                    keepSilentAudioAlive();
+                    startPositionHeartbeat();
+                    if ('mediaSession' in navigator)
+                        navigator.mediaSession.playbackState = 'playing';
+                } else if (e.data === YT.PlayerState.PAUSED) {
+                    stopPositionHeartbeat();
+                    if ('mediaSession' in navigator)
+                        navigator.mediaSession.playbackState = 'paused';
+                } else if (e.data === YT.PlayerState.ENDED) {
+                    stopPositionHeartbeat();
+                    nextTrack();
+                }
+            }
+        }
+    });
+}
+
+// ── FEED UI ───────────────────────────────────────────────────────────────────
+function updateFeedUI() {
+    const feedList = document.getElementById('feed-list');
+    if (!feedList) return;
+    feedList.innerHTML = '';
+
+    // Slot 1: Last Played
+    const liPrev = document.createElement('li');
+    liPrev.className = 'feed-item last-played';
+    const prevTitle = (currentIndex > 0)
+        ? (masterTrackMap[pool[currentIndex - 1]] || pool[currentIndex - 1])
+        : '---';
+    liPrev.innerHTML =
+        '<span class="feed-label">Last</span>' +
+        '<span class="feed-title">' + prevTitle + '</span>';
+    feedList.appendChild(liPrev);
+
+    // Slot 2: Now Playing (marquee)
+    const liNow = document.createElement('li');
+    liNow.className = 'feed-item now-playing';
+    const nowTitle = currentTrackTitle || 'Loading...';
+    const isShort = nowTitle.length < 32;
+    liNow.innerHTML =
+        '<span class="feed-label">&#9654;&nbsp;Now</span>' +
+        '<div class="marquee-wrap' + (isShort ? ' short' : '') + '">' +
+            '<span class="marquee-inner">' + nowTitle + '</span>' +
+        '</div>';
+    feedList.appendChild(liNow);
+
+    // Slots 3-7: Next 1-5 (fade out progressively)
+    for (let i = 1; i <= 5; i++) {
+        const li = document.createElement('li');
+        li.className = 'feed-item next-track';
+        const idx = currentIndex + i;
+        const title = (idx < pool.length)
+            ? (masterTrackMap[pool[idx]] || pool[idx])
+            : '---';
+        li.innerHTML =
+            '<span class="feed-label">+' + i + '</span>' +
+            '<span class="feed-title">' + title + '</span>';
+        feedList.appendChild(li);
+    }
+}
+
+// ── PREV BUTTON DIMMING ───────────────────────────────────────────────────────
+function updatePrevButton() {
+    const btn = document.getElementById('btn-prev');
+    if (!btn) return;
+    btn.style.opacity = (currentIndex === 0) ? '0.3' : '1';
+    btn.style.cursor  = (currentIndex === 0) ? 'not-allowed' : 'pointer';
+}
+
+// ── ANDROID MEDIA SESSION CONTROLS ───────────────────────────────────────────
+if ('mediaSession' in navigator) {
+    try {
+        navigator.mediaSession.setActionHandler('play', function() {
+            keepSilentAudioAlive();
+            if (player && typeof player.playVideo === 'function') player.playVideo();
+            navigator.mediaSession.playbackState = 'playing';
+        });
+        navigator.mediaSession.setActionHandler('pause', function() {
+            const sa = document.getElementById('silent-audio-track');
+            if (sa) sa.pause();
+            if (player && typeof player.pauseVideo === 'function') player.pauseVideo();
+            navigator.mediaSession.playbackState = 'paused';
+        });
+        navigator.mediaSession.setActionHandler('nexttrack', function() { nextTrack(); });
+        navigator.mediaSession.setActionHandler('previoustrack', function() { prevTrack(); });
+    } catch(e) {}
+}
+
+// ── RECYCLABLE 1,000-SLOT MEMORY SEARCH ENGINE ─────────────────────────────
+let queryMatches = [];
+const STATIC_SLOT_LIMIT = 1000;
+
+(function initializeSearchEngine() {
+    const envelope = document.getElementById('dynamic-slots-envelope');
+    if (!envelope) return;
+
+    const frag = document.createDocumentFragment();
+    for (let i = 0; i < STATIC_SLOT_LIMIT; i++) {
+        const row = document.createElement('div');
+        row.id = `search-row-${i}`;
+        row.className = 'search-pool-row';
+        row.style.display = 'none';
+
+        const label = document.createElement('span');
+        label.className = 'slot-text-payload';
+
+        const badge = document.createElement('span');
+        badge.className = 'slot-badge-indicator';
+        badge.textContent = '⚡ Shuffle From Here';
+
+        row.appendChild(label);
+        row.appendChild(badge);
+        frag.appendChild(row);
+    }
+    envelope.appendChild(frag);
+})();
+
+function executeClientQuery() {
+    const fieldInput = document.getElementById('search-field-input');
+    const viewport = document.getElementById('search-scroll-viewport');
+    if (!fieldInput || !viewport) return;
+
+    const queryToken = fieldInput.value.toLowerCase().trim();
+    queryMatches = [];
+
+    if (queryToken === '') {
+        viewport.style.display = 'none';
+        clearActiveSearchSlots();
+        return;
+    }
+
+    const totalTracks = masterList.length;
+    for (let i = 0; i < totalTracks; i++) {
+        const currentId = masterList[i];
+        const nominalTitle = masterTrackMap[currentId] || '';
+        const sequenceHeader = `track #${i + 1}`;
+        const searchBlob = `${sequenceHeader} ${currentId} ${nominalTitle}`.toLowerCase();
+
+        if (searchBlob.includes(queryToken)) {
+            queryMatches.push({
+                id: currentId,
+                displayText: nominalTitle ? `${sequenceHeader}: ${nominalTitle}` : `${sequenceHeader} (${currentId})`
+            });
+        }
+    }
+
+    viewport.style.display = 'block';
+    renderSyncSlotsUI();
+}
+
+function renderSyncSlotsUI() {
+    for (let i = 0; i < STATIC_SLOT_LIMIT; i++) {
+        const slotDOMNode = document.getElementById(`search-row-${i}`);
+        if (!slotDOMNode) continue;
+
+        const recordMatch = queryMatches[i];
+
+        if (recordMatch) {
+            slotDOMNode.querySelector('.slot-text-payload').textContent = recordMatch.displayText;
+            slotDOMNode.style.display = 'flex';
+
+            slotDOMNode.onclick = function() {
+                executeInstantTargetShuffle(recordMatch.id);
+                
+                // Clear state panels on execution complete
+                document.getElementById('search-scroll-viewport').style.display = 'none';
+                document.getElementById('search-field-input').value = '';
+                clearActiveSearchSlots();
+            };
+        } else {
+            slotDOMNode.style.display = 'none';
+            slotDOMNode.onclick = null;
+        }
+    }
+
+    const statusDOMNode = document.getElementById('search-runtime-status');
+    if (statusDOMNode) {
+        if (queryMatches.length === 0) {
+            statusDOMNode.textContent = "No matching improvisations found.";
+            statusDOMNode.style.display = 'block';
+        } else if (queryMatches.length > STATIC_SLOT_LIMIT) {
+            statusDOMNode.textContent = `Displaying top 1,000 of ${queryMatches.length} total matches.`;
+            statusDOMNode.style.display = 'block';
+        } else {
+            statusDOMNode.textContent = `Discovered ${queryMatches.length} matches.`;
+            statusDOMNode.style.display = 'block';
+        }
+    }
+}
+
+function executeInstantTargetShuffle(selectedVideoId) {
+    // 1. Strip selected track fully out of master deck archive
+    let remainingTracks = masterList.filter(id => id !== selectedVideoId);
+
+    // 2. Compute fresh Fisher-Yates shuffle pass relative to the rest of the cards
+    for (let i = remainingTracks.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [remainingTracks[i], remainingTracks[j]] = [remainingTracks[j], remainingTracks[i]];
+    }
+
+    // 3. Force selection element directly into front slot index position, rewrite playback pool history
+    pool = [selectedVideoId, ...remainingTracks];
+    currentIndex = 0;
+
+    // 4. Force state update engine pipeline reload synchronization
+    keepSilentAudioAlive();
+    playCurrentTrack();
+    
+    // Smooth scroll the viewport back to top focus so player window is in view
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function clearActiveSearchSlots() {
+    for (let i = 0; i < STATIC_SLOT_LIMIT; i++) {
+        const slotElement = document.getElementById(`search-row-${i}`);
+        if (slotElement) {
+            slotElement.style.display = 'none';
+            slotElement.onclick = null;
+        }
+    }
+    const statusElement = document.getElementById('search-runtime-status');
+    if (statusElement) statusElement.style.display = 'none';
+}
+
+// ── LOAD YOUTUBE IFRAME API ───────────────────────────────────────────────────
+(function() {
+    var tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    document.head.appendChild(tag);
+})();
+</script>
+</body>
+</html>
