@@ -39,7 +39,6 @@ body {
     flex-direction: column;
     align-items: center;
     padding: 0 0 40px;
-    /* subtle noise grain overlay */
     background-image:
         radial-gradient(ellipse 80% 50% at 50% -10%, rgba(99,102,241,0.12) 0%, transparent 70%),
         url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
@@ -485,7 +484,7 @@ h1 {
 
 <div class="search-container-frame">
     <form class="search-input-wrapper" onsubmit="handleSearchSubmit(event);">
-        <input type="text" id="search-field-input" class="search-field-element" placeholder="Type keywords or track numbers..." autocomplete="off">
+        <input type="text" id="search-field-input" class="search-field-element" placeholder="Type title keywords or track numbers..." oninput="executeClientQuery();" autocomplete="off">
         <button type="submit" class="search-action-btn">Search</button>
     </form>
 
@@ -631,10 +630,7 @@ function onYouTubeIframeAPIReady() {
         },
         events: {
             onReady: function(e) {
-                // Try executing play directly
-                var playPromise = e.target.playVideo();
-                
-                // Track meta numbers and feed right away even if browser halts visual playback
+                e.target.playVideo();
                 updateFeedUI();
                 updatePrevButton();
                 
@@ -689,7 +685,7 @@ function updateFeedUI() {
         '</div>';
     feedList.appendChild(liNow);
 
-    // Slots 3-7: Next 1-5 (fade out progressively)
+    // Slots 3-7: Next 1-5
     for (let i = 1; i <= 5; i++) {
         const li = document.createElement('li');
         li.className = 'feed-item next-track';
@@ -737,11 +733,8 @@ const STATIC_SLOT_LIMIT = 1000;
 
 function initializeSearchEngine() {
     const envelope = document.getElementById('dynamic-slots-envelope');
-    if (!envelope) {
-        console.log("Search DOM elements not ready yet. Retrying...");
-        return;
-    }
-    envelope.innerHTML = ''; // Wipe out any partial items safely
+    if (!envelope) return;
+    envelope.innerHTML = ''; 
 
     const frag = document.createDocumentFragment();
     for (let i = 0; i < STATIC_SLOT_LIMIT; i++) {
@@ -762,14 +755,18 @@ function initializeSearchEngine() {
         frag.appendChild(row);
     }
     envelope.appendChild(frag);
-    console.log("Successfully built 1,000-slot search viewport.");
 }
 
-// FORCE THE INITIALIZER TO WAIT UNTIL ALL HTML IS BUILT BY THE BROWSER
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initializeSearchEngine);
 } else {
     initializeSearchEngine();
+}
+
+// FIXED: Handles form submit actions gracefully without refreshing page
+function handleSearchSubmit(event) {
+    if (event) event.preventDefault();
+    executeClientQuery();
 }
 
 function executeClientQuery() {
@@ -780,16 +777,15 @@ function executeClientQuery() {
     const queryToken = fieldInput.value.toLowerCase().trim();
     queryMatches = [];
 
-    // If the box is cleared, hide the window entirely
     if (queryToken === '') {
         viewport.style.display = 'none';
         clearActiveSearchSlots();
         return;
     }
 
-    // Safely iterate through tracks while mapping their true positional index
     let trackingIndex = 1;
-    for (let i = 0; i < masterList.length; i++) {
+    const totalTracks = masterList.length;
+    for (let i = 0; i < totalTracks; i++) {
         const currentId = masterList[i];
         if (!currentId || currentId === '...') continue;
 
@@ -806,7 +802,6 @@ function executeClientQuery() {
         trackingIndex++;
     }
 
-    // Unhide the window frame because we have active input text
     viewport.style.display = 'block';
     renderSyncSlotsUI();
 }
@@ -822,7 +817,6 @@ function renderSyncSlotsUI() {
             slotDOMNode.querySelector('.slot-text-payload').textContent = recordMatch.displayText;
             slotDOMNode.style.display = 'flex';
 
-            // When clicked, clear search context and trigger immediate target playback
             slotDOMNode.onclick = function() {
                 executeInstantTargetShuffle(recordMatch.id);
                 document.getElementById('search-scroll-viewport').style.display = 'none';
@@ -860,111 +854,16 @@ function executeInstantTargetShuffle(selectedVideoId) {
         }
     }
 
-    // Scramble the rest of the pool completely
     for (let i = remainingTracks.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [remainingTracks[i], remainingTracks[j]] = [remainingTracks[j], remainingTracks[i]];
     }
 
-    // Force selected song directly into slot #1, then attach the fresh deck behind it
     pool = [selectedVideoId, ...remainingTracks];
     currentIndex = 0;
 
     keepSilentAudioAlive();
     playCurrentTrack();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-function clearActiveSearchSlots() {
-    for (let i = 0; i < STATIC_SLOT_LIMIT; i++) {
-        const slotElement = document.getElementById(`search-row-${i}`);
-        if (slotElement) {
-            slotElement.style.display = 'none';
-            slotElement.onclick = null;
-        }
-    }
-    const statusElement = document.getElementById('search-runtime-status');
-    if (statusElement) statusElement.style.display = 'none';
-}
-
-    const totalTracks = masterList.length;
-    for (let i = 0; i < totalTracks; i++) {
-        const currentId = masterList[i];
-        const nominalTitle = masterTrackMap[currentId] || '';
-        const sequenceHeader = `track #${i + 1}`;
-        const searchBlob = `${sequenceHeader} ${currentId} ${nominalTitle}`.toLowerCase();
-
-        if (searchBlob.includes(queryToken)) {
-            queryMatches.push({
-                id: currentId,
-                displayText: nominalTitle ? `${sequenceHeader}: ${nominalTitle}` : `${sequenceHeader} (${currentId})`
-            });
-        }
-    }
-
-    viewport.style.display = 'block';
-    renderSyncSlotsUI();
-}
-
-function renderSyncSlotsUI() {
-    for (let i = 0; i < STATIC_SLOT_LIMIT; i++) {
-        const slotDOMNode = document.getElementById(`search-row-${i}`);
-        if (!slotDOMNode) continue;
-
-        const recordMatch = queryMatches[i];
-
-        if (recordMatch) {
-            slotDOMNode.querySelector('.slot-text-payload').textContent = recordMatch.displayText;
-            slotDOMNode.style.display = 'flex';
-
-            slotDOMNode.onclick = function() {
-                executeInstantTargetShuffle(recordMatch.id);
-                
-                // Clear state panels on execution complete
-                document.getElementById('search-scroll-viewport').style.display = 'none';
-                document.getElementById('search-field-input').value = '';
-                clearActiveSearchSlots();
-            };
-        } else {
-            slotDOMNode.style.display = 'none';
-            slotDOMNode.onclick = null;
-        }
-    }
-
-    const statusDOMNode = document.getElementById('search-runtime-status');
-    if (statusDOMNode) {
-        if (queryMatches.length === 0) {
-            statusDOMNode.textContent = "No matching improvisations found.";
-            statusDOMNode.style.display = 'block';
-        } else if (queryMatches.length > STATIC_SLOT_LIMIT) {
-            statusDOMNode.textContent = `Displaying top 1,000 of ${queryMatches.length} total matches.`;
-            statusDOMNode.style.display = 'block';
-        } else {
-            statusDOMNode.textContent = `Discovered ${queryMatches.length} matches.`;
-            statusDOMNode.style.display = 'block';
-        }
-    }
-}
-
-function executeInstantTargetShuffle(selectedVideoId) {
-    // 1. Strip selected track fully out of master deck archive
-    let remainingTracks = masterList.filter(id => id !== selectedVideoId);
-
-    // 2. Compute fresh Fisher-Yates shuffle pass relative to the rest of the cards
-    for (let i = remainingTracks.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [remainingTracks[i], remainingTracks[j]] = [remainingTracks[j], remainingTracks[i]];
-    }
-
-    // 3. Force selection element directly into front slot index position, rewrite playback pool history
-    pool = [selectedVideoId, ...remainingTracks];
-    currentIndex = 0;
-
-    // 4. Force state update engine pipeline reload synchronization
-    keepSilentAudioAlive();
-    playCurrentTrack();
-    
-    // Smooth scroll the viewport back to top focus so player window is in view
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
