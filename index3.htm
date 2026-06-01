@@ -482,6 +482,10 @@ h1 {
     </div>
 </div>
 
+<div>
+<button class="btn" onclick="triggerMobilePiP()">Mini Player</button>
+</div>
+  
 <p id="description">
     All music by ARIatHOME &mdash; fully improvised on the spot. Hand-picked by @civil_mac.
     Compiled from @civil_mac, @ariathome2 (2026), @ARIatHOMEUnofficial (2021&ndash;2025),
@@ -873,6 +877,24 @@ function clearActiveSearchSlots() {
     tag.src = 'https://www.youtube.com/iframe_api';
     document.head.appendChild(tag);
 })();
+
+  function triggerMobilePiP() {
+    // Look for the native video element inside the YouTube iframe (if accessible by browser policy)
+    const iframe = document.getElementById('player');
+    if (!iframe) return;
+
+    try {
+        // Attempt to request PiP directly if the browser allows cross-origin frame interaction
+        if (document.pictureInPictureEnabled) {
+            // Note: True iframe isolation can sometimes block this. 
+            // If it does, the absolute fallback is Method #2 below.
+            iframe.requestPictureInPicture();
+        }
+    } catch (e) {
+        console.log("Native iframe PiP blocked by cross-origin policies. Use Android system gestures instead.");
+    }
+}
+  
 </script>
 </body>
 </html>
