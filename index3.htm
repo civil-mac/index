@@ -615,17 +615,31 @@ document.addEventListener('visibilitychange', function() {
 // ── YOUTUBE IFRAME API CALLBACK ───────────────────────────────────────────────
 function onYouTubeIframeAPIReady() {
     shufflePool();
+    if (pool.length === 0) return;
+    
     const firstVideoId = pool[0];
     currentTrackTitle = masterTrackMap[firstVideoId] || firstVideoId;
 
     player = new YT.Player('player', {
         videoId: firstVideoId,
-        playerVars: { autoplay: 1, controls: 1, modestbranding: 1, rel: 0 },
+        playerVars: { 
+            autoplay: 1, 
+            controls: 1, 
+            modestbranding: 1, 
+            rel: 0,
+            playsinline: 1
+        },
         events: {
             onReady: function(e) {
-                e.target.playVideo();
+                // Try executing play directly
+                var playPromise = e.target.playVideo();
+                
+                // Track meta numbers and feed right away even if browser halts visual playback
                 updateFeedUI();
                 updatePrevButton();
+                
+                document.getElementById('info').innerText =
+                    'Track ' + (currentIndex + 1) + ' of ' + pool.length;
             },
             onStateChange: function(e) {
                 if (e.data === YT.PlayerState.PLAYING) {
