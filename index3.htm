@@ -188,13 +188,6 @@ h1 {
     background: var(--border);
 }
 
-#feed-header .dot.live { background: #22c55e; animation: pulse-dot 2s infinite; }
-
-@keyframes pulse-dot {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
-}
-
 #feed-list {
     list-style: none;
 }
@@ -473,10 +466,6 @@ h1 {
 <div id="feed-container">
     <div id="feed-header">
         <span>Live Activity Feed</span>
-        <div class="dots">
-            <div class="dot live"></div>
-            <div class="dot"></div>
-            <div class="dot"></div>
         </div>
     </div>
     <ul id="feed-list"></ul>
