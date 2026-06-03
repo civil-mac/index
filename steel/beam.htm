@@ -1103,7 +1103,7 @@ const parsedLoads = parseInputLoads();
             for (let i = 0; i <= 5; i++) {
                 const t = i / 5;
                 const arrowX = sX + t * (eX - sX);
-                const arrowTop = topY1 + t * (topY2 topY1);
+                const arrowTop = topY1 + t * (topY2 - topY1);
                 ctx.beginPath();
                 ctx.moveTo(arrowX, arrowTop);
                 ctx.lineTo(arrowX, beamY - 2);
