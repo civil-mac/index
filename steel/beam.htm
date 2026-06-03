@@ -670,54 +670,57 @@ function calculateCbFromSegments(M_arr, Lb, span) {
     if (Lb <= 0 || span <= 0) return 1.14;
     if (Lb > span) Lb = span;
 
-    let absoluteMaxM = 0;
-    M_arr.forEach(v => { if (Math.abs(v) > absoluteMaxM) absoluteMaxM = Math.abs(v); });
-    if (absoluteMaxM === 0) return 1.0;
-
-    const nSteps = M_arr.length - 1;
-
     let bracePoints = [];
     for (let pos = 0; pos < span; pos += Lb) {
         bracePoints.push(pos);
     }
-    bracePoints.push(span);
 
-    let braceIndices = bracePoints.map(pos => Math.round((pos / span) * nSteps));
-    
-    braceIndices = [...new Set(braceIndices)];
+    if (Math.abs(bracePoints[bracePoints.length - 1] - span) > 0.001) {
+        bracePoints.push(span);
+    }
 
+    const nSteps = M_arr.length - 1;
+    const step_ft = span / nSteps;
     let minCbFound = 3.0;
 
-    for (let k = 0; k < braceIndices.length - 1; k++) {
-        let start = braceIndices[k];
-        let end = braceIndices[k + 1];
+    for (let k = 0; k < bracePoints.length - 1; k++) {
+        let xStart = bracePoints[k];
+        let xEnd = bracePoints[k + 1];
+        let segLen = xEnd - xStart;
 
-        if ((end - start) < Math.round((Lb / span) * nSteps)) {
-            start = Math.max(0, end - Math.round((Lb / span) * nSteps));
+        if (segLen < Lb && xEnd === span) {
+            xStart = Math.max(0, span - Lb);
+            segLen = xEnd - xStart;
         }
 
+        let xA = xStart + 0.25 * segLen;
+        let xB = xStart + 0.50 * segLen;
+        let xC = xStart + 0.75 * segLen;
+
+        let idxStart = Math.round(xStart / step_ft);
+        let idxEnd = Math.round(xEnd / step_ft);
+        let idxA = Math.round(xA / step_ft);
+        let idxB = Math.round(xB / step_ft);
+        let idxC = Math.round(xC / step_ft);
+
         let M_max_seg = 0;
-        for (let j = start; j <= end; j++) {
+        for (let j = idxStart; j <= idxEnd; j++) {
             let val = Math.abs(M_arr[j] || 0);
             if (val > M_max_seg) M_max_seg = val;
         }
 
-        if (M_max_seg > 0) {
-            let segmentWidth = end - start;
-            let stepA = Math.round(start + 0.25 * segmentWidth);
-            let stepB = Math.round(start + 0.50 * segmentWidth);
-            let stepC = Math.round(start + 0.75 * segmentWidth);
+        if (M_max_seg === 0) continue;
 
-            let M_A = Math.abs(M_arr[stepA] || 0);
-            let M_B = Math.abs(M_arr[stepB] || 0);
-            let M_C = Math.abs(M_arr[stepC] || 0);
+        let M_A = Math.abs(M_arr[idxA] || 0);
+        let M_B = Math.abs(M_arr[idxB] || 0);
+        let M_C = Math.abs(M_arr[idxC] || 0);
 
-            let Cb_seg = (12.5 * M_max_seg) / (2.5 * M_max_seg + 3 * M_A + 4 * M_B + 3 * M_C);
-            Cb_seg = Math.min(3.0, Math.max(1.0, Cb_seg));
+        // 6. AISC Formula
+        let Cb_seg = (12.5 * M_max_seg) / (2.5 * M_max_seg + 3 * M_A + 4 * M_B + 3 * M_C);
+        Cb_seg = Math.min(3.0, Math.max(1.0, Cb_seg));
 
-            if (Cb_seg < minCbFound) {
-                minCbFound = Cb_seg;
-            }
+        if (Cb_seg < minCbFound) {
+            minCbFound = Cb_seg;
         }
     }
 
