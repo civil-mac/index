@@ -597,7 +597,6 @@ function toggleRowFields(rowId) {
     if (type === 'Point') {
         endInput.disabled = true;
         endInput.style.opacity = "0.2";
-        // Restore single inputs if coming from trap
         loadFields.forEach(f => {
             const col = row.querySelector(`.${f}-col`);
             const existing = col.querySelector('.lc-input');
@@ -667,13 +666,6 @@ function parseInputLoads() {
     return loads;
 }
 
-// --- AISC Steel Analysis Engine Core ---
-// Reaction solver uses 1-element Euler-Bernoulli FEM assembly pattern.
-// For a single simply-supported span this produces identical results to
-// direct statics — the stiffness matrix reduces to the same equations.
-// The architecture is forward-compatible with multi-span: adding spans
-// means assembling more elements into a larger K matrix, with the solver
-// and all downstream code unchanged.
 function run() {
     const span = parseFloat(document.getElementById('input-span').value) || 0;
     const Lb   = parseFloat(document.getElementById('input-lb').value)   || 0;
@@ -691,7 +683,7 @@ function run() {
 
     if (span <= 0 || d <= 0 || Ix <= 0 || Sx <= 0) return;
 
-    const EI            = 29000 * Ix;   // kip·in²
+    const EI            = 29000 * Ix; 
     const L_in          = span * 12;
     const ll_lim        = parseFloat(document.getElementById('input-ll-lim').value) || 240;
     const tl_lim        = parseFloat(document.getElementById('input-tl-lim').value) || 360;
@@ -870,19 +862,15 @@ function run() {
             envelopeV            = V_arr.slice();
             envelopeM            = M_arr.slice();
             summaryData = {
-                flexure:   { ratio: ratio_M,  mathStr: `${maxM_kft.toFixed(1)} / ${allowable_M.toFixed(1)} k-ft` },
+                flexure:   { ratio: ratio_M,  mathStr: `${maxM_kft.toFixed(1)} / ${allowable_M.toFixed(1)} k-ft`, cbVal: Cb }, // <-- ADD cbVal HERE
                 shear:     { ratio: ratio_V,  mathStr: `${maxV_kips.toFixed(1)} / ${allowable_V.toFixed(1)} kips` },
                 'tl-defl': { ratio: ratio_tl, mathStr: `${maxD_TL.toFixed(3)}" / ${tl_limit_in.toFixed(2)}"` },
                 'll-defl': { ratio: ratio_ll, mathStr: `${maxD_LL.toFixed(3)}" / ${ll_limit_in.toFixed(2)}"` }
             };
-        }
-    });
 
     let cbDisplayStr = "";
     if (summaryData.flexure && maxRatio === summaryData.flexure.ratio && Lb > 0) {
-        // Pull the calculated value straight from the input element where your loop just saved it
-        const savedCb = parseFloat(document.getElementById('factor-cb').value) || 1.0;
-        cbDisplayStr = ` | Cb = ${savedCb.toFixed(2)}`;
+        cbDisplayStr = ` | Cb = ${summaryData.flexure.cbVal.toFixed(2)}`;
     }
     
     document.getElementById('controlling-comb-display').innerText =
