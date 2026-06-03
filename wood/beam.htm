@@ -550,12 +550,14 @@ function run() {
         const nominalB = b <= 1.5 ? 2 : (b <= 2.5 ? 3 : 4);
         const nominalD = d <= 5.5 ? 6 : (d <= 7.25 ? 8 : (d <= 9.25 ? 10 : 12));
 
-        if (matInput === 'SPF2') {
-            if (nominalB === 4) {
-                CF = (nominalD <= 10) ? 1.1 : 1.0;
-            } else {
-                CF = 1.0;
-            }
+    if (matInput === 'SPF2') {
+    if (nominalD <= 4) CF = 1.5;
+    else if (nominalD === 5) CF = 1.4; // (for 2x5 or 4x5 if applicable)
+    else if (nominalD === 6) CF = 1.3;
+    else if (nominalD === 8) CF = 1.2;
+    else if (nominalD === 10) CF = 1.1; // This catches your 2x10!
+    else CF = 1.0;
+        }
         } else if (matInput === 'DF2') {
             if (nominalD <= 4) CF = 1.5;
             else if (nominalD === 5) CF = 1.4;
