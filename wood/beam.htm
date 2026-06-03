@@ -164,7 +164,7 @@
             <h2 class="panel-title">Member Inputs</h2>
             <div class="form-row" style="margin-bottom: 1rem;">
                 <div class="form-group">
-                    <label>Library Presets</label>
+                    <label>Select Wood Species</label>
                     <select id="input-material" onchange="updateProperties()">
                         <option value="SPF2" selected>S-P-F No. 2</option>
                         <option value="DF2">Douglas Fir-Larch No. 2</option>
@@ -174,7 +174,7 @@
                 </div>
             </div>
 
-            <label>Active Reference Values</label>
+            <label>Wood Species Material Values</label>
             <div class="property-grid">
                 <div class="form-group"><label>Fb (psi)</label><input type="number" id="prop-fb" oninput="run()"></div>
                 <div class="form-group"><label>Fv (psi)</label><input type="number" id="prop-fv" oninput="run()"></div>
@@ -188,24 +188,35 @@
 
             <div class="panel-subtitle">NDS Adjustment Factors</div>
             <div class="factors-grid">
-                <div class="form-group"><label>Duration, Cd</label><input type="number" id="factor-cd" value="1.0" step="0.05" oninput="run()"></div>
-                <div class="form-group"><label>Wet Svc, Cm</label><input type="number" id="factor-cm" value="1.0" step="0.05" oninput="run()"></div>
-                <div class="form-group"><label>Temp, Ct</label><input type="number" id="factor-ct" value="1.0" step="0.05" oninput="run()"></div>
-                <div class="form-group"><label>Stability, Cl</label><input type="number" id="factor-cl" value="1.0" step="0.01" oninput="run()"></div>
+                <div class="form-group"><label>Cd (Duration)</label><input type="number" id="factor-cd" value="1.0" step="0.05" oninput="run()"></div>
+                <div class="form-group"><label>Cm (Wet Service)</label><input type="number" id="factor-cm" value="1.0" step="0.05" oninput="run()"></div>
+                <div class="form-group"><label>Ct (Temperature)</label><input type="number" id="factor-ct" value="1.0" step="0.05" oninput="run()"></div>
+                <div class="form-group"><label>Cl (Stability)</label><input type="number" id="factor-cl" value="1.0" step="0.01" oninput="run()"></div>
                 <div class="form-group">
                     <div class="label-row">
-                        <label>Size, Cf</label>
+                        <label>Cf (Size)</label>
                         <div class="cf-toggle"><input type="checkbox" id="cf-auto" checked onchange="run()"> Auto</div>
                     </div>
                     <input type="number" id="factor-cf" value="1.0" step="0.05" oninput="run()">
                 </div>
-                <div class="form-group"><label>Flat Use, Cfu</label><input type="number" id="factor-cfu" value="1.0" step="0.05" oninput="run()"></div>
-                <div class="form-group"><label>Incising, Ci</label><input type="number" id="factor-ci" value="1.0" step="0.05" oninput="run()"></div>
-                <div class="form-group"><label>Repetitive, Cr</label><input type="number" id="factor-cr" value="1.10" step="0.05" oninput="run()"></div>
+                <div class="form-group"><label>Cfu (Flat Use)</label><input type="number" id="factor-cfu" value="1.0" step="0.05" oninput="run()"></div>
+                <div class="form-group"><label>Ci (Incising)</label><input type="number" id="factor-ci" value="1.0" step="0.05" oninput="run()"></div>
+                <div class="form-group"><label>Cr (Repetitive)</label><input type="number" id="factor-cr" value="1.10" step="0.05" oninput="run()"></div>
             </div>
 
             <div class="quick-guide">
-                NDS Verification Settings: Shear values are qualified at distance "d" from the support face per NDS §3.4.3.1. Beam self-weight is computed cleanly across the span using material density.
+                <b>Duration</b>: Perm (DL): 0.9; SL: 1.15 (2 months/yr); Lr: 1.25 (7 days); W or E: 1.6 (secs/mins); Impact Load: 2.0
+                
+                <p>
+                <b>Wet Service</b>: Dry ($\le$): 1.0; If moist ($\ge$): 0.7-1.0 = {19%.Adjusted Values: Varies by property, typically ranging from 0.7 to 1.0. For example, in extreme moisture:Bending ($F_b$): 0.85->1.0 if $F_b \times C_F \le 1,150 \text{ psi}$); Shear ($F_v$): 0.97; Comp ($F_c$): 0.8; $E$ / $E_{\min}$): 0.9}    
+                </p>
+
+                <p>
+                <b>Temp</b>: $\le$ 125°F: 1.0; 
+                <br></b>125°F-150°F (Dry): 0.9 for ($F_b$, $F_t$, $F_c$); $E$ / $E_{\min}$: 0.9;
+                <br>125°F-150°F (Wet): 0.7 for ($F_b$, $F_t$, $F_c$); $E$ / $E_{\min}$: 0.9
+                </p>
+
             </div>
 
             <div class="form-row" style="margin-top: 1.25rem;">
