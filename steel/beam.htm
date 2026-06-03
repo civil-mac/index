@@ -284,7 +284,6 @@
 </div>
 
 <script>
-// --- Standard AISC Wide Flange Reference Database ---
 const structuralLibrary = {
     "W27x539": { d: 32.50, tw: 1.970, bf: 15.30, tf: 3.540, ix: 25600.0, sx: 1570.0, zx: 1890.0, rts: 4.41, j: 496.000, cw: 443000.0, ho: 28.96, weight: 539.0 },
     "W27x368": { d: 30.40, tw: 1.380, bf: 14.70, tf: 2.480, ix: 16200.0, sx: 1060.0, zx: 1240.0, rts: 4.15, j: 170.000, cw: 255000.0, ho: 27.92, weight: 368.0 },
@@ -496,7 +495,6 @@ const ASD_COMBINATIONS = [
     { name: "D + 0.75L + 0.75S + 0.75(0.6W)", D: 1.0, L: 0.75, S: 0.75, W: 0.45, E: 0.0 }
 ];
 
-// --- Initialization ---
 document.addEventListener('DOMContentLoaded', () => {
     const selectEl = document.getElementById('input-material');
     
@@ -546,7 +544,6 @@ function updateProperties() {
     run();
 }
 
-// --- Load Table Operations ---
 function addLoadRow(defaultD = 0, defaultL = 0) {
     const tableBody = document.getElementById('loads-table-body');
     const rowId = 'load-row-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
@@ -714,17 +711,6 @@ function run() {
         const V_arr    = new Array(nSteps + 1).fill(0);
         const M_arr    = new Array(nSteps + 1).fill(0);
         const M_arr_ll = new Array(nSteps + 1).fill(0);
-
-        // --- FEM load vector assembly ---
-        // For a 1-element simply-supported beam, the 4 global DOFs are
-        // [v1, θ1, v2, θ2]. BCs fix v1=0 and v2=0, leaving [θ1, θ2] free.
-        // Equivalent nodal loads are assembled by integrating load × shape
-        // functions over the element. For a simply-supported span the vertical
-        // reaction at each node equals the load's contribution to that support
-        // via the lever-arm formula — identical to direct statics, but expressed
-        // as FEM nodal force assembly so the pattern extends to multi-span.
-
-        // f_node[0] = R_A contribution, f_node[1] = R_B contribution
         const f_tl = [selfWeightKLF * combo.D * span / 2,
                       selfWeightKLF * combo.D * span / 2];
         const f_ll = [0, 0];
@@ -736,23 +722,19 @@ function run() {
             const w2_ll = load.L2 / 1000;
 
             if (load.type === 'Point') {
-                // Point load: f_A = P*(L-a)/L, f_B = P*a/L
                 const a = Math.max(0, Math.min(span, load.start));
                 f_tl[0] += w1_tl * (span - a) / span;
                 f_tl[1] += w1_tl * a / span;
                 f_ll[0] += w1_ll * (span - a) / span;
                 f_ll[1] += w1_ll * a / span;
             } else {
-                // Distributed (uniform or trap): decompose into rectangular
-                // base + triangular remainder, each with known centroid.
-                // f_A = w_total * (L - x_centroid) / L  (lever arm from B)
-                // f_B = w_total * x_centroid / L
+
                 const s      = Math.max(0, Math.min(span, load.start));
                 const e      = Math.max(s, Math.min(span, load.end));
                 const load_L = e - s;
                 if (load_L <= 0) return;
 
-                // Rectangular base (min magnitude across length)
+ 
                 const w_rect_tl = Math.min(w1_tl, w2_tl);
                 const w_rect_ll = Math.min(w1_ll, w2_ll);
                 const cent_rect = s + load_L / 2;
@@ -761,7 +743,6 @@ function run() {
                 f_ll[0] += w_rect_ll * load_L * (span - cent_rect) / span;
                 f_ll[1] += w_rect_ll * load_L * cent_rect / span;
 
-                // Triangular top (magnitude difference, centroid at 1/3 or 2/3)
                 const tri_tl = Math.abs(w2_tl - w1_tl);
                 const tri_ll = Math.abs(w2_ll - w1_ll);
                 if (tri_tl > 0) {
@@ -777,12 +758,9 @@ function run() {
             }
         });
 
-        // Nodal reactions = assembled load vector (equilibrium, no K solve needed
-        // for statically determinate single span — K solve added in multi-span)
         const R_A_tl = f_tl[0];
         const R_A_ll = f_ll[0];
 
-        // --- Build V/M arrays by integrating from left support ---
         for (let i = 0; i <= nSteps; i++) {
             const x = (i / nSteps) * span;
 
@@ -900,9 +878,15 @@ function run() {
         }
     });
 
-    // --- Update UI ---
+    let cbDisplayStr = "";
+    if (summaryData.flexure && maxRatio === summaryData.flexure.ratio && Lb > 0) {
+        // Pull the calculated value straight from the input element where your loop just saved it
+        const savedCb = parseFloat(document.getElementById('factor-cb').value) || 1.0;
+        cbDisplayStr = ` | Cb = ${savedCb.toFixed(2)}`;
+    }
+    
     document.getElementById('controlling-comb-display').innerText =
-        `Governing Combo: ${controllingComboName} | M_max = ${absMaxM.toFixed(1)} k-ft | V_max = ${absMaxV.toFixed(1)} kips`;
+        `Governing Combo: ${controllingComboName} | M_max = ${absMaxM.toFixed(1)} k-ft | V_max = ${absMaxV.toFixed(1)} kips${cbDisplayStr}`;
 
     Object.entries(summaryData).forEach(([key, data]) => updateReportPill(key, data.ratio, data.mathStr));
 
