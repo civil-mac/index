@@ -668,35 +668,55 @@ function parseInputLoads() {
 
 function calculateCbFromSegments(M_arr, Lb, span) {
     if (Lb <= 0 || span <= 0) return 1.14;
-    
+    if (Lb > span) Lb = span;
+
     let absoluteMaxM = 0;
     M_arr.forEach(v => { if (Math.abs(v) > absoluteMaxM) absoluteMaxM = Math.abs(v); });
     if (absoluteMaxM === 0) return 1.0;
 
     const nSteps = M_arr.length - 1;
     const step_ft = span / nSteps;
-   
-    const startStep = 0;
-    const endStep = Math.min(nSteps, Math.max(1, Math.round(Lb / step_ft)));
+    const segLengthSteps = Math.max(1, Math.round(Lb / step_ft));
 
-    let M_max_seg = 0;
-    for (let j = startStep; j <= endStep; j++) {
-        let val = Math.abs(M_arr[j]);
-        if (val > M_max_seg) M_max_seg = val;
+    let braceSteps = [];
+    for (let step = 0; step < nSteps; step += segLengthSteps) {
+        braceSteps.push(step);
     }
-    if (M_max_seg === 0) return 1.0;
+    braceSteps.push(nSteps); 
 
-    let stepA = Math.round(startStep + 0.25 * (endStep - startStep));
-    let stepB = Math.round(startStep + 0.50 * (endStep - startStep));
-    let stepC = Math.round(startStep + 0.75 * (endStep - startStep));
+    let minCbFound = 3.0;
 
-    let M_A = Math.abs(M_arr[stepA] || 0);
-    let M_B = Math.abs(M_arr[stepB] || 0);
-    let M_C = Math.abs(M_arr[stepC] || 0);
+    for (let k = 0; k < braceSteps.length - 1; k++) {
+        let startStep = braceSteps[k];
+        let endStep = braceSteps[k + 1];
 
-    let Cb_seg = 12.5 * M_max_seg / (2.5 * M_max_seg + 3 * M_A + 4 * M_B + 3 * M_C);
+        if (endStep <= startStep) continue; 
 
-    return Math.min(3.0, Math.max(1.0, Cb_seg));
+        let M_max_seg = 0;
+        for (let j = startStep; j <= endStep; j++) {
+            let val = Math.abs(M_arr[j] || 0);
+            if (val > M_max_seg) M_max_seg = val;
+        }
+
+        if (M_max_seg > 0) {
+            let stepA = Math.round(startStep + 0.25 * (endStep - startStep));
+            let stepB = Math.round(startStep + 0.50 * (endStep - startStep));
+            let stepC = Math.round(startStep + 0.75 * (endStep - startStep));
+
+            let M_A = Math.abs(M_arr[stepA] || 0);
+            let M_B = Math.abs(M_arr[stepB] || 0);
+            let M_C = Math.abs(M_arr[stepC] || 0);
+
+            let Cb_seg = (12.5 * M_max_seg) / (2.5 * M_max_seg + 3 * M_A + 4 * M_B + 3 * M_C);
+            Cb_seg = Math.min(3.0, Math.max(1.0, Cb_seg));
+
+            if (Cb_seg < minCbFound) {
+                minCbFound = Cb_seg;
+            }
+        }
+    }
+
+    return minCbFound;
 }
     
 function run() {
@@ -896,7 +916,6 @@ if (comboMaxRatio > maxRatio) {
                 'll-defl': { ratio: ratio_ll, allowable: ll_limit_in, actual: maxD_LL }
             };
         }
-    }); 
     
     updateReportPill('flexure', summaryData.flexure.ratio, `${summaryData.flexure.actual.toFixed(1)} / ${summaryData.flexure.allowable.toFixed(1)} k-ft`);
     updateReportPill('shear', summaryData.shear.ratio, `${summaryData.shear.actual.toFixed(1)} / ${summaryData.shear.allowable.toFixed(1)} kips`);
