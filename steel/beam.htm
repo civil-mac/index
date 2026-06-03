@@ -497,7 +497,6 @@ const ASD_COMBINATIONS = [
 
 document.addEventListener('DOMContentLoaded', () => {
     const selectEl = document.getElementById('input-material');
-    
     Object.keys(structuralLibrary).forEach(shape => {
         let opt = document.createElement('option');
         opt.value = shape; 
@@ -619,7 +618,6 @@ function toggleRowFields(rowId) {
             }
         });
     } else {
-        // Uniform
         endInput.disabled = false;
         endInput.style.opacity = "1";
         loadFields.forEach(f => {
@@ -666,32 +664,72 @@ function parseInputLoads() {
     return loads;
 }
 
+function calculateCbFromSegments(M_arr, Lb, span) {
+    if (Lb <= 0 || span <= 0) return 1.14;
+    let absoluteMaxM = 0;
+    M_arr.forEach(v => { if (Math.abs(v) > absoluteMaxM) absoluteMaxM = Math.abs(v); });
+    if (absoluteMaxM === 0) return 1.0;
+
+    const nSteps = M_arr.length - 1;
+    const step_ft = span / nSteps;
+    const segLengthSteps = Math.max(1, Math.round(Lb / step_ft));
+
+    let maxCbFound = 1.0;
+    for (let startStep = 0; startStep < nSteps; startStep += segLengthSteps) {
+        let endStep = Math.min(nSteps, startStep + segLengthSteps);
+        let M_max_seg = 0, M_A = 0, M_B = 0, M_C = 0;
+
+        for (let j = startStep; j <= endStep; j++) {
+            let val = Math.abs(M_arr[j]);
+            if (val > M_max_seg) M_max_seg = val;
+        }
+
+        let stepA = Math.round(startStep + 0.25 * (endStep - startStep));
+        let stepB = Math.round(startStep + 0.50 * (endStep - startStep));
+        let stepC = Math.round(startStep + 0.75 * (endStep - startStep));
+
+        M_A = Math.abs(M_arr[stepA] || 0);
+        M_B = Math.abs(M_arr[stepB] || 0);
+        M_C = Math.abs(M_arr[stepC] || 0);
+
+        if (M_max_seg > 0) {
+            let Cb_seg = 12.5 * M_max_seg / (2.5 * M_max_seg + 3 * M_A + 4 * M_B + 3 * M_C);
+            if (Cb_seg > 3.0) Cb_seg = 3.0;
+            if (Cb_seg > maxCbFound) maxCbFound = Cb_seg;
+        }
+    }
+    return Math.min(3.0, Math.max(1.0, maxCbFound));
+}
+    
 function run() {
     const span = parseFloat(document.getElementById('input-span').value) || 0;
-    const Lb   = parseFloat(document.getElementById('input-lb').value)   || 0;
-    const Fy   = parseFloat(document.getElementById('prop-fy').value)    || 0;
+    const Lb = parseFloat(document.getElementById('input-lb').value) || 0;
+    const Fy = parseFloat(document.getElementById('prop-fy').value) || 50;
 
-    const d        = parseFloat(document.getElementById('prop-d').value)      || 0;
-    const tw       = parseFloat(document.getElementById('prop-tw').value)     || 0;
-    const Ix       = parseFloat(document.getElementById('prop-ix').value)     || 0;
-    const Sx       = parseFloat(document.getElementById('prop-sx').value)     || 0;
-    const Zx       = parseFloat(document.getElementById('prop-zx').value)     || 0;
-    const rts      = parseFloat(document.getElementById('prop-rts').value)    || 0;
-    const J        = parseFloat(document.getElementById('prop-j').value)      || 0;
-    const ho       = parseFloat(document.getElementById('prop-ho').value)     || 0;
+    const d = parseFloat(document.getElementById('prop-d').value) || 0;
+    const tw = parseFloat(document.getElementById('prop-tw').value) || 0;
+    const bf = parseFloat(document.getElementById('prop-bf').value) || 0;
+    const tf = parseFloat(document.getElementById('prop-tf').value) || 0;
+    const Ix = parseFloat(document.getElementById('prop-ix').value) || 0;
+    const Sx = parseFloat(document.getElementById('prop-sx').value) || 0;
+    const Zx = parseFloat(document.getElementById('prop-zx').value) || 0;
+    const rts = parseFloat(document.getElementById('prop-rts').value) || 0;
+    const J = parseFloat(document.getElementById('prop-j').value) || 0;
+    const Cw = parseFloat(document.getElementById('prop-cw').value) || 0;
+    const ho = parseFloat(document.getElementById('prop-ho').value) || 0;
     const weightplf = parseFloat(document.getElementById('prop-weight').value) || 0;
 
     if (span <= 0 || d <= 0 || Ix <= 0 || Sx <= 0) return;
 
-    const EI            = 29000 * Ix; 
-    const L_in          = span * 12;
-    const ll_lim        = parseFloat(document.getElementById('input-ll-lim').value) || 240;
-    const tl_lim        = parseFloat(document.getElementById('input-tl-lim').value) || 360;
+    const EI = 29000 * Ix;
+    const L_in = span * 12;
+    const ll_lim = parseFloat(document.getElementById('input-ll-lim').value) || 240;
+    const tl_lim = parseFloat(document.getElementById('input-tl-lim').value) || 360;
     const selfWeightKLF = weightplf / 1000;
 
     const parsedLoads = parseInputLoads();
-    const nSteps      = 100;
-    const step_ft     = span / nSteps;
+    const nSteps = 100;
+    const step_ft = span / nSteps;
 
     let maxRatio = -1, controllingComboName = 'D Only';
     let absMaxM = 0, absMaxV = 0;
@@ -700,50 +738,51 @@ function run() {
     let summaryData = {};
 
     ASD_COMBINATIONS.forEach(combo => {
-        const V_arr    = new Array(nSteps + 1).fill(0);
-        const M_arr    = new Array(nSteps + 1).fill(0);
+        const V_arr = new Array(nSteps + 1).fill(0);
+        const M_arr = new Array(nSteps + 1).fill(0);
         const M_arr_ll = new Array(nSteps + 1).fill(0);
-        const f_tl = [selfWeightKLF * combo.D * span / 2,
-                      selfWeightKLF * combo.D * span / 2];
+
+        const f_tl = [selfWeightKLF * combo.D * span / 2, selfWeightKLF * combo.D * span / 2];
         const f_ll = [0, 0];
 
         parsedLoads.forEach(load => {
-            const w1_tl = (load.D*combo.D + load.L*combo.L + load.S*combo.S + load.W*combo.W + load.E*combo.E) / 1000;
-            const w2_tl = (load.D2*combo.D + load.L2*combo.L + load.S2*combo.S + load.W2*combo.W + load.E2*combo.E) / 1000;
-            const w1_ll = load.L  / 1000;
-            const w2_ll = load.L2 / 1000;
+            const w1_tl = (load.D * combo.D + load.L * combo.L + load.S * combo.S + load.W * combo.W + load.E * combo.E) / 1000;
+            const w2_tl = (load.D2 * combo.D + load.L2 * combo.L + load.S2 * combo.S + load.W2 * combo.W + load.E2 * combo.E) / 1000;
+            const w1_ll = (load.L * combo.L) / 1000;
+            const w2_ll = (load.L2 * combo.L) / 1000;
+
+            const s = load.start;
+            const e = load.end;
+            const load_L = e - s;
 
             if (load.type === 'Point') {
-                const a = Math.max(0, Math.min(span, load.start));
-                f_tl[0] += w1_tl * (span - a) / span;
-                f_tl[1] += w1_tl * a / span;
-                f_ll[0] += w1_ll * (span - a) / span;
-                f_ll[1] += w1_ll * a / span;
-            } else {
-
-                const s      = Math.max(0, Math.min(span, load.start));
-                const e      = Math.max(s, Math.min(span, load.end));
-                const load_L = e - s;
-                if (load_L <= 0) return;
-
- 
-                const w_rect_tl = Math.min(w1_tl, w2_tl);
-                const w_rect_ll = Math.min(w1_ll, w2_ll);
-                const cent_rect = s + load_L / 2;
-                f_tl[0] += w_rect_tl * load_L * (span - cent_rect) / span;
-                f_tl[1] += w_rect_tl * load_L * cent_rect / span;
-                f_ll[0] += w_rect_ll * load_L * (span - cent_rect) / span;
-                f_ll[1] += w_rect_ll * load_L * cent_rect / span;
-
+                f_tl[0] += w1_tl * (span - s) / span;
+                f_tl[1] += w1_tl * s / span;
+                f_ll[0] += w1_ll * (span - s) / span;
+                f_ll[1] += w1_ll * s / span;
+            } else if (load_L > 0) {
+                const u_tl = Math.min(w1_tl, w2_tl);
                 const tri_tl = Math.abs(w2_tl - w1_tl);
-                const tri_ll = Math.abs(w2_ll - w1_ll);
+                if (u_tl > 0) {
+                    const cent_u = s + load_L / 2;
+                    f_tl[0] += u_tl * load_L * (span - cent_u) / span;
+                    f_tl[1] += u_tl * load_L * cent_u / span;
+                }
                 if (tri_tl > 0) {
-                    const cent_tri = (w2_tl > w1_tl) ? s + (2/3)*load_L : s + (1/3)*load_L;
+                    const cent_tri = (w2_tl > w1_tl) ? s + (2 / 3) * load_L : s + (1 / 3) * load_L;
                     f_tl[0] += 0.5 * tri_tl * load_L * (span - cent_tri) / span;
                     f_tl[1] += 0.5 * tri_tl * load_L * cent_tri / span;
                 }
+
+                const u_ll = Math.min(w1_ll, w2_ll);
+                const tri_ll = Math.abs(w2_ll - w1_ll);
+                if (u_ll > 0) {
+                    const cent_u = s + load_L / 2;
+                    f_ll[0] += u_ll * load_L * (span - cent_u) / span;
+                    f_ll[1] += u_ll * load_L * cent_u / span;
+                }
                 if (tri_ll > 0) {
-                    const cent_tri = (w2_ll > w1_ll) ? s + (2/3)*load_L : s + (1/3)*load_L;
+                    const cent_tri = (w2_ll > w1_ll) ? s + (2 / 3) * load_L : s + (1 / 3) * load_L;
                     f_ll[0] += 0.5 * tri_ll * load_L * (span - cent_tri) / span;
                     f_ll[1] += 0.5 * tri_ll * load_L * cent_tri / span;
                 }
@@ -755,48 +794,52 @@ function run() {
 
         for (let i = 0; i <= nSteps; i++) {
             const x = (i / nSteps) * span;
-
-            let V_x    = R_A_tl - selfWeightKLF * combo.D * x;
-            let M_x    = R_A_tl * x - 0.5 * selfWeightKLF * combo.D * x * x;
+            let V_x = R_A_tl - selfWeightKLF * combo.D * x;
+            let M_x = R_A_tl * x - 0.5 * selfWeightKLF * combo.D * x * x;
             let M_x_ll = R_A_ll * x;
 
             parsedLoads.forEach(load => {
-                const w1_tl = (load.D*combo.D + load.L*combo.L + load.S*combo.S + load.W*combo.W + load.E*combo.E) / 1000;
-                const w2_tl = (load.D2*combo.D + load.L2*combo.L + load.S2*combo.S + load.W2*combo.W + load.E2*combo.E) / 1000;
-                const w1_ll = load.L  / 1000;
-                const w2_ll = load.L2 / 1000;
+                const w1_tl = (load.D * combo.D + load.L * combo.L + load.S * combo.S + load.W * combo.W + load.E * combo.E) / 1000;
+                const w2_tl = (load.D2 * combo.D + load.L2 * combo.L + load.S2 * combo.S + load.W2 * combo.W + load.E2 * combo.E) / 1000;
+                const w1_ll = (load.L * combo.L) / 1000;
+                const w2_ll = (load.L2 * combo.L) / 1000;
 
-                if (load.type === 'Point') {
-                    if (x > load.start) {
-                        V_x    -= w1_tl;
-                        M_x    -= w1_tl * (x - load.start);
-                        M_x_ll -= w1_ll * (x - load.start);
+                const s = load.start;
+                const e = load.end;
+
+                if (load.type === 'Point' && x >= s) {
+                    V_x -= w1_tl;
+                    M_x -= w1_tl * (x - s);
+                    M_x_ll -= w1_ll * (x - s);
+                } else if (x > s) {
+                    const limit_x = Math.min(x, e);
+                    const curr_L = limit_x - s;
+                    if (curr_L > 0) {
+                        const total_L = e - s;
+                        const w_left_tl = w1_tl + (w2_tl - w1_tl) * (s - s) / total_L;
+                        const w_right_tl = w1_tl + (w2_tl - w1_tl) * (limit_x - s) / total_L;
+                        const u_tl = Math.min(w_left_tl, w_right_tl);
+                        const tri_tl = Math.abs(w_right_tl - w_left_tl);
+
+                        V_x -= u_tl * curr_L + 0.5 * tri_tl * curr_L;
+                        M_x -= u_tl * curr_L * (x - (s + curr_L / 2));
+                        const arm_tri = (w_right_tl > w_left_tl) ? x - (s + (2 / 3) * curr_L) : x - (s + (1 / 3) * curr_L);
+                        M_x -= 0.5 * tri_tl * curr_L * arm_tri;
+
+                        const w_left_ll = w1_ll + (w2_ll - w1_ll) * (s - s) / total_L;
+                        const w_right_ll = w1_ll + (w2_ll - w1_ll) * (limit_x - s) / total_L;
+                        const u_ll = Math.min(w_left_ll, w_right_ll);
+                        const tri_ll = Math.abs(w_right_ll - w_left_ll);
+
+                        M_x_ll -= u_ll * curr_L * (x - (s + curr_L / 2));
+                        const arm_tri_ll = (w_right_ll > w_left_ll) ? x - (s + (2 / 3) * curr_L) : x - (s + (1 / 3) * curr_L);
+                        M_x_ll -= 0.5 * tri_ll * curr_L * arm_tri_ll;
                     }
-                } else {
-                    const s      = Math.max(0, Math.min(span, load.start));
-                    const e      = Math.max(s, Math.min(span, load.end));
-                    const load_L = e - s;
-                    if (load_L <= 0 || x <= s) return;
-
-                    const cx    = Math.min(x, e) - s;
-                    const slope_tl = (w2_tl - w1_tl) / load_L;
-                    const slope_ll = (w2_ll - w1_ll) / load_L;
-                    const wx_tl = w1_tl + slope_tl * cx;
-                    const wx_ll = w1_ll + slope_ll * cx;
-
-                    const area_tl = 0.5 * (w1_tl + wx_tl) * cx;
-                    const area_ll = 0.5 * (w1_ll + wx_ll) * cx;
-                    const arm_tl  = (w1_tl + wx_tl > 0) ? cx * (w1_tl + 2*wx_tl) / (3*(w1_tl + wx_tl)) : 0;
-                    const arm_ll  = (w1_ll + wx_ll > 0) ? cx * (w1_ll + 2*wx_ll) / (3*(w1_ll + wx_ll)) : 0;
-
-                    V_x    -= area_tl;
-                    M_x    -= area_tl * (x - s - cx + arm_tl);
-                    M_x_ll -= area_ll * (x - s - cx + arm_ll);
                 }
             });
 
-            V_arr[i]    = V_x;
-            M_arr[i]    = M_x;
+            V_arr[i] = V_x;
+            M_arr[i] = M_x;
             M_arr_ll[i] = M_x_ll;
         }
 
@@ -808,78 +851,69 @@ function run() {
             let s_tl = 0, s_ll = 0;
             for (let j = 0; j <= nSteps; j++) {
                 const x_e = (j / nSteps) * span;
-                const mv  = (x_e <= x_t)
-                    ? (span - x_t) * x_e / span
-                    :  x_t * (span - x_e) / span;
-                const wt  = (j === 0 || j === nSteps) ? 1 : (j % 2 === 1 ? 4 : 2);
-                s_tl += wt * (M_arr[j]    * 12) * (mv * 12);
+                const mv = (x_e <= x_t) ? (span - x_t) * x_e / span : x_t * (span - x_e) / span;
+                const wt = (j === 0 || j === nSteps) ? 1 : (j % 2 === 1 ? 4 : 2);
+                s_tl += wt * (M_arr[j] * 12) * (mv * 12);
                 s_ll += wt * (M_arr_ll[j] * 12) * (mv * 12);
             }
             defl_TL[i] = (s_tl * (step_ft * 12) / 3) / EI;
             defl_LL[i] = (s_ll * (step_ft * 12) / 3) / EI;
         }
 
-        const maxM_kft  = Math.max(...M_arr.map(v => Math.abs(v)));
+        const maxM_kft = Math.max(...M_arr.map(v => Math.abs(v)));
         const maxV_kips = Math.max(...V_arr.map(v => Math.abs(v)));
-        const maxD_TL   = Math.max(...defl_TL.map(v => Math.abs(v)));
-        const maxD_LL   = Math.max(...defl_LL.map(v => Math.abs(v)));
+        const maxD_TL = Math.max(...defl_TL.map(v => Math.abs(v)));
+        const maxD_LL = Math.max(...defl_LL.map(v => Math.abs(v)));
 
-        let Cb = 1.14; 
-        if (document.getElementById('cb-auto') && document.getElementById('cb-auto').checked) {
-        Cb = calculateCbFromSegments(M_arr, Lb, span);
-        const cbInput = document.getElementById('factor-cb');
-        if (cbInput && document.activeElement !== cbInput) {
-        cbInput.value = Cb.toFixed(2);
+        let Cb = 1.14;
+        if (Lb > 0) {
+            Cb = calculateCbFromSegments(M_arr, Lb, span);
         }
-        } else if (document.getElementById('factor-cb')) {
-        Cb = parseFloat(document.getElementById('factor-cb').value) || 1.0;
-        }
-        
-        const Mp  = Fy * Zx;
-        let   Mn  = Mp;
-        const Lp  = 1.76 * rts * Math.sqrt(29000 / Fy);
-        const Lb_in = Lb * 12;
-        if (Lb_in > Lp) {
-            const Lb_rts = Lb_in / rts;
-            const Fcr = (Cb * Math.PI * Math.PI * 29000 / (Lb_rts * Lb_rts))
-                      * Math.sqrt(1 + 0.078 * (J / (Sx * ho)) * (Lb_rts * Lb_rts));
-            Mn = Math.min(Mp, Fcr * Sx);
-        }
-        const allowable_M = Math.min(Mp, Mn) / 12 / 1.67;
-        const allowable_V = (0.6 * Fy * d * tw) / 1.50;
-        const ll_limit_in = L_in / ll_lim;
-        const tl_limit_in = L_in / tl_lim;
-        const ratio_M  = maxM_kft  / allowable_M;
-        const ratio_V  = maxV_kips / allowable_V;
-        const ratio_ll = maxD_LL   / ll_limit_in;
-        const ratio_tl = maxD_TL   / tl_limit_in;
-        const govRatio = Math.max(ratio_M, ratio_V, ratio_ll, ratio_tl);
-        if (govRatio > maxRatio) {
-            maxRatio             = govRatio;
+
+        const Mn_over_omega = (Fy * Zx / 12) / 1.67; 
+        const Vn_over_omega = (0.6 * Fy * d * tw) / 1.50;
+        const tl_limit_in = (span * 12) / tl_lim;
+        const ll_limit_in = (span * 12) / ll_lim;
+
+        const ratio_M = maxM_kft / Mn_over_omega;
+        const ratio_V = maxV_kips / Vn_over_omega;
+        const ratio_tl = maxD_TL / tl_limit_in;
+        const ratio_ll = maxD_LL / ll_limit_in;
+
+        const comboMaxRatio = Math.max(ratio_M, ratio_V, ratio_tl, ratio_ll);
+
+        if (comboMaxRatio > maxRatio) {
+            maxRatio = comboMaxRatio;
             controllingComboName = combo.name;
-            absMaxM              = maxM_kft;
-            absMaxV              = maxV_kips;
-            envelopeV            = V_arr.slice();
-            envelopeM            = M_arr.slice();
+            absMaxM = maxM_kft;
+            absMaxV = maxV_kips;
+            envelopeV = V_arr.slice();
+            envelopeM = M_arr.slice();
+
             summaryData = {
-                flexure:   { ratio: ratio_M,  mathStr: `${maxM_kft.toFixed(1)} / ${allowable_M.toFixed(1)} k-ft`, cbVal: Cb }, // <-- ADD cbVal HERE
-                shear:     { ratio: ratio_V,  mathStr: `${maxV_kips.toFixed(1)} / ${allowable_V.toFixed(1)} kips` },
-                'tl-defl': { ratio: ratio_tl, mathStr: `${maxD_TL.toFixed(3)}" / ${tl_limit_in.toFixed(2)}"` },
-                'll-defl': { ratio: ratio_ll, mathStr: `${maxD_LL.toFixed(3)}" / ${ll_limit_in.toFixed(2)}"` }
+                flexure: { ratio: ratio_M, allowable: Mn_over_omega, actual: maxM_kft, cbVal: Cb },
+                shear: { ratio: ratio_V, allowable: Vn_over_omega, actual: maxV_kips },
+                'tl-defl': { ratio: ratio_tl, allowable: tl_limit_in, actual: maxD_TL },
+                'll-defl': { ratio: ratio_ll, allowable: ll_limit_in, actual: maxD_LL }
             };
+        }
+    });
+
+    updateReportPill('flexure', summaryData.flexure.ratio, `${summaryData.flexure.actual.toFixed(1)} / ${summaryData.flexure.allowable.toFixed(1)} k-ft`);
+    updateReportPill('shear', summaryData.shear.ratio, `${summaryData.shear.actual.toFixed(1)} / ${summaryData.shear.allowable.toFixed(1)} kips`);
+    updateReportPill('tl-defl', summaryData['tl-defl'].ratio, `${summaryData['tl-defl'].actual.toFixed(3)}" / ${summaryData['tl-defl'].allowable.toFixed(2)}"`);
+    updateReportPill('ll-defl', summaryData['ll-defl'].ratio, `${summaryData['ll-defl'].actual.toFixed(3)}" / ${summaryData['ll-defl'].allowable.toFixed(2)}"`);
 
     let cbDisplayStr = "";
-    if (summaryData.flexure && maxRatio === summaryData.flexure.ratio && Lb > 0) {
+    if (Lb > 0 && summaryData.flexure) {
         cbDisplayStr = ` | Cb = ${summaryData.flexure.cbVal.toFixed(2)}`;
     }
-    
-    document.getElementById('controlling-comb-display').innerText =
+
+    document.getElementById('controlling-comb-display').innerText = 
         `Governing Combo: ${controllingComboName} | M_max = ${absMaxM.toFixed(1)} k-ft | V_max = ${absMaxV.toFixed(1)} kips${cbDisplayStr}`;
 
-    Object.entries(summaryData).forEach(([key, data]) => updateReportPill(key, data.ratio, data.mathStr));
-
     document.getElementById('react-ra').innerText = `${Math.abs(envelopeV[0]).toFixed(1)} kips`;
-    document.getElementById('react-rb').innerText = `${Math.abs(envelopeV[envelopeV.length-1]).toFixed(1)} kips`;
+    document.getElementById('react-rb').innerText = `${Math.abs(envelopeV[envelopeV.length - 1]).toFixed(1)} kips`;
     document.getElementById('label-max-v').innerText = `MAX: ${absMaxV.toFixed(1)} kips`;
     document.getElementById('label-max-m').innerText = `MAX: ${absMaxM.toFixed(1)} k-ft`;
 
@@ -995,46 +1029,59 @@ function drawBeamProfile(L) {
     ctx.beginPath(); ctx.moveTo(pad, beamY + 10); ctx.lineTo(pad - 6, beamY + 20); ctx.lineTo(pad + 6, beamY + 20); ctx.closePath(); ctx.stroke();
     ctx.beginPath(); ctx.arc(pad + gWidth, beamY + 15, 4, 0, Math.PI * 2); ctx.stroke();
 
-    const parsedLoads = parseInputLoads();
+const parsedLoads = parseInputLoads();
     parsedLoads.forEach(load => {
         const mag1 = load.D + load.L + load.S + load.W + load.E;
         const mag2 = load.D2 + load.L2 + load.S2 + load.W2 + load.E2;
-        if (mag1 === 0 && mag2 === 0) return;
 
         if (load.type === 'Point') {
-            const pX = pad + (load.start / L) * gWidth;
-            if (pX < pad || pX > pad + gWidth) return;
-            ctx.strokeStyle = "#f87171"; ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(pX, arrowTop); ctx.lineTo(pX, beamY - 2);
-            ctx.moveTo(pX - 4, beamY - 10); ctx.lineTo(pX, beamY - 2); ctx.lineTo(pX + 4, beamY - 10);
-            ctx.stroke();
+            let arrowX = pad + (load.start / L) * gWidth;
+            if (arrowX < pad) arrowX = pad;
+            if (arrowX > pad + gWidth) arrowX = pad + gWidth;
 
+            ctx.strokeStyle = "#f87171";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(arrowX, beamY - arrowH);
+            ctx.lineTo(arrowX, beamY - 2);
+            ctx.moveTo(arrowX - 4, beamY - 10);
+            ctx.lineTo(arrowX, beamY - 2);
+            ctx.lineTo(arrowX + 4, beamY - 10);
+            ctx.stroke();
         } else if (load.type === 'Uniform') {
             let sX = pad + (load.start / L) * gWidth;
             let eX = pad + (load.end / L) * gWidth;
-            if (sX < pad) sX = pad; if (eX > pad + gWidth) eX = pad + gWidth;
+            if (sX < pad) sX = pad;
+            if (eX > pad + gWidth) eX = pad + gWidth;
             if (eX <= sX) return;
 
             ctx.fillStyle = "rgba(52, 211, 153, 0.12)";
-            ctx.strokeStyle = "#34d399"; ctx.lineWidth = 1;
+            ctx.strokeStyle = "#34d399";
+            ctx.lineWidth = 1;
             ctx.beginPath();
-            ctx.moveTo(sX, beamY - 2); ctx.lineTo(sX, arrowTop);
-            ctx.lineTo(eX, arrowTop); ctx.lineTo(eX, beamY - 2);
-            ctx.closePath(); ctx.fill(); ctx.stroke();
+            ctx.moveTo(sX, beamY - 2);
+            ctx.lineTo(sX, beamY - 2 - arrowH);
+            ctx.lineTo(eX, beamY - 2 - arrowH);
+            ctx.lineTo(eX, beamY - 2);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
 
-            for (let i = 0; i <= 5; i++) {
-                const arrowX = sX + (i / 5) * (eX - sX);
+            ctx.lineWidth = 1.25;
+            for (let x = sX; x <= eX; x += (eX - sX) / 5) {
                 ctx.beginPath();
-                ctx.moveTo(arrowX, arrowTop); ctx.lineTo(arrowX, beamY - 2);
-                ctx.moveTo(arrowX - 3, beamY - 8); ctx.lineTo(arrowX, beamY - 2); ctx.lineTo(arrowX + 3, beamY - 8);
+                ctx.moveTo(x, beamY - 2 - arrowH);
+                ctx.lineTo(x, beamY - 2);
+                ctx.moveTo(x - 3, beamY - 8);
+                ctx.lineTo(x, beamY - 2);
+                ctx.lineTo(x + 3, beamY - 8);
                 ctx.stroke();
             }
-
         } else if (load.type === 'Trapezoid') {
             let sX = pad + (load.start / L) * gWidth;
             let eX = pad + (load.end / L) * gWidth;
-            if (sX < pad) sX = pad; if (eX > pad + gWidth) eX = pad + gWidth;
+            if (sX < pad) sX = pad;
+            if (eX > pad + gWidth) eX = pad + gWidth;
             if (eX <= sX) return;
 
             const maxMag = Math.max(mag1, mag2) || 1;
@@ -1042,19 +1089,27 @@ function drawBeamProfile(L) {
             const topY2 = beamY - 2 - (mag2 / maxMag) * arrowH;
 
             ctx.fillStyle = "rgba(251, 191, 36, 0.10)";
-            ctx.strokeStyle = "#fbbf24"; ctx.lineWidth = 1;
+            ctx.strokeStyle = "#fbbf24";
+            ctx.lineWidth = 1;
             ctx.beginPath();
-            ctx.moveTo(sX, beamY - 2); ctx.lineTo(sX, topY1);
-            ctx.lineTo(eX, topY2); ctx.lineTo(eX, beamY - 2);
-            ctx.closePath(); ctx.fill(); ctx.stroke();
+            ctx.moveTo(sX, beamY - 2);
+            ctx.lineTo(sX, topY1);
+            ctx.lineTo(eX, topY2);
+            ctx.lineTo(eX, beamY - 2);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
 
             for (let i = 0; i <= 5; i++) {
                 const t = i / 5;
                 const arrowX = sX + t * (eX - sX);
-                const arrowTopY = topY1 + t * (topY2 - topY1);
+                const arrowTop = topY1 + t * (topY2 topY1);
                 ctx.beginPath();
-                ctx.moveTo(arrowX, arrowTopY); ctx.lineTo(arrowX, beamY - 2);
-                ctx.moveTo(arrowX - 3, beamY - 8); ctx.lineTo(arrowX, beamY - 2); ctx.lineTo(arrowX + 3, beamY - 8);
+                ctx.moveTo(arrowX, arrowTop);
+                ctx.lineTo(arrowX, beamY - 2);
+                ctx.moveTo(arrowX - 3, beamY - 8);
+                ctx.lineTo(arrowX, beamY - 2);
+                ctx.lineTo(arrowX + 3, beamY - 8);
                 ctx.stroke();
             }
         }
