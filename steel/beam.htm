@@ -675,33 +675,38 @@ function calculateCbFromSegments(M_arr, Lb, span) {
     if (absoluteMaxM === 0) return 1.0;
 
     const nSteps = M_arr.length - 1;
-    const step_ft = span / nSteps;
-    const segLengthSteps = Math.max(1, Math.round(Lb / step_ft));
 
-    let braceSteps = [];
-    for (let step = 0; step < nSteps; step += segLengthSteps) {
-        braceSteps.push(step);
+    let bracePoints = [];
+    for (let pos = 0; pos < span; pos += Lb) {
+        bracePoints.push(pos);
     }
-    braceSteps.push(nSteps); 
+    bracePoints.push(span);
+
+    let braceIndices = bracePoints.map(pos => Math.round((pos / span) * nSteps));
+    
+    braceIndices = [...new Set(braceIndices)];
 
     let minCbFound = 3.0;
 
-    for (let k = 0; k < braceSteps.length - 1; k++) {
-        let startStep = braceSteps[k];
-        let endStep = braceSteps[k + 1];
+    for (let k = 0; k < braceIndices.length - 1; k++) {
+        let start = braceIndices[k];
+        let end = braceIndices[k + 1];
 
-        if (endStep <= startStep) continue; 
+        if ((end - start) < Math.round((Lb / span) * nSteps)) {
+            start = Math.max(0, end - Math.round((Lb / span) * nSteps));
+        }
 
         let M_max_seg = 0;
-        for (let j = startStep; j <= endStep; j++) {
+        for (let j = start; j <= end; j++) {
             let val = Math.abs(M_arr[j] || 0);
             if (val > M_max_seg) M_max_seg = val;
         }
 
         if (M_max_seg > 0) {
-            let stepA = Math.round(startStep + 0.25 * (endStep - startStep));
-            let stepB = Math.round(startStep + 0.50 * (endStep - startStep));
-            let stepC = Math.round(startStep + 0.75 * (endStep - startStep));
+            let segmentWidth = end - start;
+            let stepA = Math.round(start + 0.25 * segmentWidth);
+            let stepB = Math.round(start + 0.50 * segmentWidth);
+            let stepC = Math.round(start + 0.75 * segmentWidth);
 
             let M_A = Math.abs(M_arr[stepA] || 0);
             let M_B = Math.abs(M_arr[stepB] || 0);
