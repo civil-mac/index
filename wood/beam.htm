@@ -549,7 +549,7 @@ function run() {
         const matInput = document.getElementById('input-material').value;
         const nominalB = b <= 1.5 ? 2 : (b <= 2.5 ? 3 : 4);
         const nominalD = d <= 5.5 ? 6 : (d <= 7.25 ? 8 : (d <= 9.25 ? 10 : 12));
-
+        }
     if (matInput === 'SPF2') {
     if (nominalD <= 4) CF = 1.5;
     else if (nominalD === 5) CF = 1.4; // (for 2x5 or 4x5 if applicable)
@@ -795,24 +795,13 @@ function drawShearDiagram(V) {
     const canvas = document.getElementById('shearCanvas');
     const ctx = canvas.getContext('2d');
     const W = canvas.width = canvas.offsetWidth * 2;
-    const H = canvas.height = canvas.offsetHeight * 2;
-    ctx.scale(2,2);
-    ctx.clearRect(0,0,W,H);
-
+    const H = canvas.height = canvas.offsetHeight * 2; ctx.scale(2,2); ctx.clearRect(0,0,W,H);
     const baseWidth = canvas.offsetWidth;
     const baseHeight = canvas.offsetHeight;
     const pad = 25;
     const gWidth = baseWidth - pad * 2;
-
-    // Dynamic zero line: centered vertically
     const midY = baseHeight / 2;
-    // Safe amplitude: leave 20px margin top and bottom from the zero line
-    const amplitude = midY - 20;
-
-    ctx.fillStyle = "#111827"; ctx.fillRect(0, 0, baseWidth, baseHeight);
-
-    ctx.strokeStyle = "#334155"; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(pad, midY); ctx.lineTo(pad+gWidth, midY); ctx.stroke();
+    const amplitude = midY - 20; ctx.fillStyle = "#111827"; ctx.fillRect(0, 0, baseWidth, baseHeight); ctx.strokeStyle = "#334155"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(pad, midY); ctx.lineTo(pad+gWidth, midY); ctx.stroke();
 
     let maxV = Math.max(...V.map(Math.abs)) || 1;
     ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 1.75;
@@ -840,16 +829,13 @@ function drawMomentDiagram(M) {
     const pad = 25;
     const gWidth = baseWidth - pad * 2;
 
-    // Find true data range to position baseline correctly
     const maxPos = Math.max(0, ...M);
     const maxNeg = Math.abs(Math.min(0, ...M));
     const totalRange = (maxPos + maxNeg) || 1;
-    const margin = 20; // px safe margin top and bottom
+    const margin = 20;
     const drawHeight = baseHeight - margin * 2;
 
-    // Place zero line proportionally: if all positive, near bottom; if mixed, proportional
     const baseY = margin + (maxPos / totalRange) * drawHeight;
-    // Amplitude per unit value
     const scale = drawHeight / totalRange;
 
     ctx.fillStyle = "#111827"; ctx.fillRect(0, 0, baseWidth, baseHeight);
