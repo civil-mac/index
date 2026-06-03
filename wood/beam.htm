@@ -371,10 +371,10 @@ const structuralLibrary = {
 };
 
 const ASD_COMBOS = [
-    { label:'D',                   fD:1.0, fL:0,    fS:0,    fW:0,    fE:0 },
-    { label:'D+L',                 fD:1.0, fL:1.0,  fS:0,    fW:0,    fE:0 },
-    { label:'D+S',                 fD:1.0, fL:0,    fS:1.0,  fW:0,    fE:0 },
-    { label:'D+0.75L+0.75S',       fD:1.0, fL:0.75, fS:0.75, fW:0,    fE:0 }
+    { label: 'D',               fD: 1.0, fL: 0,    fS: 0,    fW: 0,   fE: 0, Cd: 0.90 },
+    { label: 'D+L',             fD: 1.0, fL: 1.0,  fS: 0,    fW: 0,   fE: 0, Cd: 1.00 },
+    { label: 'D+S',             fD: 1.0, fL: 0,    fS: 1.0,  fW: 0,   fE: 0, Cd: 1.15 },
+    { label: 'D+0.75L+0.75S',   fD: 1.0, fL: 0.75, fS: 0.75, fW: 0,   fE: 0, Cd: 1.15 } 
 ];
 
 function updateProperties() {
@@ -596,13 +596,10 @@ function run() {
         const V_arr    = new Array(nSteps + 1).fill(0);
         const M_arr    = new Array(nSteps + 1).fill(0);
         const M_arr_ll = new Array(nSteps + 1).fill(0);
-
         const sw_tl = combo.fD * selfWeightPLF;
-
-        // --- FEM load vector assembly ---
-        // f_node[0] = R_A contribution, f_node[1] = R_B contribution
         const f_tl = [sw_tl * span_ft / 2, sw_tl * span_ft / 2];
         const f_ll = [0, 0];
+        const currentCd = combo.Cd;
 
         activeLoads.forEach(ld => {
             const w1_tl = combo.fD*ld.d1 + combo.fL*ld.l1 + combo.fS*ld.s1 + combo.fW*ld.w1 + combo.fE*ld.e1;
@@ -721,8 +718,8 @@ function run() {
         const maxD_TL = Math.max(...elastic_defl_TL.map(v => Math.abs(v)));
         const maxD_LL = Math.max(...elastic_defl_LL.map(v => Math.abs(v)));
 
-        const Fb_p = Fb_ref * Cd * Cm * Ct * Cl * Cf * Cfu * Ci * Cr;
-        const Fv_p = Fv_ref * Cd * Cm * Ct * Ci;
+        const Fb_p = Fb_ref * currentCd * Cm * Ct * Cl * Cf * Cfu * Ci * Cr;
+        const Fv_p = Fv_ref * currentCd * Cm * Ct * Ci;
         
         const f_b = maxM / S_in3;
         const f_v = (1.5 * designVd) / Area_in2;
