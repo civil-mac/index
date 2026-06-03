@@ -52,64 +52,50 @@
         .nav-back span { margin-right: 0.35rem; font-size: 1.1rem; line-height: 1; }
         header h1 { font-size: 1.6rem; font-weight: 700; color: var(--text-main); }
         header p { color: var(--text-muted); font-size: 0.9rem; margin-top: 0.15rem; }
-
         .bento-layout { display: grid; grid-template-columns: 2.1fr 1fr; gap: 1.5rem; align-items: start; }
         @media (max-width: 1100px) { .bento-layout { grid-template-columns: 1fr; } }
-
         .panel { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 1.5rem; }
         .panel-tall { display: flex; flex-direction: column; gap: 1.25rem; min-height: 100%; }
         .panel-title { font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 1.25rem; font-weight: 600; }
         .panel-subtitle { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin: 1.5rem 0 0.75rem 0; font-weight: 600; border-top: 1px solid var(--border-color); padding-top: 1.25rem; }
-
         .form-group { margin-bottom: 1.25rem; position: relative; }
         .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 1rem; }
+        
         label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.4rem; font-weight: 500; }
         
         select, input[type="number"] { width: 100%; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-main); padding: 0.75rem; font-size: 1rem; transition: border 0.2s; }
+        
         select:focus, input:focus { outline: none; border-color: var(--accent-steel); }
         
         input::-webkit-outer-spin-button,
+        
         input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        
         input[type=number] { -moz-appearance: textfield; }
-
         .unit-container { position: relative; }
         .unit-label { position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 0.8rem; pointer-events: none; }
+        
         input[type="number"].has-unit { padding-right: 2.5rem; }
-
         .property-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-top: 0.75rem; background: #111827; padding: 1rem; border-radius: 12px; border: 1px dashed var(--border-color); }
         .factors-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; background: #111827; padding: 1rem; border-radius: 12px; border: 1px solid var(--border-color); }
         .factors-grid .read-only-box { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.75rem; font-family: monospace; font-size: 1.1rem; color: var(--accent-steel); text-align: center; font-weight: bold; }
-        
         .engineering-notes { margin-top: 1rem; font-size: 0.75rem; color: var(--text-muted); line-height: 1.4; padding: 0.5rem 0.75rem; background: rgba(30, 41, 59, 0.5); border-left: 2px solid var(--accent-steel); border-radius: 0 4px 4px 0; }
-
-        /* Superimposed Load Matrix Grid Tables */
         .loads-section { margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1.25rem; }
         .loads-section-title { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600; margin-bottom: 0.75rem; }
         .load-table-wrapper { overflow-x: auto; margin-bottom: 0.5rem; }
         .load-table-container { min-width: 1100px; }
-
-        .loads-col-headers {
-            display: grid; gap: 0.5rem; align-items: center; padding: 0 0.5rem 0.5rem 0.5rem;
-            border-bottom: 1px solid var(--border-color); margin-bottom: 0.5rem;
-            font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); font-weight: 700;
-            grid-template-columns: 140px repeat(7, 1fr) 32px; text-align: center;
-        }
+        .loads-col-headers { display: grid; gap: 0.5rem; align-items: center; padding: 0 0.5rem 0.5rem 0.5rem; border-bottom: 1px solid var(--border-color); margin-bottom: 0.5rem; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); font-weight: 700; grid-template-columns: 140px repeat(7, 1fr) 32px; text-align: center; }
         .load-card { background: #111827; border: 1px solid var(--border-color); border-radius: 10px; padding: 0.5rem; margin-bottom: 0.5rem; }
         .load-card-row { display: grid; gap: 0.5rem; align-items: center; grid-template-columns: 140px repeat(7, 1fr) 32px; text-align: center; }
-
         .lc-input { width: 100%; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-main); padding: 0.5rem 0.25rem; font-size: 0.82rem; text-align: center; transition: border 0.2s; }
         .lc-input:focus { outline: none; border-color: var(--accent-steel); }
         .lc-select { width: 100%; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-main); padding: 0.5rem 0.25rem; font-size: 0.82rem; cursor: pointer; transition: border 0.2s; }
         .lc-col { display: flex; flex-direction: column; justify-content: center; height: 100%; }
         .lc-delete-btn { background: none; border: none; color: #475569; cursor: pointer; font-size: 1.2rem; line-height: 1; padding: 0.2rem; border-radius: 4px; transition: color 0.2s; align-self: center; }
         .lc-delete-btn:hover { color: var(--accent-red); }
-
         .add-load-btn { width: 100%; margin-top: 0.5rem; background: transparent; border: 1px dashed var(--border-color); padding: 0.5rem; border-radius: 8px; color: var(--text-muted); cursor: pointer; font-size: 0.85rem; transition: all 0.2s; font-weight: 600; }
         .add-load-btn:hover { border-color: var(--accent-steel); color: var(--accent-steel); }
-
         .envelope-status-bar { font-size: 0.8rem; font-family: monospace; color: var(--accent-steel); background: rgba(56, 189, 248, 0.05); border: 1px dashed rgba(56, 189, 248, 0.2); text-align: center; padding: 0.65rem; border-radius: 8px; margin-top: 1rem; }
-        
-        /* Code Check Rows */
         .report-row { display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-bottom: 1px solid var(--border-color); font-size: 0.95rem; }
         .report-row:last-child { border-bottom: none; }
         .report-values { font-weight: 600; font-size: 1.1rem; margin-right: 0.5rem; font-family: monospace; }
@@ -117,8 +103,6 @@
         .status-pill.pass { background: #064e3b; color: var(--accent-green); }
         .status-pill.fail { background: #7f1d1d; color: var(--accent-red); }
         .sub-math { font-size: 0.75rem; color: var(--text-muted); display: block; margin-top: 0.2rem; font-family: monospace; }
-
-        /* Canvas Displays */
         .diagram-title { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin: 1.25rem 0 0.4rem 0; font-weight: 600; }
         .canvas-container { background: #111827; border-radius: 12px; border: 1px dashed var(--border-color); padding: 0.75rem; display: flex; flex-direction: column; justify-content: center; width: 100%; }
         .canvas-title { font-size: 0.7rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; margin-bottom: 0.5rem; display: flex; justify-content: space-between; }
@@ -845,10 +829,6 @@ function run() {
             M_arr_ll[i] = M_x_ll;
         }
 
-        // --- Deflection: Simpson's rule virtual work integration ---
-        // Uses M·m̄ / EI integrated numerically. This is exact for any load
-        // pattern and is kept unchanged from the current engine. In multi-span,
-        // the same integration runs over the full continuous M diagram.
         const defl_TL = new Array(nSteps + 1).fill(0);
         const defl_LL = new Array(nSteps + 1).fill(0);
 
@@ -873,8 +853,17 @@ function run() {
         const maxD_TL   = Math.max(...defl_TL.map(v => Math.abs(v)));
         const maxD_LL   = Math.max(...defl_LL.map(v => Math.abs(v)));
 
-        // --- AISC Chapter F Bending Strength (ASD) ---
-        const Cb  = 1.14;
+        let Cb = 1.14; 
+        if (document.getElementById('cb-auto') && document.getElementById('cb-auto').checked) {
+        Cb = calculateCbFromSegments(M_arr, Lb, span);
+        const cbInput = document.getElementById('factor-cb');
+        if (cbInput && document.activeElement !== cbInput) {
+        cbInput.value = Cb.toFixed(2);
+        }
+        } else if (document.getElementById('factor-cb')) {
+        Cb = parseFloat(document.getElementById('factor-cb').value) || 1.0;
+        }
+        
         const Mp  = Fy * Zx;
         let   Mn  = Mp;
         const Lp  = 1.76 * rts * Math.sqrt(29000 / Fy);
@@ -885,19 +874,14 @@ function run() {
                       * Math.sqrt(1 + 0.078 * (J / (Sx * ho)) * (Lb_rts * Lb_rts));
             Mn = Math.min(Mp, Fcr * Sx);
         }
-        const allowable_M = Math.min(Mp, Mn) / 12 / 1.67;   // kip·ft
-
-        // --- AISC Chapter G Shear Capacity (ASD) ---
-        const allowable_V = (0.6 * Fy * d * tw) / 1.50;     // kips
-
+        const allowable_M = Math.min(Mp, Mn) / 12 / 1.67;
+        const allowable_V = (0.6 * Fy * d * tw) / 1.50;
         const ll_limit_in = L_in / ll_lim;
         const tl_limit_in = L_in / tl_lim;
-
         const ratio_M  = maxM_kft  / allowable_M;
         const ratio_V  = maxV_kips / allowable_V;
         const ratio_ll = maxD_LL   / ll_limit_in;
         const ratio_tl = maxD_TL   / tl_limit_in;
-
         const govRatio = Math.max(ratio_M, ratio_V, ratio_ll, ratio_tl);
         if (govRatio > maxRatio) {
             maxRatio             = govRatio;
