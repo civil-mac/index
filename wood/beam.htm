@@ -210,7 +210,7 @@
                         <label>Cf (Size)</label>
                         <div class="cf-toggle"><input type="checkbox" id="cf-auto" checked onchange="run()"> Auto</div>
                     </div>
-                    <input type="number" id="factor-cf" value="1.0" step="0.05" oninput="run()">
+                    <input type="number" id="factor-cf" value="1.1" step="0.05" oninput="run()">
                 </div>
                 <div class="form-group"><label>Cfu (Flat Use)</label><input type="number" id="factor-cfu" value="1.0" step="0.05" oninput="run()"></div>
                 <div class="form-group"><label>Ci (Incising)</label><input type="number" id="factor-ci" value="1.0" step="0.05" oninput="run()"></div>
@@ -580,14 +580,10 @@ function run() {
     }
 
     const Fb_ref = parseFloat(document.getElementById('prop-fb').value) || 0;
-
-    const Fb_ref = parseFloat(document.getElementById('prop-fb').value) || 0;
     const Fv_ref = parseFloat(document.getElementById('prop-fv').value) || 0;
     const E_psi = (parseFloat(document.getElementById('prop-e').value) || 1.4) * 1000000;
-    
     const ll_lim = parseFloat(document.getElementById('input-ll-lim').value) || 240;
     const tl_lim = parseFloat(document.getElementById('input-tl-lim').value) || 360;
-
     const Cd = parseFloat(document.getElementById('factor-cd').value) || 1.0;
     const Cm = parseFloat(document.getElementById('factor-cm').value) || 1.0;
     const Ct = parseFloat(document.getElementById('factor-ct').value) || 1.0;
