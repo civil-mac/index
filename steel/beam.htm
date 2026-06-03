@@ -916,6 +916,7 @@ if (comboMaxRatio > maxRatio) {
                 'll-defl': { ratio: ratio_ll, allowable: ll_limit_in, actual: maxD_LL }
             };
         }
+    });
     
     updateReportPill('flexure', summaryData.flexure.ratio, `${summaryData.flexure.actual.toFixed(1)} / ${summaryData.flexure.allowable.toFixed(1)} k-ft`);
     updateReportPill('shear', summaryData.shear.ratio, `${summaryData.shear.actual.toFixed(1)} / ${summaryData.shear.allowable.toFixed(1)} kips`);
