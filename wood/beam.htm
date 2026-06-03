@@ -160,6 +160,11 @@
         canvas { width: 100%; display: block; background: #111827; }
         .cf-toggle { display: flex; align-items: center; gap: 0.25rem; font-size: 0.75rem; color: var(--text-muted); }
         .cf-toggle input { width: auto; margin: 0; }
+        .indent-step {
+        padding-left: 1.5rem;
+        text-indent: -1.5rem;
+        margin-bottom: 0.5rem;
+        }
     </style>
 </head>
 <body>
@@ -218,47 +223,47 @@
             <div class="panel-subtitle">NDS Factors Quick Guide</div>
             <div class="quick-guide">
         <b>Duration ($C_D$)</b> = 1.0:<br>
-        DL: $C_D = 0.9$ (Perm); SL: $C_D = 1.15$ (2 months); Lr: $C_D = 1.25$ (7 days); W/E: $C_D = 1.6$ (seconds/mins); Impact: $C_D = 2.0$ (\le 1 sec)<br>
+        <div class="indent-step">DL: $C_D = 0.9$ (Perm); SL: $C_D = 1.15$ (2 months); Lr: $C_D = 1.25$ (7 days); W/E: $C_D = 1.6$ (seconds/mins); Impact: $C_D = 2.0$ (\le 1 sec)</div><br><br>
 
     <p>
         <b>Wet Service ($C_M$)</b> = 1.0 (Dry: $\le$ 19% MC):<br>
-        If moisture > 19%: $F_b = 0.85$ (unless $F_b \times C_F \le 1150 \text{ psi}$, then 1.0); $F_v = 0.97$; $F_c = 0.8$; $E / E_{\min} = 0.9$<br><br>
+        <div class="indent-step">If moisture > 19%: $F_b = 0.85$ (unless $F_b \times C_F \le 1150 \text{ psi}$, then 1.0); $F_v = 0.97$; $F_c = 0.8$; $E / E_{\min} = 0.9$<br><br>
     </p>
 
     <p>
         <b>Temperature ($C_t$)</b> = 1.0 ($\le$ 100°F up to 125°F):<br>
-        125°F – 150°F (Dry): 0.9 for $F_b, F_t, F_c$; $E / E_{\min} = 1.0$<br>
-        125°F – 150°F (Wet): 0.7 for $F_b, F_t, F_c$; $E / E_{\min} = 0.9$<br><br>
+        <div class="indent-step">125°F – 150°F (Dry): 0.9 for $F_b, F_t, F_c$; $E / E_{\min} = 1.0$</div><br>
+        <div class="indent-step">125°F – 150°F (Wet): 0.7 for $F_b, F_t, F_c$; $E / E_{\min} = 0.9$</div><br><br>
     </p>
 
     <p>
         <b>Beam Stability ($C_L$)</b> = 1.0;  If $L_u/d \le 7$, then $C_L = 1.0$. Otherwise, follow the steps below:<br>
-        Effective Length: $L_e = 1.63L_u + 3d$ (for a concentrated load at center)<br>
-        Slenderness Ratio: $R_B = \sqrt{\frac{L_e d}{b^2}} \le 50$<br>
-        Reference Bending Max: $F_b^* = F_b \times C_D \times C_M \times C_t \times C_F \times C_i \times C_b$<br>
-        Stability Factor: $C_L = \frac{1 + (F_{bE}/F_b^*)}{1.9} - \sqrt{\left( \frac{1 + (F_{bE}/F_b^*)}{1.9} \right)^2 - \frac{F_{bE}/F_b^*}{0.95}}$<br><br>
+        <div class="indent-step">Effective Length: $L_e = 1.63L_u + 3d$ (for a concentrated load at center)</div><br>
+        <div class="indent-step">Slenderness Ratio: $R_B = \sqrt{\frac{L_e d}{b^2}} \le 50$</div><br>
+        <div class="indent-step">Reference Bending Max: $F_b^* = F_b \times C_D \times C_M \times C_t \times C_F \times C_i \times C_b$</div><br>
+        <div class="indent-step">Stability Factor: $C_L = \frac{1 + (F_{bE}/F_b^*)}{1.9} - \sqrt{\left( \frac{1 + (F_{bE}/F_b^*)}{1.9} \right)^2 - \frac{F_{bE}/F_b^*}{0.95}}$</div><br><br>
     </p>
 
     <p>
         <b>Size Factor ($C_F$)</b> = 1.0:<br>
-        Timbers ($\ge$ 5" thick): $C_F = \left(\frac{12}{d}\right)^{1/9}$<br><br>
+        <div class="indent-step">Timbers ($\ge$ 5" thick): $C_F = \left(\frac{12}{d}\right)^{1/9}$</div><br><br>
     </p>
 
     <p>
         <b>Flat Use ($C_{fu}$)</b> = 1.0:<br>
         2" thick board: $C_{fu} = 1.0-1.1$<br>
         3"–4" thick: $C_{fu} = 1.0-1.15$<br>
-        Timbers ($\ge$ 5"): $C_{fu} = \left(\frac{12}{d}\right)^{1/9}$<br><br>
+         <div class="indent-step">Timbers ($\ge$ 5"): $C_{fu} = \left(\frac{12}{d}\right)^{1/9}$</div><br><br>
     </p>
 
     <p>
         <b>Incising ($C_i$)</b> = 1.0:<br>
-        If Cut, PT, or Contact Ground: $F_b, F_t, F_c = 0.85$; $F_v = 0.85$; $E / E_{\min} = 0.95$<br><br>
+         <div class="indent-step">If Cut, PT, or Contact Ground: $F_b, F_t, F_c = 0.85$; $F_v = 0.85$; $E / E_{\min} = 0.95$</div><br><br>
     </p>
 
     <p>
         <b>Repetitive Member ($C_r$)</b> = 1.0:<br>
-        $F_b \times 1.15$ if load is distributed to $\ge$ 3 parallel joists/rafters are spaced $\le$ 24" o.c.
+         <div class="indent-step">$F_b \times 1.15$ if load is distributed to $\ge$ 3 parallel joists/rafters are spaced $\le$ 24" o.c.</div>
     </p>
 
             </div>
