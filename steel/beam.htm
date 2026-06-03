@@ -897,8 +897,8 @@ function run() {
                 'll-defl': { ratio: ratio_ll, allowable: ll_limit_in, actual: maxD_LL }
             };
         }
-    });
-
+    }); 
+    
     updateReportPill('flexure', summaryData.flexure.ratio, `${summaryData.flexure.actual.toFixed(1)} / ${summaryData.flexure.allowable.toFixed(1)} k-ft`);
     updateReportPill('shear', summaryData.shear.ratio, `${summaryData.shear.actual.toFixed(1)} / ${summaryData.shear.allowable.toFixed(1)} kips`);
     updateReportPill('tl-defl', summaryData['tl-defl'].ratio, `${summaryData['tl-defl'].actual.toFixed(3)}" / ${summaryData['tl-defl'].allowable.toFixed(2)}"`);
@@ -910,7 +910,7 @@ function run() {
     }
 
     document.getElementById('controlling-comb-display').innerText = 
-        `Governing Combo: ${controllingComboName} | M_max = ${absMaxM.toFixed(1)} k-ft | V_max = ${absMaxV.toFixed(1)} kips${cbDisplayStr}`;
+        `Governing Combo: ${controllingComboName} | M_max = ${absMaxM.toFixed(1)} k-ft | V_max = ${absMaxV.toFixed(1)} kips | Cb = ${summaryData.governingCb.toFixed(2)}`;
 
     document.getElementById('react-ra').innerText = `${Math.abs(envelopeV[0]).toFixed(1)} kips`;
     document.getElementById('react-rb').innerText = `${Math.abs(envelopeV[envelopeV.length - 1]).toFixed(1)} kips`;
@@ -920,7 +920,7 @@ function run() {
     drawShearDiagram(envelopeV);
     drawMomentDiagram(envelopeM);
     drawBeamProfile(span);
-}
+    }
 
 function updateReportPill(id, ratio, mathStr) {
     const valEl = document.getElementById(`ratio-${id}`);
