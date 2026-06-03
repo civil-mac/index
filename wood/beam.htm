@@ -204,7 +204,7 @@
                 <div class="form-group"><label>Cd (Duration)</label><input type="number" id="factor-cd" value="1.0" step="0.05" oninput="run()"></div>
                 <div class="form-group"><label>Cm (Wet Service)</label><input type="number" id="factor-cm" value="1.0" step="0.05" oninput="run()"></div>
                 <div class="form-group"><label>Ct (Temperature)</label><input type="number" id="factor-ct" value="1.0" step="0.05" oninput="run()"></div>
-                <div class="form-group"><label>Cl (Stability)</label><input type="number" id="factor-cl" value="1.0" step="0.01" oninput="run()"></div>
+                <div class="form-group"><label>Cl (Stability)</label><input type="number" id="factor-cl" value="1.0" step="0.05" oninput="run()"></div>
                 <div class="form-group">
                     <div class="label-row">
                         <label>Cf (Size)</label>
@@ -214,7 +214,7 @@
                 </div>
                 <div class="form-group"><label>Cfu (Flat Use)</label><input type="number" id="factor-cfu" value="1.0" step="0.05" oninput="run()"></div>
                 <div class="form-group"><label>Ci (Incising)</label><input type="number" id="factor-ci" value="1.0" step="0.05" oninput="run()"></div>
-                <div class="form-group"><label>Cr (Repetitive)</label><input type="number" id="factor-cr" value="1.10" step="0.05" oninput="run()"></div>
+                <div class="form-group"><label>Cr (Repetitive)</label><input type="number" id="factor-cr" value="1.0" step="0.05" oninput="run()"></div>
             </div>
 
 <div class="panel-subtitle">NDS Factors Quick Guide</div>
@@ -236,7 +236,7 @@
     </div>
 
     <div class="factor-group">
-        <b>Beam Stability ($C_L$)</b> = 1.0; If $L_u/d \le 7$, then $C_L = 1.0$, otherwise:
+        <b>Stability ($C_L$)</b> = 1.0; If $L_u/d \le 7$, then $C_L = 1.0$, otherwise:
         <div class="indent-step">Effective Length: $L_e = 1.63L_u + 3d$ (for a concentrated load at center)</div>
         <div class="indent-step">Slenderness Ratio: $R_B = \sqrt{\frac{L_e d}{b^2}} \le 50$</div>
         <div class="indent-step">Reference Bending Max: $F_b^* = F_b \times C_D \times C_M \times C_t \times C_F \times C_i \times C_b$</div>
@@ -244,7 +244,7 @@
     </div>
 
     <div class="factor-group">
-        <b>Size Factor ($C_F$)</b> = 1.0
+        <b>Size ($C_F$)</b> = 1.0
         <div class="indent-step">Timbers ($\ge$ 5" thick): $C_F = \left(\frac{12}{d}\right)^{1/9}$</div>
     </div>
 
@@ -261,7 +261,7 @@
     </div>
 
     <div class="factor-group">
-        <b>Repetitive Member ($C_r$)</b> = 1.0
+        <b>Repetitive ($C_r$)</b> = 1.0
         <div class="indent-step">$F_b \times 1.15$ if load is distributed to $\ge$ 3 parallel joists/rafters are spaced $\le$ 24" o.c.</div>
     </div>
 </div>
@@ -580,7 +580,7 @@ function run() {
     const Cf = parseFloat(document.getElementById('factor-cf').value) || 1.0;
     const Cfu = parseFloat(document.getElementById('factor-cfu').value) || 1.0;
     const Ci = parseFloat(document.getElementById('factor-ci').value) || 1.0;
-    const Cr = parseFloat(document.getElementById('factor-cr').value) || 1.10;
+    const Cr = parseFloat(document.getElementById('factor-cr').value) || 1.0;
 
     const selfWeightPLF = (Area_in2 / 144) * density;
 
