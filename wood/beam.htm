@@ -569,7 +569,11 @@ function run() {
         } else if (matInput.includes('LVL') || matInput.includes('PSL')) {
             CF = (d > 12) ? Math.pow(12 / d, 0.111) : 1.0;
         }
-        
+        } else if (matInput.includes('LVL')) {
+        CF = Math.pow(12 / d, 0.111); 
+        } else if (matInput.includes('PSL')) {
+        CF = (d > 12) ? Math.pow(12 / d, 0.111) : 1.0;
+        }
         const cfInput = document.getElementById('factor-cf');
         if (document.activeElement !== cfInput) {
             cfInput.value = CF.toFixed(2);
