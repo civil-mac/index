@@ -881,8 +881,8 @@ function run() {
         const ratio_ll = maxD_LL / ll_limit_in;
 
         const comboMaxRatio = Math.max(ratio_M, ratio_V, ratio_tl, ratio_ll);
-
-        if (comboMaxRatio > maxRatio) {
+        
+if (comboMaxRatio > maxRatio) {
             maxRatio = comboMaxRatio;
             controllingComboName = combo.name;
             absMaxM = maxM_kft;
@@ -891,7 +891,8 @@ function run() {
             envelopeM = M_arr.slice();
 
             summaryData = {
-                flexure: { ratio: ratio_M, allowable: Mn_over_omega, actual: maxM_kft, cbVal: Cb },
+                governingCb: Cb,
+                flexure: { ratio: ratio_M, allowable: Mn_over_omega, actual: maxM_kft },
                 shear: { ratio: ratio_V, allowable: Vn_over_omega, actual: maxV_kips },
                 'tl-defl': { ratio: ratio_tl, allowable: tl_limit_in, actual: maxD_TL },
                 'll-defl': { ratio: ratio_ll, allowable: ll_limit_in, actual: maxD_LL }
@@ -904,11 +905,6 @@ function run() {
     updateReportPill('tl-defl', summaryData['tl-defl'].ratio, `${summaryData['tl-defl'].actual.toFixed(3)}" / ${summaryData['tl-defl'].allowable.toFixed(2)}"`);
     updateReportPill('ll-defl', summaryData['ll-defl'].ratio, `${summaryData['ll-defl'].actual.toFixed(3)}" / ${summaryData['ll-defl'].allowable.toFixed(2)}"`);
 
-    let cbDisplayStr = "";
-    if (Lb > 0 && summaryData.flexure) {
-        cbDisplayStr = ` | Cb = ${summaryData.flexure.cbVal.toFixed(2)}`;
-    }
-
     document.getElementById('controlling-comb-display').innerText = 
         `Governing Combo: ${controllingComboName} | M_max = ${absMaxM.toFixed(1)} k-ft | V_max = ${absMaxV.toFixed(1)} kips | Cb = ${summaryData.governingCb.toFixed(2)}`;
 
@@ -920,8 +916,8 @@ function run() {
     drawShearDiagram(envelopeV);
     drawMomentDiagram(envelopeM);
     drawBeamProfile(span);
-    }
-
+}
+    
 function updateReportPill(id, ratio, mathStr) {
     const valEl = document.getElementById(`ratio-${id}`);
     const pillEl = document.getElementById(`pill-${id}`);
