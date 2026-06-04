@@ -142,18 +142,18 @@
 
             <label>Active Section Properties (AISC Table 1-1)</label>
             <div class="property-grid">
-                <div class="form-group"><label>d (in)</label><input type="number" id="prop-d" step="0.01" oninput="run()"></div>
-                <div class="form-group"><label>tw (in)</label><input type="number" id="prop-tw" step="0.001" oninput="run()"></div>
-                <div class="form-group"><label>bf (in)</label><input type="number" id="prop-bf" step="0.01" oninput="run()"></div>
-                <div class="form-group"><label>tf (in)</label><input type="number" id="prop-tf" step="0.001" oninput="run()"></div>
-                <div class="form-group"><label>Ixx (in⁴)</label><input type="number" id="prop-ix" step="0.1" oninput="run()"></div>
-                <div class="form-group"><label>Sxx (in³)</label><input type="number" id="prop-sx" step="0.1" oninput="run()"></div>
-                <div class="form-group"><label>Zxx (in³)</label><input type="number" id="prop-zx" step="0.1" oninput="run()"></div>
-                <div class="form-group"><label>rts (in)</label><input type="number" id="prop-rts" step="0.01" oninput="run()"></div>
-                <div class="form-group"><label>J (in⁴)</label><input type="number" id="prop-j" step="0.001" oninput="run()"></div>
-                <div class="form-group"><label>Cw (in⁶)</label><input type="number" id="prop-cw" step="0.1" oninput="run()"></div>
-                <div class="form-group"><label>ho (in)</label><input type="number" id="prop-ho" step="0.01" oninput="run()"></div>
-                <div class="form-group"><label>Weight (plf)</label><input type="number" id="prop-weight" step="0.1" oninput="run()"></div>
+                <div class="form-group"><label>d (in)</label><input type="number" id="prop-d" oninput="run()"></div>
+                <div class="form-group"><label>tw (in)</label><input type="number" id="prop-tw" oninput="run()"></div>
+                <div class="form-group"><label>bf (in)</label><input type="number" id="prop-bf" oninput="run()"></div>
+                <div class="form-group"><label>tf (in)</label><input type="number" id="prop-tf" oninput="run()"></div>
+                <div class="form-group"><label>Ixx (in⁴)</label><input type="number" id="prop-ix" oninput="run()"></div>
+                <div class="form-group"><label>Sxx (in³)</label><input type="number" id="prop-sx" oninput="run()"></div>
+                <div class="form-group"><label>Zxx (in³)</label><input type="number" id="prop-zx" oninput="run()"></div>
+                <div class="form-group"><label>rts (in)</label><input type="number" id="prop-rts" oninput="run()"></div>
+                <div class="form-group"><label>J (in⁴)</label><input type="number" id="prop-j" oninput="run()"></div>
+                <div class="form-group"><label>Cw (in⁶)</label><input type="number" id="prop-cw" oninput="run()"></div>
+                <div class="form-group"><label>ho (in)</label><input type="number" id="prop-ho" oninput="run()"></div>
+                <div class="form-group"><label>Weight (plf)</label><input type="number" id="prop-weight" oninput="run()"></div>
             </div>
 
             <div class="panel-subtitle">AISC ASD Safety Factors</div>
@@ -176,22 +176,22 @@
                 <div class="form-group">
                     <label>Span Length (L)</label>
                     <div class="unit-container">
-                        <input type="number" class="has-unit" id="input-span" value="12" min="0.01" step="0.01" oninput="syncSpanToRows(); run();">
+                        <input type="number" class="has-unit" id="input-span" value="12" min="0.01" oninput="syncSpanToRows(); run();">
                         <span class="unit-label">ft</span>
                     </div>
                 </div>
                 <div class="form-group">
                     <label>Unbraced Length (Lb)</label>
                     <div class="unit-container">
-                        <input type="number" class="has-unit" id="input-lb" value="0" min="0" step="0.01" oninput="run()">
+                        <input type="number" class="has-unit" id="input-lb" value="0" min="0" oninput="run()">
                         <span class="unit-label">ft</span>
                     </div>
                 </div>
             </div>
 
             <div class="form-row">
-                <div class="form-group"><label>Live Load Defl. Limit (L/)</label><input type="number" id="input-ll-lim" value="240" min="1" step="1" oninput="run()"></div>
-                <div class="form-group"><label>Total Load Defl. Limit (L/)</label><input type="number" id="input-tl-lim" value="360" min="1" step="1" oninput="run()"></div>
+                <div class="form-group"><label>Live Load Defl. Limit (L/)</label><input type="number" id="input-ll-lim" value="240" min="1" oninput="run()"></div>
+                <div class="form-group"><label>Total Load Defl. Limit (L/)</label><input type="number" id="input-tl-lim" value="360" min="1" oninput="run()"></div>
             </div>
 
             <div class="loads-section">
@@ -567,8 +567,8 @@ function addLoadRow(defaultD = 0, defaultL = 0) {
             <div class="lc-col snow-col"><input type="number" class="lc-input snow-input" value="0" oninput="run()"></div>
             <div class="lc-col wind-col"><input type="number" class="lc-input wind-input" value="0" oninput="run()"></div>
             <div class="lc-col seismic-col"><input type="number" class="lc-input seismic-input" value="0" oninput="run()"></div>
-            <div class="lc-col"><input type="number" class="lc-input start-input" value="0" step="0.1" oninput="run()"></div>
-            <div class="lc-col"><input type="number" class="lc-input end-input" value="${currentSpan}" step="0.1" oninput="run()"></div>
+            <div class="lc-col"><input type="number" class="lc-input start-input" value="0" oninput="run()"></div>
+            <div class="lc-col"><input type="number" class="lc-input end-input" value="${currentSpan}" oninput="run()"></div>
             <div class="lc-col">
                 <button class="lc-delete-btn" onclick="removeLoadRow('${rowId}')" title="Remove Row">×</button>
             </div>
@@ -674,11 +674,11 @@ function calculateAISCFlangeFactor(momentArray, unbracedLength, totalSpan) {
     const stepDelta = totalSpan / nSteps;
 
     let braceCoordinates = [];
-    for (let currentPos = 0; currentPos <= totalSpan; currentPos += Lb) {
-        braceCoordinates.push(currentPos);
+    for (let x = 0; x <= totalSpan; x += Lb) {
+    braceCoordinates.push(x);
     }
-    if (Math.abs(braceCoordinates[braceCoordinates.length - 1] - totalSpan) > 0.001) {
-        braceCoordinates.push(totalSpan);
+    if (braceCoordinates[braceCoordinates.length - 1] !== totalSpan) {
+    braceCoordinates.push(totalSpan); // Catch any remaining partial trailing segment
     }
 
     let globalGoverningCb = 3.0;
