@@ -667,18 +667,21 @@ function parseInputLoads() {
 }
 
 function calculateAISCFlangeFactor(momentArray) {
+    // 1. Pull directly from the live DOM state to prevent undefined argument errors
     const totalSpan = parseFloat(document.getElementById('input-span').value) || 0;
     let Lb = parseFloat(document.getElementById('input-lb').value) || 0;
     
     if (totalSpan <= 0 || !momentArray || momentArray.length === 0) return 1.14;
-
+    
+    // 2. THE SYSTEM REALIGNMENT RULE: If Lb is 0 or missing, the beam is fully unbraced
     if (Lb <= 0 || Lb > totalSpan) {
         Lb = totalSpan;
     }
-    
+
     const nSteps = momentArray.length - 1;
     const stepDelta = totalSpan / nSteps;
 
+    // 3. Generate explicit unbraced intervals along the beam length
     let braceCoordinates = [];
     for (let x = 0; x <= totalSpan; x += Lb) {
         braceCoordinates.push(x);
@@ -689,11 +692,13 @@ function calculateAISCFlangeFactor(momentArray) {
 
     let globalGoverningCb = 3.0;
 
+    // 4. Analyze localized segments between brace points
     for (let i = 0; i < braceCoordinates.length - 1; i++) {
         let segmentStart = braceCoordinates[i];
         let segmentEnd = braceCoordinates[i + 1];
         let segmentLength = segmentEnd - segmentStart;
 
+        // Shift trailing partial segments backward to establish a full unbraced window frame
         if (segmentLength < Lb && Math.abs(segmentEnd - totalSpan) < 0.001) {
             segmentStart = Math.max(0, totalSpan - Lb);
             segmentLength = segmentEnd - segmentStart;
@@ -703,6 +708,7 @@ function calculateAISCFlangeFactor(momentArray) {
         const coordinateB = segmentStart + 0.50 * segmentLength;
         const coordinateC = segmentStart + 0.75 * segmentLength;
 
+        // Map coordinates to exact discrete array slot indexes
         const indexStart = Math.min(nSteps, Math.max(0, Math.round(segmentStart / stepDelta)));
         const indexA     = Math.min(nSteps, Math.max(0, Math.round(coordinateA / stepDelta)));
         const indexB     = Math.min(nSteps, Math.max(0, Math.round(coordinateB / stepDelta)));
