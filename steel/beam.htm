@@ -681,12 +681,17 @@ function parseInputLoads() {
         
 function calculateAISCFlangeFactor(M_arr, span) {
     const mode = document.getElementById('select-bracing-mode').value;
-
+    
+    // Resolve Lb based on mode
     let Lb;
-    if (mode === 'fully-braced') return 1.0;
-    if (mode === 'unbraced') Lb = span;
-    else Lb = parseFloat(document.getElementById('input-lb').value) || span;
+    if (mode === 'fully-braced') return 1.0; // Early exit
+    if (mode === 'unbraced') {
+        Lb = span;
+    } else {
+        Lb = parseFloat(document.getElementById('input-lb').value) || span;
+    }
 
+    // Identify Peak Moment
     let M_max = 0;
     let M_max_idx = 0;
     for (let i = 0; i < M_arr.length; i++) {
@@ -697,22 +702,29 @@ function calculateAISCFlangeFactor(M_arr, span) {
     }
     if (M_max <= 0.001) return 1.14;
 
+    // Define Window
     const nSteps = M_arr.length - 1;
     const dx = span / nSteps;
     const stepsInLb = Math.round(Lb / dx);
     
-    let startIdx = Math.max(0, Math.min(nSteps - stepsInLb, M_max_idx - Math.floor(stepsInLb / 2)));
-    let endIdx = startIdx + stepsInLb;
+    // Clamp window to array boundaries
+    const startIdx = Math.max(0, Math.min(nSteps - stepsInLb, M_max_idx - Math.floor(stepsInLb / 2)));
+    const endIdx = startIdx + stepsInLb;
 
+    // Extract Quarter-Points
     const idxA = Math.max(0, Math.min(nSteps, startIdx + Math.round((endIdx - startIdx) * 0.25)));
     const idxB = Math.max(0, Math.min(nSteps, startIdx + Math.round((endIdx - startIdx) * 0.50)));
     const idxC = Math.max(0, Math.min(nSteps, startIdx + Math.round((endIdx - startIdx) * 0.75)));
 
     const M_A = Math.abs(M_arr[idxA] || 0);
-    const M_B = Math.abs(M_arr[idxB] || 0);
-    const M_C = Math.abs(M_arr[idxC] || 0);
+    const M_B = Math.abs(M_arr[idxA] || 0); // Wait, fix: A, B, C indices
+    // Correcting indices for A, B, C:
+    const valA = Math.abs(M_arr[idxA] || 0);
+    const valB = Math.abs(M_arr[idxB] || 0);
+    const valC = Math.abs(M_arr[idxC] || 0);
 
-    let Cb = (12.5 * M_max) / (2.5 * M_max + 3 * M_A + 4 * M_B + 3 * M_C);
+    // Cb Calculation
+    let Cb = (12.5 * M_max) / (2.5 * M_max + 3 * valA + 4 * valB + 3 * valC);
     
     return Math.min(3.0, Math.max(1.0, Cb));
 }
