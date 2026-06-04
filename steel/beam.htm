@@ -183,7 +183,7 @@
     
     <div class="form-group">
         <label>Unbraced Length (Lb)</label>
-        <select id="select-bracing-mode" onchange="run();">
+        <select id="select-bracing-mode" onchange="handleBracingModeChange(); run();">
             <option value="fully-braced">Fully Braced (Lb = 0)</option>
             <option value="unbraced">Fully Unbraced (Lb = Span)</option>
             <option value="custom">Custom Length</option>
@@ -191,15 +191,21 @@
     </div>
 
     <div class="form-group" id="custom-lb-container" style="display:none;">
-        <label>Enter Lb (ft):</label>
+        <label>Lb (ft):</label>
         <input type="number" id="input-lb" value="4" oninput="run();">
     </div>
 </div>
 
-            <div class="form-row">
-                <div class="form-group"><label>Live Load Defl. Limit (L/)</label><input type="number" id="input-ll-lim" value="240" min="1" oninput="run()"></div>
-                <div class="form-group"><label>Total Load Defl. Limit (L/)</label><input type="number" id="input-tl-lim" value="360" min="1" oninput="run()"></div>
-            </div>
+<div class="form-row">
+    <div class="form-group">
+        <label>Live Load Defl. Limit (L/)</label>
+        <input type="number" id="input-ll-lim" value="240" min="1" oninput="run()">
+    </div>
+    <div class="form-group">
+        <label>Total Load Defl. Limit (L/)</label>
+        <input type="number" id="input-tl-lim" value="360" min="1" oninput="run()">
+    </div>
+</div>
 
             <div class="loads-section">
                 <div class="loads-section-title">Superimposed Design Configuration Loads</div>
@@ -672,9 +678,6 @@ function parseInputLoads() {
     });
     return loads;
 }
-
-        document.getElementById('select-bracing-mode').addEventListener('change', function() {
-        document.getElementById('custom-lb-container').style.display = (this.value === 'custom') ? 'block' : 'none';
         
 function calculateAISCFlangeFactor(M_arr, span) {
     const mode = document.getElementById('select-bracing-mode').value;
