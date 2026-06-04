@@ -718,6 +718,8 @@ function calculateAISCFlangeFactor(M_arr, span) {
 }
     
 function run() {
+    const mode = document.getElementById('select-bracing-mode').value;
+    document.getElementById('custom-lb-container').style.display = (mode === 'custom') ? 'block' : 'none';
     const Fy = parseFloat(document.getElementById('prop-fy').value) || 0;
     const d = parseFloat(document.getElementById('prop-d').value) || 0;
     const tw = parseFloat(document.getElementById('prop-tw').value) || 0;
