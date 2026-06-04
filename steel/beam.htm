@@ -679,19 +679,9 @@ function parseInputLoads() {
     return loads;
 }
         
-function calculateAISCFlangeFactor(M_arr, span) {
-    const mode = document.getElementById('select-bracing-mode').value;
-    
-    // Resolve Lb based on mode
-    let Lb;
-    if (mode === 'fully-braced') return 1.0; // Early exit
-    if (mode === 'unbraced') {
-        Lb = span;
-    } else {
-        Lb = parseFloat(document.getElementById('input-lb').value) || span;
-    }
+function calculateAISCFlangeFactor(M_arr, span, Lb) {
+    if (Lb <= 0) return 1.0; 
 
-    // Identify Peak Moment
     let M_max = 0;
     let M_max_idx = 0;
     for (let i = 0; i < M_arr.length; i++) {
@@ -702,7 +692,6 @@ function calculateAISCFlangeFactor(M_arr, span) {
     }
     if (M_max <= 0.001) return 1.14;
 
-    // Define Window
     const nSteps = M_arr.length - 1;
     const dx = span / nSteps;
     const stepsInLb = Math.round(Lb / dx);
@@ -711,27 +700,29 @@ function calculateAISCFlangeFactor(M_arr, span) {
     const startIdx = Math.max(0, Math.min(nSteps - stepsInLb, M_max_idx - Math.floor(stepsInLb / 2)));
     const endIdx = startIdx + stepsInLb;
 
-    // Extract Quarter-Points
     const idxA = Math.max(0, Math.min(nSteps, startIdx + Math.round((endIdx - startIdx) * 0.25)));
     const idxB = Math.max(0, Math.min(nSteps, startIdx + Math.round((endIdx - startIdx) * 0.50)));
     const idxC = Math.max(0, Math.min(nSteps, startIdx + Math.round((endIdx - startIdx) * 0.75)));
 
-    const M_A = Math.abs(M_arr[idxA] || 0);
-    const M_B = Math.abs(M_arr[idxA] || 0); // Wait, fix: A, B, C indices
-    // Correcting indices for A, B, C:
     const valA = Math.abs(M_arr[idxA] || 0);
     const valB = Math.abs(M_arr[idxB] || 0);
     const valC = Math.abs(M_arr[idxC] || 0);
 
-    // Cb Calculation
     let Cb = (12.5 * M_max) / (2.5 * M_max + 3 * valA + 4 * valB + 3 * valC);
     
     return Math.min(3.0, Math.max(1.0, Cb));
 }
     
 function run() {
+    const span = parseFloat(document.getElementById('input-span').value) || 0;
     const mode = document.getElementById('select-bracing-mode').value;
     document.getElementById('custom-lb-container').style.display = (mode === 'custom') ? 'block' : 'none';
+
+    let Lb;
+    if (mode === 'fully-braced') Lb = 0;
+    else if (mode === 'unbraced') Lb = span;
+    else Lb = parseFloat(document.getElementById('input-lb').value) || 0;
+
     const Fy = parseFloat(document.getElementById('prop-fy').value) || 0;
     const d = parseFloat(document.getElementById('prop-d').value) || 0;
     const tw = parseFloat(document.getElementById('prop-tw').value) || 0;
@@ -742,8 +733,6 @@ function run() {
     const J = parseFloat(document.getElementById('prop-j').value) || 0;
     const ho = parseFloat(document.getElementById('prop-ho').value) || 0;
     const beamWeight = parseFloat(document.getElementById('prop-weight').value) || 0;
-    const span = parseFloat(document.getElementById('input-span').value) || 0;
-    const Lb = parseFloat(document.getElementById('input-lb').value) || 0;
     
     if (span <= 0 || d <= 0 || Ix <= 0 || Sx <= 0) return;
 
@@ -977,7 +966,7 @@ function run() {
         const maxD_TL = (Math.max(...conjugateM.map(Math.abs)) * 1728) / (E * Ix);
         const maxD_LL = (Math.max(...liveConjugateM.map(Math.abs)) * 1728) / (E * Ix);
 
-        const activeComboCb = calculateAISCFlangeFactor(M_arr, span);
+        const activeComboCb = calculateAISCFlangeFactor(M_arr, span, Lb);
 
         const Mp = Fy * Zx;
         let Mn = Fy * Sx;
@@ -986,7 +975,7 @@ function run() {
             const Lr = 1.95 * rts * (E / (0.7 * Fy)) * Math.sqrt((J / (Sx * ho)) + Math.sqrt(Math.pow(J / (Sx * ho), 2) + 6.76 * Math.pow((0.7 * Fy) / E, 2)));
             const Lp = 1.76 * rts * Math.sqrt(E / Fy);
 
-            if (Lb <= Lp) {
+        if (Lb <= Lp) {
                 Mn = Mp;
             } else if (Lb > Lp && Lb <= Lr) {
                 const ltbInelastic = activeComboCb * (Mp - (Mp - 0.7 * Fy * Sx) * ((Lb - Lp) / (Lr - Lp)));
