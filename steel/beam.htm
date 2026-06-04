@@ -668,7 +668,7 @@ function parseInputLoads() {
 
 function calculateAISCFlangeFactor(momentArray, unbracedLength, totalSpan) {
     if (unbracedLength <= 0 || totalSpan <= 0) return 1.14;
-
+    
     const Lb = Math.min(unbracedLength, totalSpan);
     const nSteps = momentArray.length - 1;
     const stepDelta = totalSpan / nSteps;
@@ -677,7 +677,6 @@ function calculateAISCFlangeFactor(momentArray, unbracedLength, totalSpan) {
     for (let currentPos = 0; currentPos <= totalSpan; currentPos += Lb) {
         braceCoordinates.push(currentPos);
     }
-
     if (Math.abs(braceCoordinates[braceCoordinates.length - 1] - totalSpan) > 0.001) {
         braceCoordinates.push(totalSpan);
     }
@@ -715,7 +714,6 @@ function calculateAISCFlangeFactor(momentArray, unbracedLength, totalSpan) {
         if (M_max_segment === 0) continue;
 
         let segmentCb = (12.5 * M_max_segment) / (2.5 * M_max_segment + 3 * M_A + 4 * M_B + 3 * M_C);
-        
         segmentCb = Math.min(3.0, Math.max(1.0, segmentCb));
 
         if (segmentCb < globalGoverningCb) {
@@ -726,7 +724,11 @@ function calculateAISCFlangeFactor(momentArray, unbracedLength, totalSpan) {
     return globalGoverningCb;
 }
 
+/**
+ * Main Processing Core Execution Loop
+ */
 function run() {
+    // 1. Pull Hardware Parameters from the DOM Document Context
     const Fy = parseFloat(document.getElementById('prop-fy').value) || 0;
     const d = parseFloat(document.getElementById('prop-d').value) || 0;
     const tw = parseFloat(document.getElementById('prop-tw').value) || 0;
@@ -736,6 +738,7 @@ function run() {
     const rts = parseFloat(document.getElementById('prop-rts').value) || 0;
     const J = parseFloat(document.getElementById('prop-j').value) || 0;
     const ho = parseFloat(document.getElementById('prop-ho').value) || 0;
+    const beamWeight = parseFloat(document.getElementById('prop-weight').value) || 0;
     const span = parseFloat(document.getElementById('input-span').value) || 0;
     const Lb = parseFloat(document.getElementById('input-lb').value) || 0;
 
@@ -745,6 +748,9 @@ function run() {
     const tl_lim = parseFloat(document.getElementById('input-tl-lim').value) || 360;
 
     const nSteps = 100;
+    const dx = span / nSteps;
+    const E = 29000; // ksi
+
     let maxRatio = -1;
     let controllingComboName = 'D Only';
     let absMaxM = 0;
@@ -752,17 +758,240 @@ function run() {
     
     let envelopeV = new Array(nSteps + 1).fill(0);
     let envelopeM = new Array(nSteps + 1).fill(0);
-    let masterSummaryReport = {};
+    let masterSummaryReport = null;
 
+    // Parse superimposed UI configuration rows
+    const loadCards = document.querySelectorAll('#loads-table-body .load-card');
+    let compiledInputLoads = [];
 
+    loadCards.forEach(card => {
+        const type = card.querySelector('.type-input').value;
+        const start = parseFloat(card.querySelector('.start-input').value) || 0;
+        const end = parseFloat(card.querySelector('.end-input').value) || 0;
+
+        const parseLoadValue = (selector) => {
+            const el = card.querySelector(selector);
+            return el ? (parseFloat(el.value) || 0) : 0;
+        };
+
+        compiledInputLoads.push({
+            type: type,
+            start: start,
+            end: end,
+            D:  parseLoadValue('.dead-input'),
+            D2: parseLoadValue('.dead-input2'),
+            L:  parseLoadValue('.live-input'),
+            L2: parseLoadValue('.live-input2'),
+            S:  parseLoadValue('.snow-input'),
+            S2: parseLoadValue('.snow-input2'),
+            W:  parseLoadValue('.wind-input'),
+            W2: parseLoadValue('.wind-input2'),
+            E:  parseLoadValue('.seismic-input'),
+            E2: parseLoadValue('.seismic-input2')
+        });
+    });
+
+    // 2. Evaluate Load Combinations Matrix
     ASD_COMBINATIONS.forEach(combo => {
+        let pointLoadsList = [];
+        let distributedLoadsList = [];
+
+        // Include beam self-weight into Dead Load tracking category
+        if (beamWeight > 0) {
+            distributedLoadsList.push({ w1: beamWeight / 1000, w2: beamWeight / 1000, start: 0, end: span, isLL: false });
+        }
+
+        // Project raw design criteria into standard structural mechanics properties
+        compiledInputLoads.forEach(ld => {
+            const factorD = combo.D;
+            const factorL = combo.L;
+            const factorS = combo.S;
+            const factorW = combo.W;
+            const factorE = combo.E;
+
+            // Combine factors linearly for this specific combination profile
+            const netW1 = (ld.D * factorD) + (ld.L * factorL) + (ld.S * factorS) + (ld.W * factorW) + (ld.E * factorE);
+            const netW2 = (ld.type === 'Trapezoid')
+                ? ((ld.D2 * factorD) + (ld.L2 * factorL) + (ld.S2 * factorS) + (ld.W2 * factorW) + (ld.E2 * factorE))
+                : netW1;
+
+            const hasLiveLoadComponent = (ld.L > 0 && factorL > 0);
+
+            if (ld.type === 'Point') {
+                if (netW1 !== 0) {
+                    pointLoadsList.push({ P: netW1 / 1000, pos: ld.start, isLL: hasLiveLoadComponent, rawLL: (ld.L * factorL) / 1000 });
+                }
+            } else {
+                if (netW1 !== 0 || netW2 !== 0) {
+                    distributedLoadsList.push({
+                        w1: netW1 / 1000,
+                        w2: netW2 / 1000,
+                        start: Math.max(0, Math.min(span, ld.start)),
+                        end: Math.max(0, Math.min(span, ld.end)),
+                        isLL: hasLiveLoadComponent,
+                        rawLL1: (ld.L * factorL) / 1000,
+                        rawLL2: (ld.type === 'Trapezoid' ? (ld.L2 * factorL) / 1000 : (ld.L * factorL) / 1000)
+                    });
+                }
+            }
+        });
+
+        // Calculate support boundary reactions (Simple Span Statics)
+        let totalLoadA = 0;
+        let totalLoadB = 0;
+        let liveLoadReactionA = 0;
+        let liveLoadReactionB = 0;
+
+        pointLoadsList.forEach(pl => {
+            const rB = (pl.P * pl.pos) / span;
+            const rA = pl.P - rB;
+            totalLoadA += rA;
+            totalLoadB += rB;
+
+            if (pl.isLL) {
+                const llRB = (pl.rawLL * pl.pos) / span;
+                liveLoadReactionA += (pl.rawLL - llRB);
+                liveLoadReactionB += llRB;
+            }
+        });
+
+        distributedLoadsList.forEach(dl => {
+            const len = dl.end - dl.start;
+            if (len <= 0) return;
+            
+            // Total resultant weight of uniform or trapezoidal strip
+            const totalW = 0.5 * (dl.w1 + dl.w2) * len;
+            // Center of mass centroid offset tracking
+            const centroidLocal = (dl.w1 === dl.w2) 
+                ? (len / 2) 
+                : (len * (dl.w1 + 2 * dl.w2) / (3 * (dl.w1 + dl.w2)));
+            const globalCentroid = dl.start + centroidLocal;
+
+            const rB = (totalW * globalCentroid) / span;
+            const rA = totalW - rB;
+            totalLoadA += rA;
+            totalLoadB += rB;
+
+            if (dl.isLL) {
+                const totalLL = 0.5 * (dl.rawLL1 + dl.rawLL2) * len;
+                const llCentroidLocal = (dl.rawLL1 === dl.rawLL2)
+                    ? (len / 2)
+                    : (len * (dl.rawLL1 + 2 * dl.rawLL2) / (3 * (dl.rawLL1 + dl.rawLL2)));
+                const llGlobalCentroid = dl.start + llCentroidLocal;
+                const llRB = (totalLL * llGlobalCentroid) / span;
+                liveLoadReactionA += (totalLL - llRB);
+                liveLoadReactionB += llRB;
+            }
+        });
+
+        // Compile mechanical arrays across 100 localized segments
+        let V_arr = new Array(nSteps + 1).fill(0);
+        let M_arr = new Array(nSteps + 1).fill(0);
+        let M_arr_ll = new Array(nSteps + 1).fill(0);
+
+        for (let idx = 0; idx <= nSteps; idx++) {
+            const x = idx * dx;
+
+            // --- Shear Forces V(x) ---
+            let currentVx = totalLoadA;
+            pointLoadsList.forEach(pl => { if (x > pl.pos) currentVx -= pl.P; });
+            distributedLoadsList.forEach(dl => {
+                if (x <= dl.start) return;
+                if (x >= dl.end) {
+                    currentVx -= 0.5 * (dl.w1 + dl.w2) * (dl.end - dl.start);
+                } else {
+                    const localLen = x - dl.start;
+                    const wx = dl.w1 + ((dl.w2 - dl.w1) / (dl.end - dl.start)) * localLen;
+                    currentVx -= 0.5 * (dl.w1 + wx) * localLen;
+                }
+            });
+            V_arr[idx] = currentVx;
+
+            // --- Total Bending Moments M(x) ---
+            let currentMx = totalLoadA * x;
+            pointLoadsList.forEach(pl => { if (x > pl.pos) currentMx -= pl.P * (x - pl.pos); });
+            distributedLoadsList.forEach(dl => {
+                if (x <= dl.start) return;
+                if (x >= dl.end) {
+                    const len = dl.end - dl.start;
+                    const totalW = 0.5 * (dl.w1 + dl.w2) * len;
+                    const cLocal = (dl.w1 === dl.w2) ? (len / 2) : (len * (dl.w1 + 2 * dl.w2) / (3 * (dl.w1 + dl.w2)));
+                    currentMx -= totalW * (x - (dl.start + cLocal));
+                } else {
+                    const localLen = x - dl.start;
+                    const wx = dl.w1 + ((dl.w2 - dl.w1) / (dl.end - dl.start)) * localLen;
+                    const totalW = 0.5 * (dl.w1 + wx) * localLen;
+                    const cLocal = (dl.w1 === wx) ? (localLen / 2) : (localLen * (dl.w1 + 2 * wx) / (3 * (dl.w1 + totalW)));
+                    currentMx -= totalW * (x - (dl.start + cLocal));
+                }
+            });
+            M_arr[idx] = currentMx;
+
+            // --- Isolated Live Load Bending Moments M_ll(x) ---
+            let currentMxLL = liveLoadReactionA * x;
+            pointLoadsList.forEach(pl => { if (pl.isLL && x > pl.pos) currentMxLL -= pl.rawLL * (x - pl.pos); });
+            distributedLoadsList.forEach(dl => {
+                if (!dl.isLL || x <= dl.start) return;
+                if (x >= dl.end) {
+                    const len = dl.end - dl.start;
+                    const totalW = 0.5 * (dl.rawLL1 + dl.rawLL2) * len;
+                    const cLocal = (dl.rawLL1 === dl.rawLL2) ? (len / 2) : (len * (dl.rawLL1 + 2 * dl.rawLL2) / (3 * (dl.rawLL1 + totalW)));
+                    currentMxLL -= totalW * (x - (dl.start + cLocal));
+                } else {
+                    const localLen = x - dl.start;
+                    const wx = dl.rawLL1 + ((dl.rawLL2 - dl.rawLL1) / (dl.end - dl.start)) * localLen;
+                    const totalW = 0.5 * (dl.rawLL1 + wx) * localLen;
+                    const cLocal = (dl.rawLL1 === wx) ? (localLen / 2) : (localLen * (dl.rawLL1 + 2 * wx) / (3 * (dl.rawLL1 + totalW)));
+                    currentMxLL -= totalW * (x - (dl.start + cLocal));
+                }
+            });
+            M_arr_ll[idx] = currentMxLL;
+        }
+
+        const maxM_kft = Math.max(...M_arr.map(Math.abs));
+        const maxV_kips = Math.max(...V_arr.map(Math.abs));
+
+        // Evaluate deflection profiles using Conjugate Beam Integration
+        let conjugateSlope = 0;
+        let conjugateM = new Array(nSteps + 1).fill(0);
+        let liveConjugateSlope = 0;
+        let liveConjugateM = new Array(nSteps + 1).fill(0);
+
+        for (let i = 0; i < nSteps; i++) {
+            conjugateSlope += 0.5 * (M_arr[i] + M_arr[i+1]) * dx;
+            liveConjugateSlope += 0.5 * (M_arr_ll[i] + M_arr_ll[i+1]) * dx;
+        }
+        let reactionLeftConjugate = conjugateSlope / 2;
+        let reactionLeftLiveConjugate = liveConjugateSlope / 2;
+
+        for (let idx = 0; idx <= nSteps; idx++) {
+            const x = idx * dx;
+            let currentConjM = reactionLeftConjugate * x;
+            let currentLiveConjM = reactionLeftLiveConjugate * x;
+
+            for (let i = 0; i < idx; i++) {
+                const segX = i * dx + dx / 2;
+                const area = 0.5 * (M_arr[i] + M_arr[i+1]) * dx;
+                currentConjM -= area * (x - segX);
+
+                const areaLL = 0.5 * (M_arr_ll[i] + M_arr_ll[i+1]) * dx;
+                currentLiveConjM -= areaLL * (x - segX);
+            }
+            conjugateM[idx] = currentConjM;
+            liveConjugateM[idx] = currentLiveConjM;
+        }
+
+        const maxD_TL = (Math.max(...conjugateM.map(Math.abs)) * 1728) / (E * Ix);
+        const maxD_LL = (Math.max(...liveConjugateM.map(Math.abs)) * 1728) / (E * Ix);
+
+        // Execute the pure modifier function completely isolated from layout states
         const activeComboCb = calculateAISCFlangeFactor(M_arr, Lb, span);
 
+        // Calculate Flange Lateral-Torsional Buckling Capacities (AISC Chapter F)
         const Mp = Fy * Zx;
         let Mn = Fy * Sx;
 
         if (Lb > 0) {
-            const E = 29000;
             const Lr = 1.95 * rts * (E / (0.7 * Fy)) * Math.sqrt((J / (Sx * ho)) + Math.sqrt(Math.pow(J / (Sx * ho), 2) + 6.76 * Math.pow((0.7 * Fy) / E, 2)));
             const Lp = 1.76 * rts * Math.sqrt(E / Fy);
 
@@ -779,6 +1008,7 @@ function run() {
             Mn = Mp;
         }
 
+        // Process ASD Allowable Limits
         const Mn_over_omega = (Mn / 12) / 1.67;
         const Vn_over_omega = (0.6 * Fy * d * tw) / 1.50;
         const tl_limit_in = (span * 12) / tl_lim;
@@ -791,6 +1021,7 @@ function run() {
 
         const currentMaxRatio = Math.max(ratio_M, ratio_V, ratio_tl, ratio_ll);
 
+        // Update Global Envelope State only if this combination governs structural design
         if (currentMaxRatio > maxRatio) {
             maxRatio = currentMaxRatio;
             controllingComboName = combo.name;
@@ -809,10 +1040,23 @@ function run() {
         }
     });
 
-    updateReportPill('flexure', masterSummaryReport.flexure.ratio, `${masterSummaryReport.flexure.actual.toFixed(1)} / ${masterSummaryReport.flexure.allowable.toFixed(1)} k-ft`);
-    updateReportPill('shear', masterSummaryReport.shear.ratio, `${masterSummaryReport.shear.actual.toFixed(1)} / ${masterSummaryReport.shear.allowable.toFixed(1)} kips`);
-    updateReportPill('tl-defl', masterSummaryReport['tl-defl'].ratio, `${masterSummaryReport['tl-defl'].actual.toFixed(3)}" / ${masterSummaryReport['tl-defl'].allowable.toFixed(2)}"`);
-    updateReportPill('ll-defl', masterSummaryReport['ll-defl'].ratio, `${masterSummaryReport['ll-defl'].actual.toFixed(3)}" / ${masterSummaryReport['ll-defl'].allowable.toFixed(2)}"`);
+    if (!masterSummaryReport) return;
+
+    // 3. UI Presentation Layer - Completely separated from calculation loops
+    const updateReportPill = (id, ratio, text) => {
+        const valueEl = document.getElementById(`ratio-${id}`);
+        const pillEl = document.getElementById(`pill-${id}`);
+        if (valueEl) valueEl.innerText = ratio.toFixed(3);
+        if (pillEl) {
+            pillEl.innerText = ratio <= 1.0 ? 'Pass' : 'Fail';
+            pillEl.className = `status-pill ${ratio <= 1.0 ? 'pass' : 'fail'}`;
+        }
+    };
+
+    updateReportPill('flexure', masterSummaryReport.flexure.ratio);
+    updateReportPill('shear', masterSummaryReport.shear.ratio);
+    updateReportPill('tl-defl', masterSummaryReport['tl-defl'].ratio);
+    updateReportPill('ll-defl', masterSummaryReport['ll-defl'].ratio);
 
     document.getElementById('math-flexure').innerText = `Mn/Ω = ${masterSummaryReport.flexure.allowable.toFixed(1)} k-ft (Cb = ${masterSummaryReport.governingCb.toFixed(2)})`;
     document.getElementById('math-shear').innerText = masterSummaryReport.shear.formulaString;
