@@ -666,19 +666,25 @@ function parseInputLoads() {
     return loads;
 }
 
-function calculateAISCFlangeFactor(momentArray, unbracedLength, totalSpan) {
-    if (unbracedLength <= 0 || totalSpan <= 0) return 1.14;
+function calculateAISCFlangeFactor(momentArray) {
+    const totalSpan = parseFloat(document.getElementById('input-span').value) || 0;
+    let Lb = parseFloat(document.getElementById('input-lb').value) || 0;
     
-    const Lb = Math.min(unbracedLength, totalSpan);
+    if (totalSpan <= 0 || !momentArray || momentArray.length === 0) return 1.14;
+
+    if (Lb <= 0 || Lb > totalSpan) {
+        Lb = totalSpan;
+    }
+    
     const nSteps = momentArray.length - 1;
     const stepDelta = totalSpan / nSteps;
 
     let braceCoordinates = [];
     for (let x = 0; x <= totalSpan; x += Lb) {
-    braceCoordinates.push(x);
+        braceCoordinates.push(x);
     }
-    if (braceCoordinates[braceCoordinates.length - 1] !== totalSpan) {
-    braceCoordinates.push(totalSpan); 
+    if (Math.abs(braceCoordinates[braceCoordinates.length - 1] - totalSpan) > 0.001) {
+        braceCoordinates.push(totalSpan); 
     }
 
     let globalGoverningCb = 3.0;
@@ -688,9 +694,8 @@ function calculateAISCFlangeFactor(momentArray, unbracedLength, totalSpan) {
         let segmentEnd = braceCoordinates[i + 1];
         let segmentLength = segmentEnd - segmentStart;
 
-        if (segmentLength <= Lb && Math.abs(segmentEnd - totalSpan) < 0.001) {
+        if (segmentLength < Lb && Math.abs(segmentEnd - totalSpan) < 0.001) {
             segmentStart = Math.max(0, totalSpan - Lb);
-            segmentEnd = totalSpan;
             segmentLength = segmentEnd - segmentStart;
         }
 
@@ -723,7 +728,7 @@ function calculateAISCFlangeFactor(momentArray, unbracedLength, totalSpan) {
 
     return globalGoverningCb;
 }
-
+    
 function run() {
     const Fy = parseFloat(document.getElementById('prop-fy').value) || 0;
     const d = parseFloat(document.getElementById('prop-d').value) || 0;
