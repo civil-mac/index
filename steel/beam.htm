@@ -678,7 +678,7 @@ function calculateAISCFlangeFactor(momentArray, unbracedLength, totalSpan) {
     braceCoordinates.push(x);
     }
     if (braceCoordinates[braceCoordinates.length - 1] !== totalSpan) {
-    braceCoordinates.push(totalSpan); // Catch any remaining partial trailing segment
+    braceCoordinates.push(totalSpan); 
     }
 
     let globalGoverningCb = 3.0;
