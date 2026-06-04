@@ -718,7 +718,6 @@ function run() {
     const beamWeight = parseFloat(document.getElementById('prop-weight').value) || 0;
     const span = parseFloat(document.getElementById('input-span').value) || 0;
     const Lb = parseFloat(document.getElementById('input-lb').value) || 0;
-    const Cb = calculateAISCFlangeFactor(M_arr);
     
     if (span <= 0 || d <= 0 || Ix <= 0 || Sx <= 0) return;
 
