@@ -182,9 +182,16 @@
                 </div>
                 <div class="form-group">
                     <label>Unbraced Length (Lb)</label>
-                    <div class="unit-container">
-                        <input type="number" class="has-unit" id="input-lb" value="0" min="0" oninput="run()">
-                        <span class="unit-label">ft</span>
+                        <select id="select-bracing-mode" onchange="run();">
+                            <option value="fully-braced">Fully Braced (Lb = 0)</option>
+                            <option value="unbraced">Fully Unbraced (Lb = Span)</option>
+                            <option value="custom">Custom Length</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group" id="custom-lb-container" style="display:none;">
+                        <label>Lb (ft):</label>
+                        <input type="number" id="input-lb" value="4" oninput="run();">
                     </div>
                 </div>
             </div>
@@ -666,13 +673,16 @@ function parseInputLoads() {
     return loads;
 }
 
-function calculateAISCFlangeFactor(M_arr) {
-    const totalSpan = parseFloat(document.getElementById('input-span').value) || 0;
-    let Lb = parseFloat(document.getElementById('input-lb').value) || 0;
-    if (Lb <= 0 || Lb > totalSpan) Lb = totalSpan;
+        document.getElementById('select-bracing-mode').addEventListener('change', function() {
+        document.getElementById('custom-lb-container').style.display = (this.value === 'custom') ? 'block' : 'none';
+        
+function calculateAISCFlangeFactor(M_arr, span) {
+    const mode = document.getElementById('select-bracing-mode').value;
 
-    const nSteps = M_arr.length - 1;
-    const dx = totalSpan / nSteps;
+    let Lb;
+    if (mode === 'fully-braced') return 1.0;
+    if (mode === 'unbraced') Lb = span;
+    else Lb = parseFloat(document.getElementById('input-lb').value) || span;
 
     let M_max = 0;
     let M_max_idx = 0;
@@ -682,14 +692,15 @@ function calculateAISCFlangeFactor(M_arr) {
             M_max_idx = i;
         }
     }
-
     if (M_max <= 0.001) return 1.14;
 
+    const nSteps = M_arr.length - 1;
+    const dx = span / nSteps;
     const stepsInLb = Math.round(Lb / dx);
-    const startIdx = Math.max(0, Math.min(nSteps - stepsInLb, Math.floor(nSteps/2) - Math.round(stepsInLb/2)));
-    const endIdx = startIdx + stepsInLb;
+    
+    let startIdx = Math.max(0, Math.min(nSteps - stepsInLb, M_max_idx - Math.floor(stepsInLb / 2)));
+    let endIdx = startIdx + stepsInLb;
 
-    // 4. Extract Quarter-Points
     const idxA = Math.max(0, Math.min(nSteps, startIdx + Math.round((endIdx - startIdx) * 0.25)));
     const idxB = Math.max(0, Math.min(nSteps, startIdx + Math.round((endIdx - startIdx) * 0.50)));
     const idxC = Math.max(0, Math.min(nSteps, startIdx + Math.round((endIdx - startIdx) * 0.75)));
@@ -697,8 +708,6 @@ function calculateAISCFlangeFactor(M_arr) {
     const M_A = Math.abs(M_arr[idxA] || 0);
     const M_B = Math.abs(M_arr[idxB] || 0);
     const M_C = Math.abs(M_arr[idxC] || 0);
-
-    console.log("Cb Debug: Max=" + M_max.toFixed(1) + " | M_A=" + M_A.toFixed(1) + " | M_B=" + M_B.toFixed(1) + " | M_C=" + M_C.toFixed(1));
 
     let Cb = (12.5 * M_max) / (2.5 * M_max + 3 * M_A + 4 * M_B + 3 * M_C);
     
@@ -951,7 +960,7 @@ function run() {
         const maxD_TL = (Math.max(...conjugateM.map(Math.abs)) * 1728) / (E * Ix);
         const maxD_LL = (Math.max(...liveConjugateM.map(Math.abs)) * 1728) / (E * Ix);
 
-        const activeComboCb = calculateAISCFlangeFactor(M_arr, Lb, span);
+        const activeComboCb = calculateAISCFlangeFactor(M_arr, span);
 
         const Mp = Fy * Zx;
         let Mn = Fy * Sx;
