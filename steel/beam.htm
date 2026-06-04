@@ -171,29 +171,30 @@
                 <strong>AISC Standards Applied:</strong> Elastic Modulus $E = 29,000\text{ ksi}$ and Shear Modulus $G = 11,200\text{ ksi}$. Global calculation loops default to a conservative uniform moment lateral-torsional buckling coefficient $C_b = 1.14$.
             </div>
 
-            <div class="panel-subtitle">Boundary Layout & Span Deflection Targets</div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Span Length (L)</label>
-                    <div class="unit-container">
-                        <input type="number" class="has-unit" id="input-span" value="12" min="0.01" oninput="syncSpanToRows(); run();">
-                        <span class="unit-label">ft</span>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Unbraced Length (Lb)</label>
-                        <select id="select-bracing-mode" onchange="run();">
-                            <option value="fully-braced">Fully Braced (Lb = 0)</option>
-                            <option value="unbraced">Fully Unbraced (Lb = Span)</option>
-                            <option value="custom">Custom Length</option>
-                        </select>
+<div class="panel-subtitle">Boundary Layout & Span Deflection Targets</div>
+<div class="form-row">
+    <div class="form-group">
+        <label>Span Length (L)</label>
+        <div class="unit-container">
+            <input type="number" class="has-unit" id="input-span" value="12" min="0.01" oninput="syncSpanToRows(); run();">
+            <span class="unit-label">ft</span>
+        </div>
+    </div>
+    
+    <div class="form-group">
+        <label>Unbraced Length (Lb)</label>
+        <select id="select-bracing-mode" onchange="run();">
+            <option value="fully-braced">Fully Braced (Lb = 0)</option>
+            <option value="unbraced">Fully Unbraced (Lb = Span)</option>
+            <option value="custom">Custom Length</option>
+        </select>
+    </div>
 
-                    <div class="input-group" id="custom-lb-container" style="display:none;">
-                        <label>Lb (ft):</label>
-                        <input type="number" id="input-lb" value="4" oninput="run();">
-                    </div>
-                </div>
-            </div>
+    <div class="form-group" id="custom-lb-container" style="display:none;">
+        <label>Enter Lb (ft):</label>
+        <input type="number" id="input-lb" value="4" oninput="run();">
+    </div>
+</div>
 
             <div class="form-row">
                 <div class="form-group"><label>Live Load Defl. Limit (L/)</label><input type="number" id="input-ll-lim" value="240" min="1" oninput="run()"></div>
