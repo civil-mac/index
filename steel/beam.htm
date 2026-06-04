@@ -978,7 +978,7 @@ function run() {
         }
     });
     
-    updateReportPill('flexure', summaryData.flexure.ratio, `${summaryData.flexure.actual.toFixed(1)} / ${summaryData.flexure.allowable.toFixed(1)} k-ft`);
+    updateReportPill('flexure', summaryData.flexure.ratio, `${summaryData.flexure.actual.toFixed(1)} / ${summaryData.flexure.allowable.toFixed(1)} k-ft (Cb = ${summaryData.governingCb.toFixed(2)})`);
     updateReportPill('shear', summaryData.shear.ratio, `${summaryData.shear.actual.toFixed(1)} / ${summaryData.shear.allowable.toFixed(1)} kips`);
     updateReportPill('tl-defl', summaryData['tl-defl'].ratio, `${summaryData['tl-defl'].actual.toFixed(3)}" / ${summaryData['tl-defl'].allowable.toFixed(2)}"`);
     updateReportPill('ll-defl', summaryData['ll-defl'].ratio, `${summaryData['ll-defl'].actual.toFixed(3)}" / ${summaryData['ll-defl'].allowable.toFixed(2)}"`);
