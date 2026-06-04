@@ -677,6 +677,7 @@ function calculateCbFromSegments(M_arr, Lb, span) {
     const nSteps = M_arr.length - 1;
     const step_ft = span / nSteps;
 
+    // 1. Establish the real physical brace points in feet
     let bracePoints = [];
     for (let pos = 0; pos < span; pos += Lb) {
         bracePoints.push(pos);
@@ -687,11 +688,13 @@ function calculateCbFromSegments(M_arr, Lb, span) {
 
     let minCbFound = 3.0;
 
+    // 2. Evaluate each physical unbraced segment
     for (let k = 0; k < bracePoints.length - 1; k++) {
         let xStart = bracePoints[k];
         let xEnd = bracePoints[k + 1];
         let segLen = xEnd - xStart;
 
+        // Shift window back at boundaries to maintain structural resolution
         if (segLen < Lb && xEnd === span) {
             xStart = Math.max(0, span - Lb);
             segLen = xEnd - xStart;
@@ -707,15 +710,14 @@ function calculateCbFromSegments(M_arr, Lb, span) {
         let idxB = Math.round(xB / step_ft);
         let idxC = Math.round(xC / step_ft);
 
-        // Pull the precise discrete moments for this segment
+        // Pull precise discrete moments
         let M_start = Math.abs(M_arr[idxStart] || 0);
         let M_A     = Math.abs(M_arr[idxA] || 0);
         let M_B     = Math.abs(M_arr[idxB] || 0);
         let M_C     = Math.abs(M_arr[idxC] || 0);
         let M_end   = Math.abs(M_arr[idxEnd] || 0);
 
-        // Ground M_max strictly to the actual evaluated dataset points 
-        // to prevent floating-point step mismatches from breaking symmetry
+        // Force math coordination between peak bounds and quarter markers
         let M_max_seg = Math.max(M_start, M_A, M_B, M_C, M_end);
 
         if (M_max_seg === 0) continue;
@@ -730,6 +732,25 @@ function calculateCbFromSegments(M_arr, Lb, span) {
     }
 
     return minCbFound;
+}
+    
+    function updateReportPill(id, ratio, mathStr) {
+    const valEl = document.getElementById(`ratio-${id}`);
+    const pillEl = document.getElementById(`pill-${id}`);
+    const mathEl = document.getElementById(`math-${id}`);
+
+    if (!valEl || !pillEl || !mathEl) return;
+
+    valEl.innerText = ratio.toFixed(3);
+    mathEl.innerText = mathStr;
+
+    if (ratio <= 1.0) {
+        pillEl.innerText = "Pass"; 
+        pillEl.className = "status-pill pass";
+    } else {
+        pillEl.innerText = "Fail"; 
+        pillEl.className = "status-pill fail";
+    }
 }
     
 function run() {
@@ -949,21 +970,6 @@ function run() {
     drawBeamProfile(span);
 }
     
-function updateReportPill(id, ratio, mathStr) {
-    const valEl = document.getElementById(`ratio-${id}`);
-    const pillEl = document.getElementById(`pill-${id}`);
-    const mathEl = document.getElementById(`math-${id}`);
-
-    valEl.innerText = ratio.toFixed(3);
-    mathEl.innerText = mathStr;
-
-    if (ratio <= 1.0) {
-        pillEl.innerText = "Pass"; pillEl.className = "status-pill pass";
-    } else {
-        pillEl.innerText = "Fail"; pillEl.className = "status-pill fail";
-    }
-}
-
 function drawShearDiagram(V) {
     const canvas = document.getElementById('shearCanvas');
     const ctx = canvas.getContext('2d');
