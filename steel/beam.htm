@@ -922,7 +922,33 @@ function run() {
             currentComboCb = calculateCbFromSegments(M_arr, Lb, span);
         }
 
-        const Mn_over_omega = (Fy * Zx / 12) / 1.67; 
+        const Mp = Fy * Zx; 
+        let Mn = Fy * Sx;  
+
+        if (Lb > 0) {
+
+            const E = 29000;
+            const G = 11200;
+            const Lr = 1.95 * rts * (E / (0.7 * Fy)) * Math.sqrt((J / (Sx * ho)) + Math.sqrt(Math.pow(J / (Sx * ho), 2) + 6.76 * Math.pow((0.7 * Fy) / E, 2)));
+            const Lp = 1.76 * rts * Math.sqrt(E / Fy);
+
+            if (Lb <= Lp) {
+ 
+                Mn = Mp;
+            } else if (Lb > Lp && Lb <= Lr) {
+
+                const ltb_inelastic = currentComboCb * (Mp - (Mp - 0.7 * Fy * Sx) * ((Lb - Lp) / (Lr - Lp)));
+                Mn = Math.min(Mp, ltb_inelastic);
+            } else {
+
+                const Fcr = (currentComboCb * Math.PI * Math.PI * E / Math.pow(Lb / rts, 2)) * Math.sqrt(1 + 0.078 * (J / (Sx * ho)) * Math.pow(Lb / rts, 2));
+                Mn = Math.min(Mp, Fcr * Sx);
+            }
+        } else {
+            Mn = Mp; 
+        }
+
+        const Mn_over_omega = (Mn / 12) / 1.67;
         const Vn_over_omega = (0.6 * Fy * d * tw) / 1.50;
         const tl_limit_in = (span * 12) / tl_lim;
         const ll_limit_in = (span * 12) / ll_lim;
@@ -950,7 +976,7 @@ function run() {
                 'll-defl': { ratio: ratio_ll, allowable: ll_limit_in, actual: maxD_LL }
             };
         }
-    }); 
+    });
     
     updateReportPill('flexure', summaryData.flexure.ratio, `${summaryData.flexure.actual.toFixed(1)} / ${summaryData.flexure.allowable.toFixed(1)} k-ft`);
     updateReportPill('shear', summaryData.shear.ratio, `${summaryData.shear.actual.toFixed(1)} / ${summaryData.shear.allowable.toFixed(1)} kips`);
