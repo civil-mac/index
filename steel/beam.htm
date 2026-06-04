@@ -677,7 +677,6 @@ function calculateCbFromSegments(M_arr, Lb, span) {
     const nSteps = M_arr.length - 1;
     const step_ft = span / nSteps;
 
-    // 1. Establish the real physical brace points in feet
     let bracePoints = [];
     for (let pos = 0; pos < span; pos += Lb) {
         bracePoints.push(pos);
@@ -688,13 +687,11 @@ function calculateCbFromSegments(M_arr, Lb, span) {
 
     let minCbFound = 3.0;
 
-    // 2. Evaluate each physical unbraced segment
     for (let k = 0; k < bracePoints.length - 1; k++) {
         let xStart = bracePoints[k];
         let xEnd = bracePoints[k + 1];
         let segLen = xEnd - xStart;
 
-        // Shift window back at boundaries to maintain structural resolution
         if (segLen < Lb && xEnd === span) {
             xStart = Math.max(0, span - Lb);
             segLen = xEnd - xStart;
@@ -710,19 +707,15 @@ function calculateCbFromSegments(M_arr, Lb, span) {
         let idxB = Math.round(xB / step_ft);
         let idxC = Math.round(xC / step_ft);
 
-        // Pull precise discrete moments
         let M_start = Math.abs(M_arr[idxStart] || 0);
         let M_A     = Math.abs(M_arr[idxA] || 0);
         let M_B     = Math.abs(M_arr[idxB] || 0);
         let M_C     = Math.abs(M_arr[idxC] || 0);
         let M_end   = Math.abs(M_arr[idxEnd] || 0);
 
-        // Force math coordination between peak bounds and quarter markers
         let M_max_seg = Math.max(M_start, M_A, M_B, M_C, M_end);
-
         if (M_max_seg === 0) continue;
 
-        // AISC Formula
         let Cb_seg = (12.5 * M_max_seg) / (2.5 * M_max_seg + 3 * M_A + 4 * M_B + 3 * M_C);
         Cb_seg = Math.min(3.0, Math.max(1.0, Cb_seg));
 
@@ -730,7 +723,6 @@ function calculateCbFromSegments(M_arr, Lb, span) {
             minCbFound = Cb_seg;
         }
     }
-
     return minCbFound;
 }
     
@@ -917,75 +909,71 @@ function run() {
         const maxD_TL = Math.max(...defl_TL.map(v => Math.abs(v)));
         const maxD_LL = Math.max(...defl_LL.map(v => Math.abs(v)));
 
-        let currentComboCb = 1.14;
-        if (Lb > 0) {
-            currentComboCb = calculateCbFromSegments(M_arr, Lb, span);
-        }
+let currentComboCb = 1.14;
+    if (Lb > 0) {
+        currentComboCb = calculateCbFromSegments(M_arr, Lb, span);
+    }
 
-        const Mp = Fy * Zx; 
-        let Mn = Fy * Sx;  
+    const Mp = Fy * Zx; 
+    let Mn = Fy * Sx;   
 
-        if (Lb > 0) {
+    if (Lb > 0) {
+        const E = 29000;
+        const G = 11200;
+        const Lr = 1.95 * rts * (E / (0.7 * Fy)) * Math.sqrt((J / (Sx * ho)) + Math.sqrt(Math.pow(J / (Sx * ho), 2) + 6.76 * Math.pow((0.7 * Fy) / E, 2)));
+        const Lp = 1.76 * rts * Math.sqrt(E / Fy);
 
-            const E = 29000;
-            const G = 11200;
-            const Lr = 1.95 * rts * (E / (0.7 * Fy)) * Math.sqrt((J / (Sx * ho)) + Math.sqrt(Math.pow(J / (Sx * ho), 2) + 6.76 * Math.pow((0.7 * Fy) / E, 2)));
-            const Lp = 1.76 * rts * Math.sqrt(E / Fy);
-
-            if (Lb <= Lp) {
- 
-                Mn = Mp;
-            } else if (Lb > Lp && Lb <= Lr) {
-
-                const ltb_inelastic = currentComboCb * (Mp - (Mp - 0.7 * Fy * Sx) * ((Lb - Lp) / (Lr - Lp)));
-                Mn = Math.min(Mp, ltb_inelastic);
-            } else {
-
-                const Fcr = (currentComboCb * Math.PI * Math.PI * E / Math.pow(Lb / rts, 2)) * Math.sqrt(1 + 0.078 * (J / (Sx * ho)) * Math.pow(Lb / rts, 2));
-                Mn = Math.min(Mp, Fcr * Sx);
-            }
+        if (Lb <= Lp) {
+            Mn = Mp;
+        } else if (Lb > Lp && Lb <= Lr) {
+            const ltb_inelastic = currentComboCb * (Mp - (Mp - 0.7 * Fy * Sx) * ((Lb - Lp) / (Lr - Lp)));
+            Mn = Math.min(Mp, ltb_inelastic);
         } else {
-            Mn = Mp; 
+            const Fcr = (currentComboCb * Math.PI * Math.PI * E / Math.pow(Lb / rts, 2)) * Math.sqrt(1 + 0.078 * (J / (Sx * ho)) * Math.pow(Lb / rts, 2));
+            Mn = Math.min(Mp, Fcr * Sx);
         }
+    } else {
+        Mn = Mp; 
+    }
 
-        const Mn_over_omega = (Mn / 12) / 1.67;
-        const Vn_over_omega = (0.6 * Fy * d * tw) / 1.50;
-        const tl_limit_in = (span * 12) / tl_lim;
-        const ll_limit_in = (span * 12) / ll_lim;
+    const Mn_over_omega = (Mn / 12) / 1.67; 
+    const Vn_over_omega = (0.6 * Fy * d * tw) / 1.50;
+    const tl_limit_in = (span * 12) / tl_lim;
+    const ll_limit_in = (span * 12) / ll_lim;
 
-        const ratio_M = maxM_kft / Mn_over_omega;
-        const ratio_V = maxV_kips / Vn_over_omega;
-        const ratio_tl = maxD_TL / tl_limit_in;
-        const ratio_ll = maxD_LL / ll_limit_in;
+    const ratio_M = maxM_kft / Mn_over_omega;
+    const ratio_V = maxV_kips / Vn_over_omega;
+    const ratio_tl = maxD_TL / tl_limit_in;
+    const ratio_ll = maxD_LL / ll_limit_in;
 
-        const comboMaxRatio = Math.max(ratio_M, ratio_V, ratio_tl, ratio_ll);
-        
-        if (comboMaxRatio > maxRatio) {
-            maxRatio = comboMaxRatio;
-            controllingComboName = combo.name;
-            absMaxM = maxM_kft;
-            absMaxV = maxV_kips;
-            envelopeV = V_arr.slice();
-            envelopeM = M_arr.slice();
-
-            summaryData = {
-                governingCb: currentComboCb, 
-                flexure: { ratio: ratio_M, allowable: Mn_over_omega, actual: maxM_kft },
-                shear: { ratio: ratio_V, allowable: Vn_over_omega, actual: maxV_kips },
-                'tl-defl': { ratio: ratio_tl, allowable: tl_limit_in, actual: maxD_TL },
-                'll-defl': { ratio: ratio_ll, allowable: ll_limit_in, actual: maxD_LL }
-            };
-        }
-    });
+    const comboMaxRatio = Math.max(ratio_M, ratio_V, ratio_tl, ratio_ll);
     
-    updateReportPill('flexure', summaryData.flexure.ratio, `${summaryData.flexure.actual.toFixed(1)} / ${summaryData.flexure.allowable.toFixed(1)} k-ft (Cb = ${summaryData.governingCb.toFixed(2)})`);
-    updateReportPill('shear', summaryData.shear.ratio, `${summaryData.shear.actual.toFixed(1)} / ${summaryData.shear.allowable.toFixed(1)} kips`);
-    updateReportPill('tl-defl', summaryData['tl-defl'].ratio, `${summaryData['tl-defl'].actual.toFixed(3)}" / ${summaryData['tl-defl'].allowable.toFixed(2)}"`);
-    updateReportPill('ll-defl', summaryData['ll-defl'].ratio, `${summaryData['ll-defl'].actual.toFixed(3)}" / ${summaryData['ll-defl'].allowable.toFixed(2)}"`);
+    if (comboMaxRatio > maxRatio) {
+        maxRatio = comboMaxRatio;
+        controllingComboName = combo.name;
+        absMaxM = maxM_kft;
+        absMaxV = maxV_kips;
+        envelopeV = V_arr.slice();
+        envelopeM = M_arr.slice();
 
-    document.getElementById('controlling-comb-display').innerText = 
-        `Governing Combo: ${controllingComboName} | M_max = ${absMaxM.toFixed(1)} k-ft | V_max = ${absMaxV.toFixed(1)} kips | Cb = ${summaryData.governingCb.toFixed(2)}`;
+        summaryData = {
+            governingCb: currentComboCb,
+            flexure: { ratio: ratio_M, allowable: Mn_over_omega, actual: maxM_kft },
+            shear: { ratio: ratio_V, allowable: Vn_over_omega, actual: maxV_kips },
+            'tl-defl': { ratio: ratio_tl, allowable: tl_limit_in, actual: maxD_TL },
+            'll-defl': { ratio: ratio_ll, allowable: ll_limit_in, actual: maxD_LL }
+        };
+    }
+});
+    
+updateReportPill('flexure', summaryData.flexure.ratio, `${summaryData.flexure.actual.toFixed(1)} / ${summaryData.flexure.allowable.toFixed(1)} k-ft (Cb = ${summaryData.governingCb.toFixed(2)})`);
+updateReportPill('shear', summaryData.shear.ratio, `${summaryData.shear.actual.toFixed(1)} / ${summaryData.shear.allowable.toFixed(1)} kips`);
+updateReportPill('tl-defl', summaryData['tl-defl'].ratio, `${summaryData['tl-defl'].actual.toFixed(3)}" / ${summaryData['tl-defl'].allowable.toFixed(2)}"`);
+updateReportPill('ll-defl', summaryData['ll-defl'].ratio, `${summaryData['ll-defl'].actual.toFixed(3)}" / ${summaryData['ll-defl'].allowable.toFixed(2)}"`);
 
+document.getElementById('controlling-comb-display').innerText = 
+    `Governing Combo: ${controllingComboName} | M_max = ${absMaxM.toFixed(1)} k-ft | V_max = ${absMaxV.toFixed(1)} kips | Cb = ${summaryData.governingCb.toFixed(2)}`;
+    
     document.getElementById('react-ra').innerText = `${Math.abs(envelopeV[0]).toFixed(1)} kips`;
     document.getElementById('react-rb').innerText = `${Math.abs(envelopeV[envelopeV.length - 1]).toFixed(1)} kips`;
     document.getElementById('label-max-v').innerText = `MAX: ${absMaxV.toFixed(1)} kips`;
