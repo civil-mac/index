@@ -688,7 +688,7 @@ function calculateAISCFlangeFactor(momentArray, unbracedLength, totalSpan) {
         let segmentEnd = braceCoordinates[i + 1];
         let segmentLength = segmentEnd - segmentStart;
 
-        if (segmentLength < Lb && Math.abs(segmentEnd - totalSpan) < 0.001) {
+        if (segmentLength <= Lb && Math.abs(segmentEnd - totalSpan) < 0.001) {
             segmentStart = Math.max(0, totalSpan - Lb);
             segmentEnd = totalSpan;
             segmentLength = segmentEnd - segmentStart;
@@ -724,11 +724,7 @@ function calculateAISCFlangeFactor(momentArray, unbracedLength, totalSpan) {
     return globalGoverningCb;
 }
 
-/**
- * Main Processing Core Execution Loop
- */
 function run() {
-    // 1. Pull Hardware Parameters from the DOM Document Context
     const Fy = parseFloat(document.getElementById('prop-fy').value) || 0;
     const d = parseFloat(document.getElementById('prop-d').value) || 0;
     const tw = parseFloat(document.getElementById('prop-tw').value) || 0;
@@ -749,7 +745,7 @@ function run() {
 
     const nSteps = 100;
     const dx = span / nSteps;
-    const E = 29000; // ksi
+    const E = 29000;
 
     let maxRatio = -1;
     let controllingComboName = 'D Only';
@@ -760,7 +756,6 @@ function run() {
     let envelopeM = new Array(nSteps + 1).fill(0);
     let masterSummaryReport = null;
 
-    // Parse superimposed UI configuration rows
     const loadCards = document.querySelectorAll('#loads-table-body .load-card');
     let compiledInputLoads = [];
 
@@ -796,12 +791,10 @@ function run() {
         let pointLoadsList = [];
         let distributedLoadsList = [];
 
-        // Include beam self-weight into Dead Load tracking category
         if (beamWeight > 0) {
             distributedLoadsList.push({ w1: beamWeight / 1000, w2: beamWeight / 1000, start: 0, end: span, isLL: false });
         }
 
-        // Project raw design criteria into standard structural mechanics properties
         compiledInputLoads.forEach(ld => {
             const factorD = combo.D;
             const factorL = combo.L;
@@ -809,7 +802,6 @@ function run() {
             const factorW = combo.W;
             const factorE = combo.E;
 
-            // Combine factors linearly for this specific combination profile
             const netW1 = (ld.D * factorD) + (ld.L * factorL) + (ld.S * factorS) + (ld.W * factorW) + (ld.E * factorE);
             const netW2 = (ld.type === 'Trapezoid')
                 ? ((ld.D2 * factorD) + (ld.L2 * factorL) + (ld.S2 * factorS) + (ld.W2 * factorW) + (ld.E2 * factorE))
@@ -836,7 +828,6 @@ function run() {
             }
         });
 
-        // Calculate support boundary reactions (Simple Span Statics)
         let totalLoadA = 0;
         let totalLoadB = 0;
         let liveLoadReactionA = 0;
@@ -858,10 +849,8 @@ function run() {
         distributedLoadsList.forEach(dl => {
             const len = dl.end - dl.start;
             if (len <= 0) return;
-            
-            // Total resultant weight of uniform or trapezoidal strip
+
             const totalW = 0.5 * (dl.w1 + dl.w2) * len;
-            // Center of mass centroid offset tracking
             const centroidLocal = (dl.w1 === dl.w2) 
                 ? (len / 2) 
                 : (len * (dl.w1 + 2 * dl.w2) / (3 * (dl.w1 + dl.w2)));
@@ -884,7 +873,6 @@ function run() {
             }
         });
 
-        // Compile mechanical arrays across 100 localized segments
         let V_arr = new Array(nSteps + 1).fill(0);
         let M_arr = new Array(nSteps + 1).fill(0);
         let M_arr_ll = new Array(nSteps + 1).fill(0);
@@ -927,7 +915,6 @@ function run() {
             });
             M_arr[idx] = currentMx;
 
-            // --- Isolated Live Load Bending Moments M_ll(x) ---
             let currentMxLL = liveLoadReactionA * x;
             pointLoadsList.forEach(pl => { if (pl.isLL && x > pl.pos) currentMxLL -= pl.rawLL * (x - pl.pos); });
             distributedLoadsList.forEach(dl => {
@@ -951,7 +938,6 @@ function run() {
         const maxM_kft = Math.max(...M_arr.map(Math.abs));
         const maxV_kips = Math.max(...V_arr.map(Math.abs));
 
-        // Evaluate deflection profiles using Conjugate Beam Integration
         let conjugateSlope = 0;
         let conjugateM = new Array(nSteps + 1).fill(0);
         let liveConjugateSlope = 0;
@@ -984,10 +970,8 @@ function run() {
         const maxD_TL = (Math.max(...conjugateM.map(Math.abs)) * 1728) / (E * Ix);
         const maxD_LL = (Math.max(...liveConjugateM.map(Math.abs)) * 1728) / (E * Ix);
 
-        // Execute the pure modifier function completely isolated from layout states
         const activeComboCb = calculateAISCFlangeFactor(M_arr, Lb, span);
 
-        // Calculate Flange Lateral-Torsional Buckling Capacities (AISC Chapter F)
         const Mp = Fy * Zx;
         let Mn = Fy * Sx;
 
@@ -1008,7 +992,6 @@ function run() {
             Mn = Mp;
         }
 
-        // Process ASD Allowable Limits
         const Mn_over_omega = (Mn / 12) / 1.67;
         const Vn_over_omega = (0.6 * Fy * d * tw) / 1.50;
         const tl_limit_in = (span * 12) / tl_lim;
@@ -1021,7 +1004,6 @@ function run() {
 
         const currentMaxRatio = Math.max(ratio_M, ratio_V, ratio_tl, ratio_ll);
 
-        // Update Global Envelope State only if this combination governs structural design
         if (currentMaxRatio > maxRatio) {
             maxRatio = currentMaxRatio;
             controllingComboName = combo.name;
@@ -1042,7 +1024,6 @@ function run() {
 
     if (!masterSummaryReport) return;
 
-    // 3. UI Presentation Layer - Completely separated from calculation loops
     const updateReportPill = (id, ratio, text) => {
         const valueEl = document.getElementById(`ratio-${id}`);
         const pillEl = document.getElementById(`pill-${id}`);
