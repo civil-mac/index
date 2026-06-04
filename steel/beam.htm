@@ -896,9 +896,9 @@ function run() {
         const maxD_TL = Math.max(...defl_TL.map(v => Math.abs(v)));
         const maxD_LL = Math.max(...defl_LL.map(v => Math.abs(v)));
 
-        let Cb = 1.14;
+        let currentComboCb = 1.14;
         if (Lb > 0) {
-            Cb = calculateCbFromSegments(M_arr, Lb, span);
+            currentComboCb = calculateCbFromSegments(M_arr, Lb, span);
         }
 
         const Mn_over_omega = (Fy * Zx / 12) / 1.67; 
@@ -922,14 +922,14 @@ function run() {
             envelopeM = M_arr.slice();
 
             summaryData = {
-                governingCb: Cb,
+                governingCb: currentComboCb, 
                 flexure: { ratio: ratio_M, allowable: Mn_over_omega, actual: maxM_kft },
                 shear: { ratio: ratio_V, allowable: Vn_over_omega, actual: maxV_kips },
                 'tl-defl': { ratio: ratio_tl, allowable: tl_limit_in, actual: maxD_TL },
                 'll-defl': { ratio: ratio_ll, allowable: ll_limit_in, actual: maxD_LL }
             };
         }
-    });
+    }); 
     
     updateReportPill('flexure', summaryData.flexure.ratio, `${summaryData.flexure.actual.toFixed(1)} / ${summaryData.flexure.allowable.toFixed(1)} k-ft`);
     updateReportPill('shear', summaryData.shear.ratio, `${summaryData.shear.actual.toFixed(1)} / ${summaryData.shear.allowable.toFixed(1)} kips`);
