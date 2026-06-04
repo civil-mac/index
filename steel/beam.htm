@@ -667,72 +667,36 @@ function parseInputLoads() {
 }
 
 function calculateAISCFlangeFactor(momentArray) {
-    // 1. Pull directly from the live DOM state to prevent undefined argument errors
     const totalSpan = parseFloat(document.getElementById('input-span').value) || 0;
     let Lb = parseFloat(document.getElementById('input-lb').value) || 0;
     
     if (totalSpan <= 0 || !momentArray || momentArray.length === 0) return 1.14;
     
-    // 2. THE SYSTEM REALIGNMENT RULE: If Lb is 0 or missing, the beam is fully unbraced
+    // System realignment rule
     if (Lb <= 0 || Lb > totalSpan) {
         Lb = totalSpan;
     }
-
+    
     const nSteps = momentArray.length - 1;
-    const stepDelta = totalSpan / nSteps;
 
-    // 3. Generate explicit unbraced intervals along the beam length
-    let braceCoordinates = [];
-    for (let x = 0; x <= totalSpan; x += Lb) {
-        braceCoordinates.push(x);
+    const idx025 = Math.round(nSteps * 0.25);
+    const idx050 = Math.round(nSteps * 0.50);
+    const idx075 = Math.round(nSteps * 0.75);
+    
+    const M_max = Math.max(...momentArray.map(Math.abs));
+    if (M_max === 0) return 1.14;
+    
+    const M_A = Math.abs(momentArray[idx025] || 0);
+    const M_B = Math.abs(momentArray[idx050] || 0);
+    const M_C = Math.abs(momentArray[idx075] || 0);
+
+    let Cb = (12.5 * M_max) / (2.5 * M_max + 3 * M_A + 4 * M_B + 3 * M_C);
+    
+    if (Lb < totalSpan) {
+        Cb = Cb * (totalSpan / Lb); 
     }
-    if (Math.abs(braceCoordinates[braceCoordinates.length - 1] - totalSpan) > 0.001) {
-        braceCoordinates.push(totalSpan); 
-    }
-
-    let globalGoverningCb = 3.0;
-
-    // 4. Analyze localized segments between brace points
-    for (let i = 0; i < braceCoordinates.length - 1; i++) {
-        let segmentStart = braceCoordinates[i];
-        let segmentEnd = braceCoordinates[i + 1];
-        let segmentLength = segmentEnd - segmentStart;
-
-        // Shift trailing partial segments backward to establish a full unbraced window frame
-        if (segmentLength < Lb && Math.abs(segmentEnd - totalSpan) < 0.001) {
-            segmentStart = Math.max(0, totalSpan - Lb);
-            segmentLength = segmentEnd - segmentStart;
-        }
-
-        const coordinateA = segmentStart + 0.25 * segmentLength;
-        const coordinateB = segmentStart + 0.50 * segmentLength;
-        const coordinateC = segmentStart + 0.75 * segmentLength;
-
-        // Map coordinates to exact discrete array slot indexes
-        const indexStart = Math.min(nSteps, Math.max(0, Math.round(segmentStart / stepDelta)));
-        const indexA     = Math.min(nSteps, Math.max(0, Math.round(coordinateA / stepDelta)));
-        const indexB     = Math.min(nSteps, Math.max(0, Math.round(coordinateB / stepDelta)));
-        const indexC     = Math.min(nSteps, Math.max(0, Math.round(coordinateC / stepDelta)));
-        const indexEnd   = Math.min(nSteps, Math.max(0, Math.round(segmentEnd / stepDelta)));
-
-        const M_start = Math.abs(momentArray[indexStart] || 0);
-        const M_A     = Math.abs(momentArray[indexA]     || 0);
-        const M_B     = Math.abs(momentArray[indexB]     || 0);
-        const M_C     = Math.abs(momentArray[indexC]     || 0);
-        const M_end   = Math.abs(momentArray[indexEnd]   || 0);
-
-        const M_max_segment = Math.max(M_start, M_A, M_B, M_C, M_end);
-        if (M_max_segment === 0) continue;
-
-        let segmentCb = (12.5 * M_max_segment) / (2.5 * M_max_segment + 3 * M_A + 4 * M_B + 3 * M_C);
-        segmentCb = Math.min(3.0, Math.max(1.0, segmentCb));
-
-        if (segmentCb < globalGoverningCb) {
-            globalGoverningCb = segmentCb;
-        }
-    }
-
-    return globalGoverningCb;
+    
+    return Math.min(3.0, Math.max(1.0, Cb));
 }
     
 function run() {
