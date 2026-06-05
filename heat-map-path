@@ -1,35 +1,39 @@
 <!DOCTYPE html>
 <html>
 <body style="font-family: sans-serif; padding: 20px;">
-    <h2>Heatmap to CSV Converter</h2>
-    <p>1. Paste the full "d" string here:</p>
-    <textarea id="dInput" placeholder="M 0.0,100.0 C..." style="width:100%; height:100px;"></textarea>
+    <h2>Engagement Data Extractor</h2>
+    <p>1. Paste your 'd' string:</p>
+    <textarea id="dInput" placeholder="Paste here..." style="width:100%; height:80px;"></textarea>
     
-    <p>2. Enter total stream length (in seconds):</p>
-    <input type="number" id="vLen" value="14444" style="padding: 5px; width: 100px;">
+    <p>2. Video Length (in seconds):</p>
+    <input type="number" id="vLen" value="14444" style="padding: 5px;">
     
     <br><br>
-    <button onclick="process()" style="padding: 10px 20px; font-weight: bold; cursor: pointer;">Generate and Download CSV</button>
+    <button onclick="process()" style="padding: 10px 20px; font-weight: bold; cursor: pointer;">Download Sorted CSV</button>
 
     <script>
     function process() {
         let d = document.getElementById('dInput').value;
         let vLen = parseInt(document.getElementById('vLen').value);
-        
-        // This removes any letters (M, C, L, Z) and replaces them with spaces
         let nums = d.replace(/[A-Za-z]/g, ' ').split(/\s+/).filter(x => x).map(Number);
         
-        let csv = "Timestamp (sec),Intensity\n";
+        let data = [];
         for (let i = 0; i < nums.length; i += 2) {
             let time = (nums[i] / 1000) * vLen;
-            let intensity = 100 - nums[i+1];
-            csv += time.toFixed(2) + "," + intensity.toFixed(2) + "\n";
+            let intensity = 100 - nums[i+1]; // Flips it so high = high
+            data.push({time: time.toFixed(2), intensity: intensity.toFixed(2)});
         }
+        
+        // Sort by Intensity: Highest first
+        data.sort((a, b) => b.intensity - a.intensity);
+        
+        let csv = "Timestamp (sec),Intensity\n";
+        data.forEach(row => csv += row.time + "," + row.intensity + "\n");
         
         let blob = new Blob([csv], {type: 'text/csv'});
         let link = document.createElement('a');
         link.href = window.URL.createObjectURL(blob);
-        link.download = "heatmap.csv";
+        link.download = "sorted_heatmap.csv";
         link.click();
     }
     </script>
