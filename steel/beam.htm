@@ -168,8 +168,40 @@
                 </div>
             </div>
             <div class="engineering-notes">
-                <strong>AISC Standards Applied:</strong> Elastic Modulus $E = 29,000\text{ ksi}$ and Shear Modulus $G = 11,200\text{ ksi}$. Global calculation loops default to a conservative uniform moment lateral-torsional buckling coefficient $C_b = 1.14$.
+                <strong>AISC Standards Applied:</strong> Elastic Modulus $E = 29,000\text{ ksi}$. Cb (moment gradient factor) is computed per AISC Eq. F1-1 for each unbraced segment. LTB checks all three regions: plastic (Lb ≤ Lp), inelastic (Lp &lt; Lb ≤ Lr), and elastic (Lb &gt; Lr).
             </div>
+
+<div class="panel-subtitle">Lateral Bracing & Unbraced Length (Lb)</div>
+<div class="form-row" style="grid-template-columns: 1fr 1fr; margin-bottom: 0.5rem;">
+    <div class="form-group">
+        <label>Bracing Condition</label>
+        <select id="select-bracing-mode" onchange="handleBracingModeChange()">
+            <option value="fully-braced">Fully Braced (Cb = 1.0)</option>
+            <option value="unbraced">Fully Unbraced (Lb = Span)</option>
+            <option value="repetitive">Repetitive Spacing</option>
+            <option value="custom">Custom Brace Locations</option>
+        </select>
+    </div>
+    <div class="form-group" id="input-lb-container" style="display:none;">
+        <label>Unbraced Length (Lb)</label>
+        <div class="unit-container">
+            <input type="number" class="has-unit" id="input-lb" value="4" min="0" step="0.5" oninput="run()">
+            <span class="unit-label">ft</span>
+        </div>
+    </div>
+    <div class="form-group" id="input-spacing-container" style="display:none;">
+        <label>Brace Spacing</label>
+        <div class="unit-container">
+            <input type="number" class="has-unit" id="input-brace-spacing" value="4" min="0.1" step="0.5" oninput="run()">
+            <span class="unit-label">ft</span>
+        </div>
+    </div>
+</div>
+<div class="form-group" id="input-custom-container" style="display:none;">
+    <label>Custom Brace Positions (ft, comma-separated — do not include 0 or span)</label>
+    <input type="text" id="input-custom-braces" placeholder="e.g. 4, 8, 12" oninput="run()" style="width:100%; background:var(--input-bg); border:1px solid var(--border-color); border-radius:8px; color:var(--text-main); padding:0.75rem; font-size:1rem;">
+</div>
+<div id="bracing-info-display" style="font-size:0.78rem; color:var(--text-muted); font-family:monospace; padding:0.4rem 0.6rem; background:rgba(56,189,248,0.05); border:1px dashed rgba(56,189,248,0.2); border-radius:6px; margin-bottom:0.75rem; display:none;"></div>
 
 <div class="panel-subtitle">Boundary Layout & Span Deflection Targets</div>
 <div class="form-row">
@@ -180,23 +212,6 @@
             <span class="unit-label">ft</span>
         </div>
     </div>
-    
-    <div class="form-group">
-        <label>Unbraced Length (Lb)</label>
-        <select id="select-bracing-mode" onchange="handleBracingModeChange(); run();">
-            <option value="fully-braced">Fully Braced (Lb = 0)</option>
-            <option value="unbraced">Fully Unbraced (Lb = Span)</option>
-            <option value="custom">Custom Length</option>
-        </select>
-    </div>
-
-    <div class="form-group" id="custom-lb-container" style="display:none;">
-        <label>Lb (ft):</label>
-        <input type="number" id="input-lb" value="4" oninput="run();">
-    </div>
-</div>
-
-<div class="form-row">
     <div class="form-group">
         <label>Live Load Defl. Limit (L/)</label>
         <input type="number" id="input-ll-lim" value="240" min="1" oninput="run()">
@@ -250,22 +265,22 @@
             <div class="report-row">
                 <div>
                     <span>Live Load Deflection Check</span>
-                    <span class="sub-math" id="math-ll-defl">--</span>
+                    <span class="sub-math" id="math-defl-ll">--</span>
                 </div>
                 <div style="text-align: right; display: flex; align-items: center; justify-content: flex-end;">
-                    <span class="report-values" id="ratio-ll-defl">0.000</span>
-                    <span class="status-pill" id="pill-ll-defl">Pass</span>
+                    <span class="report-values" id="ratio-defl-ll">0.000</span>
+                    <span class="status-pill" id="pill-defl-ll">Pass</span>
                 </div>
             </div>
 
             <div class="report-row">
                 <div>
                     <span>Total Load Deflection (Inc. Self-Wt)</span>
-                    <span class="sub-math" id="math-tl-defl">--</span>
+                    <span class="sub-math" id="math-defl-tl">--</span>
                 </div>
                 <div style="text-align: right; display: flex; align-items: center; justify-content: flex-end;">
-                    <span class="report-values" id="ratio-tl-defl">0.000</span>
-                    <span class="status-pill" id="pill-tl-defl">Pass</span>
+                    <span class="report-values" id="ratio-defl-tl">0.000</span>
+                    <span class="status-pill" id="pill-defl-tl">Pass</span>
                 </div>
             </div>
 
@@ -502,585 +517,548 @@ const structuralLibrary = {
     "W4X13": { d: 4.16, tw: 0.280, bf: 4.06, tf: 0.345, ix: 11.3, sx: 5.5, zx: 6.3, rts: 1.16, j: 0.151, cw: 14.0, ho: 3.82, weight: 13.0 }
 };
 
-const ASD_COMBINATIONS = [
-    { name: "D Only",     D: 1.0, L: 0.0, S: 0.0, W: 0.0, E: 0.0 },
-    { name: "D + L",     D: 1.0, L: 1.0, S: 0.0, W: 0.0, E: 0.0 },
-    { name: "D + S",     D: 1.0, L: 0.0, S: 1.0, W: 0.0, E: 0.0 },
-    { name: "D + 0.6W",  D: 1.0, L: 0.0, S: 0.0, W: 0.6, E: 0.0 },
-    { name: "D + 0.75L + 0.75S + 0.75(0.6W)", D: 1.0, L: 0.75, S: 0.75, W: 0.45, E: 0.0 }
+// ─── Combo Definitions (matching wood beam field names) ───────────────────────
+const ASD_COMBOS = [
+    { label: 'D',                               fD:1.0, fL:0,    fS:0,    fW:0,    fE:0    },
+    { label: 'D+L',                             fD:1.0, fL:1.0,  fS:0,    fW:0,    fE:0    },
+    { label: 'D+S',                             fD:1.0, fL:0,    fS:1.0,  fW:0,    fE:0    },
+    { label: 'D+0.75L',                         fD:1.0, fL:0.75, fS:0,    fW:0,    fE:0    },
+    { label: 'D+0.75L+0.75S',                   fD:1.0, fL:0.75, fS:0.75, fW:0,    fE:0    },
+    { label: 'D+0.6W',                          fD:1.0, fL:0,    fS:0,    fW:0.6,  fE:0    },
+    { label: 'D+0.75L+0.45W',                   fD:1.0, fL:0.75, fS:0,    fW:0.45, fE:0    },
+    { label: 'D+0.75L+0.75S+0.45W',             fD:1.0, fL:0.75, fS:0.75, fW:0.45, fE:0    },
+    { label: '0.6D+0.6W',                       fD:0.6, fL:0,    fS:0,    fW:0.6,  fE:0    },
+    { label: 'D+0.7E',                          fD:1.0, fL:0,    fS:0,    fW:0,    fE:0.7  },
+    { label: 'D+0.75L+0.75S+0.525E',            fD:1.0, fL:0.75, fS:0.75, fW:0,    fE:0.525},
+    { label: '0.6D+0.7E',                       fD:0.6, fL:0,    fS:0,    fW:0,    fE:0.7  }
 ];
 
+// ─── Load State (JS-array-as-state, matching wood beam) ───────────────────────
+let activeLoads = [];
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
     const selectEl = document.getElementById('input-material');
     Object.keys(structuralLibrary).forEach(shape => {
-        let opt = document.createElement('option');
-        opt.value = shape; 
+        const opt = document.createElement('option');
+        opt.value = shape;
         opt.innerText = shape;
         selectEl.appendChild(opt);
     });
-
-    const targetShape = "w8x10";
     const matchingKey = Object.keys(structuralLibrary).find(
-        key => key.toLowerCase().replace(/\s+/g, '') === targetShape
+        k => k.toLowerCase().replace(/\s+/g,'') === 'w8x10'
     );
-
-    if (matchingKey) {
-        selectEl.value = matchingKey;
-    } else if (selectEl.options.length > 0) {
-        selectEl.selectedIndex = 0;
-    }
-
+    selectEl.value = matchingKey || selectEl.options[0]?.value;
     updateProperties();
-
-    if (document.getElementById('loads-table-body').children.length === 0) {
-        addLoadRow(150, 400); 
-    }
+    addLoadRow();
 });
-    
+
+// ─── Properties ───────────────────────────────────────────────────────────────
 function updateProperties() {
-    const key = document.getElementById('input-material').value;
-    const prop = structuralLibrary[key];
+    const prop = structuralLibrary[document.getElementById('input-material').value];
     if (!prop) return;
-
-    document.getElementById('prop-d').value = prop.d;
-    document.getElementById('prop-tw').value = prop.tw;
-    document.getElementById('prop-bf').value = prop.bf;
-    document.getElementById('prop-tf').value = prop.tf;
-    document.getElementById('prop-ix').value = prop.ix;
-    document.getElementById('prop-sx').value = prop.sx;
-    document.getElementById('prop-zx').value = prop.zx;
-    document.getElementById('prop-rts').value = prop.rts;
-    document.getElementById('prop-j').value = prop.j;
-    document.getElementById('prop-cw').value = prop.cw;
-    document.getElementById('prop-ho').value = prop.ho;
-    document.getElementById('prop-weight').value = prop.weight;
-
+    ['d','tw','bf','tf','ix','sx','zx','rts','j','cw','ho','weight'].forEach(k => {
+        document.getElementById('prop-' + k).value = prop[k];
+    });
     run();
 }
 
-function addLoadRow(defaultD = 0, defaultL = 0) {
-    const tableBody = document.getElementById('loads-table-body');
-    const rowId = 'load-row-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
-    const currentSpan = parseFloat(document.getElementById('input-span').value) || 12;
-
-    const card = document.createElement('div');
-    card.className = 'load-card';
-    card.id = rowId;
-    card.innerHTML = `
-        <div class="load-card-row">
-            <div class="lc-col">
-                <select class="lc-select type-input" onchange="toggleRowFields('${rowId}'); run();">
-                    <option value="Uniform" selected>Uniform (plf)</option>
-                    <option value="Trapezoid">Trapezoid (plf)</option>
-                    <option value="Point">Point (lbs)</option>
-                </select>
-            </div>
-            <div class="lc-col dead-col"><input type="number" class="lc-input dead-input" value="${defaultD}" oninput="run()"></div>
-            <div class="lc-col live-col"><input type="number" class="lc-input live-input" value="${defaultL}" oninput="run()"></div>
-            <div class="lc-col snow-col"><input type="number" class="lc-input snow-input" value="0" oninput="run()"></div>
-            <div class="lc-col wind-col"><input type="number" class="lc-input wind-input" value="0" oninput="run()"></div>
-            <div class="lc-col seismic-col"><input type="number" class="lc-input seismic-input" value="0" oninput="run()"></div>
-            <div class="lc-col"><input type="number" class="lc-input start-input" value="0" oninput="run()"></div>
-            <div class="lc-col"><input type="number" class="lc-input end-input" value="${currentSpan}" oninput="run()"></div>
-            <div class="lc-col">
-                <button class="lc-delete-btn" onclick="removeLoadRow('${rowId}')" title="Remove Row">×</button>
-            </div>
-        </div>
-    `;
-    tableBody.appendChild(card);
+// ─── Load Table (matches wood beam pattern exactly) ───────────────────────────
+function addLoadRow() {
+    const spanVal = parseFloat(document.getElementById('input-span').value) || 12;
+    const id = Date.now();
+    activeLoads.push({
+        id, type: 'uniform',
+        d1: 150, d2: 150,
+        l1: 400, l2: 400,
+        s1: 0, s2: 0,
+        w1: 0, w2: 0,
+        e1: 0, e2: 0,
+        start: 0, end: spanVal
+    });
+    renderLoadTable();
     run();
 }
 
-function removeLoadRow(rowId) {
-    const row = document.getElementById(rowId);
-    if (row) row.remove();
-    if (document.getElementById('loads-table-body').children.length === 0) {
-        addLoadRow(0, 0);
+function deleteLoadRow(id) {
+    activeLoads = activeLoads.filter(l => l.id !== id);
+    renderLoadTable();
+    run();
+}
+
+function changeLoadType(id, type) {
+    const ld = activeLoads.find(l => l.id === id);
+    if (!ld) return;
+    ld.type = type;
+    renderLoadTable();
+    run();
+}
+
+function updateLoadValue(id, field, value) {
+    const ld = activeLoads.find(l => l.id === id);
+    if (!ld) return;
+    ld[field] = parseFloat(value) || 0;
+    if (ld.type === 'uniform') {
+        if (field === 'd1') ld.d2 = ld.d1;
+        if (field === 'l1') ld.l2 = ld.l1;
+        if (field === 's1') ld.s2 = ld.s1;
+        if (field === 'w1') ld.w2 = ld.w1;
+        if (field === 'e1') ld.e2 = ld.e1;
     }
     run();
-}
-
-function toggleRowFields(rowId) {
-    const row = document.getElementById(rowId);
-    if (!row) return;
-    const type = row.querySelector('.type-input').value;
-    const endInput = row.querySelector('.end-input');
-
-    const loadFields = ['dead', 'live', 'snow', 'wind', 'seismic'];
-
-    if (type === 'Point') {
-        endInput.disabled = true;
-        endInput.style.opacity = "0.2";
-        loadFields.forEach(f => {
-            const col = row.querySelector(`.${f}-col`);
-            const existing = col.querySelector('.lc-input');
-            if (col.querySelectorAll('.lc-input').length > 1) {
-                const val = col.querySelectorAll('.lc-input')[0].value;
-                col.innerHTML = `<input type="number" class="lc-input ${f}-input" value="${val}" oninput="run()">`;
-            }
-        });
-    } else if (type === 'Trapezoid') {
-        endInput.disabled = false;
-        endInput.style.opacity = "1";
-        loadFields.forEach(f => {
-            const col = row.querySelector(`.${f}-col`);
-            if (col.querySelectorAll('.lc-input').length < 2) {
-                const val = col.querySelector('.lc-input').value;
-                col.innerHTML = `
-                    <input type="number" class="lc-input split-val ${f}-input" value="${val}" placeholder="w1" oninput="run()">
-                    <input type="number" class="lc-input split-val ${f}-input2" value="${val}" placeholder="w2" oninput="run()">
-                `;
-            }
-        });
-    } else {
-        endInput.disabled = false;
-        endInput.style.opacity = "1";
-        loadFields.forEach(f => {
-            const col = row.querySelector(`.${f}-col`);
-            if (col.querySelectorAll('.lc-input').length > 1) {
-                const val = col.querySelectorAll('.lc-input')[0].value;
-                col.innerHTML = `<input type="number" class="lc-input ${f}-input" value="${val}" oninput="run()">`;
-            }
-        });
-    }
 }
 
 function syncSpanToRows() {
-    const currentSpan = parseFloat(document.getElementById('input-span').value) || 0;
-    const rows = document.querySelectorAll('#loads-table-body .load-card');
-    rows.forEach(row => {
-        const type = row.querySelector('.type-input').value;
-        const startVal = parseFloat(row.querySelector('.start-input').value) || 0;
-        if (type !== "Point" && startVal === 0) {
-            row.querySelector('.end-input').value = currentSpan;
-        }
+    const span = parseFloat(document.getElementById('input-span').value) || 0;
+    activeLoads.forEach(ld => {
+        if (ld.type !== 'point' && ld.start === 0) ld.end = span;
     });
+    renderLoadTable();
 }
 
-function parseInputLoads() {
-    const loads = [];
-    const rows = document.querySelectorAll('#loads-table-body .load-card');
-    rows.forEach(row => {
-        const type = row.querySelector('.type-input').value;
-        const getVal  = (cls) => parseFloat(row.querySelector(`.${cls}`)?.value)  || 0;
-        const getVal2 = (cls) => parseFloat(row.querySelector(`.${cls}2`)?.value ?? row.querySelector(`.${cls}`)?.value) || 0;
-
-        loads.push({
-            type,
-            D:  getVal('dead-input'),   D2: getVal2('dead-input'),
-            L:  getVal('live-input'),   L2: getVal2('live-input'),
-            S:  getVal('snow-input'),   S2: getVal2('snow-input'),
-            W:  getVal('wind-input'),   W2: getVal2('wind-input'),
-            E:  getVal('seismic-input'),E2: getVal2('seismic-input'),
-            start: parseFloat(row.querySelector('.start-input')?.value) || 0,
-            end:   parseFloat(row.querySelector('.end-input')?.value)   || 0
-        });
-    });
-    return loads;
-}
-        
-function calculateAISCFlangeFactor(M_arr, span, Lb) {
-    if (Lb <= 0) return 1.0; 
-
-    let M_max = 0;
-    let M_max_idx = 0;
-    for (let i = 0; i < M_arr.length; i++) {
-        if (Math.abs(M_arr[i]) > M_max) {
-            M_max = Math.abs(M_arr[i]);
-            M_max_idx = i;
-        }
+function renderLoadTable() {
+    const container = document.getElementById('loads-table-body');
+    container.innerHTML = '';
+    if (activeLoads.length === 0) {
+        container.innerHTML = `<div style="text-align:center;padding:1rem;color:var(--text-muted);font-size:0.85rem;">No active design loads.</div>`;
+        return;
     }
-    if (M_max <= 0.001) return 1.14;
+    activeLoads.forEach(ld => {
+        const card = document.createElement('div');
+        card.className = 'load-card';
 
-    const nSteps = M_arr.length - 1;
-    const dx = span / nSteps;
-    const stepsInLb = Math.round(Lb / dx);
-    
-    // Clamp window to array boundaries
-    const startIdx = Math.max(0, Math.min(nSteps - stepsInLb, M_max_idx - Math.floor(stepsInLb / 2)));
-    const endIdx = startIdx + stepsInLb;
+        let magHTML = '';
+        let posHTML = '';
 
-    const idxA = Math.max(0, Math.min(nSteps, startIdx + Math.round((endIdx - startIdx) * 0.25)));
-    const idxB = Math.max(0, Math.min(nSteps, startIdx + Math.round((endIdx - startIdx) * 0.50)));
-    const idxC = Math.max(0, Math.min(nSteps, startIdx + Math.round((endIdx - startIdx) * 0.75)));
+        const inp = (field, val) =>
+            `<input type="number" class="lc-input" value="${val}" oninput="updateLoadValue(${ld.id},'${field}',this.value)">`;
+        const inp2 = (f1, v1, f2, v2) => `
+            <input type="number" class="lc-input split-val" value="${v1}" placeholder="w1" oninput="updateLoadValue(${ld.id},'${f1}',this.value)">
+            <input type="number" class="lc-input split-val" value="${v2}" placeholder="w2" oninput="updateLoadValue(${ld.id},'${f2}',this.value)">`;
 
-    const valA = Math.abs(M_arr[idxA] || 0);
-    const valB = Math.abs(M_arr[idxB] || 0);
-    const valC = Math.abs(M_arr[idxC] || 0);
+        if (ld.type === 'point') {
+            magHTML = `
+                <div class="lc-col">${inp('d1',ld.d1)}</div>
+                <div class="lc-col">${inp('l1',ld.l1)}</div>
+                <div class="lc-col">${inp('s1',ld.s1)}</div>
+                <div class="lc-col">${inp('w1',ld.w1)}</div>
+                <div class="lc-col">${inp('e1',ld.e1)}</div>`;
+            posHTML = `
+                <div class="lc-col">${inp('start',ld.start)}</div>
+                <div class="lc-col"><input type="text" class="lc-input" value="--" disabled style="opacity:0.25;"></div>`;
+        } else if (ld.type === 'uniform') {
+            magHTML = `
+                <div class="lc-col">${inp('d1',ld.d1)}</div>
+                <div class="lc-col">${inp('l1',ld.l1)}</div>
+                <div class="lc-col">${inp('s1',ld.s1)}</div>
+                <div class="lc-col">${inp('w1',ld.w1)}</div>
+                <div class="lc-col">${inp('e1',ld.e1)}</div>`;
+            posHTML = `
+                <div class="lc-col">${inp('start',ld.start)}</div>
+                <div class="lc-col">${inp('end',ld.end)}</div>`;
+        } else {
+            magHTML = `
+                <div class="lc-col">${inp2('d1',ld.d1,'d2',ld.d2)}</div>
+                <div class="lc-col">${inp2('l1',ld.l1,'l2',ld.l2)}</div>
+                <div class="lc-col">${inp2('s1',ld.s1,'s2',ld.s2)}</div>
+                <div class="lc-col">${inp2('w1',ld.w1,'w2',ld.w2)}</div>
+                <div class="lc-col">${inp2('e1',ld.e1,'e2',ld.e2)}</div>`;
+            posHTML = `
+                <div class="lc-col">${inp('start',ld.start)}</div>
+                <div class="lc-col">${inp('end',ld.end)}</div>`;
+        }
 
-    let Cb = (12.5 * M_max) / (2.5 * M_max + 3 * valA + 4 * valB + 3 * valC);
-    
+        card.innerHTML = `
+            <div class="load-card-row">
+                <div class="lc-col">
+                    <select class="lc-select" onchange="changeLoadType(${ld.id}, this.value)">
+                        <option value="uniform" ${ld.type==='uniform'?'selected':''}>Uniform (plf)</option>
+                        <option value="trap"    ${ld.type==='trap'   ?'selected':''}>Trapezoid (plf)</option>
+                        <option value="point"   ${ld.type==='point'  ?'selected':''}>Point Load (lbs)</option>
+                    </select>
+                </div>
+                ${magHTML}
+                ${posHTML}
+                <div class="lc-col">
+                    <button class="lc-delete-btn" onclick="deleteLoadRow(${ld.id})" title="Remove">×</button>
+                </div>
+            </div>`;
+        container.appendChild(card);
+    });
+}
+
+// ─── Bracing Mode UI ──────────────────────────────────────────────────────────
+function handleBracingModeChange() {
+    const mode = document.getElementById('select-bracing-mode').value;
+    document.getElementById('input-lb-container').style.display      = (mode === 'custom')     ? 'block' : 'none';
+    document.getElementById('input-spacing-container').style.display  = (mode === 'repetitive') ? 'block' : 'none';
+    document.getElementById('input-custom-container').style.display   = (mode === 'custom')     ? 'block' : 'none';
+    run();
+}
+
+// ─── Cb Calculation (AISC F1-1) per unbraced segment ─────────────────────────
+// Segments are defined by brace positions in feet. M_arr is the global moment
+// array over nSteps+1 points from x=0 to x=span. This function is forward-
+// compatible with multi-span: pass any contiguous segment [segStart, segEnd].
+function computeCb(M_arr, segStart_ft, segEnd_ft, span_ft, nSteps) {
+    const dx = span_ft / nSteps;
+    // Convert segment boundaries to array indices
+    const iStart = Math.round(segStart_ft / dx);
+    const iEnd   = Math.min(nSteps, Math.round(segEnd_ft / dx));
+    if (iEnd <= iStart) return 1.0;
+
+    // Mmax within segment
+    let Mmax = 0;
+    for (let i = iStart; i <= iEnd; i++) Mmax = Math.max(Mmax, Math.abs(M_arr[i]));
+    if (Mmax < 1e-6) return 1.0;
+
+    // Quarter-point sampling within segment (physical coordinates)
+    const segLen = segEnd_ft - segStart_ft;
+    const xA = segStart_ft + 0.25 * segLen;
+    const xB = segStart_ft + 0.50 * segLen;
+    const xC = segStart_ft + 0.75 * segLen;
+
+    // Interpolate M_arr at physical positions xA, xB, xC
+    const interp = (x) => {
+        const fi = x / dx;
+        const i0 = Math.max(0, Math.min(nSteps - 1, Math.floor(fi)));
+        const t  = fi - i0;
+        return Math.abs(M_arr[i0] * (1 - t) + M_arr[i0 + 1] * t);
+    };
+
+    const MA = interp(xA);
+    const MB = interp(xB);
+    const MC = interp(xC);
+
+    const Cb = (12.5 * Mmax) / (2.5 * Mmax + 3 * MA + 4 * MB + 3 * MC);
     return Math.min(3.0, Math.max(1.0, Cb));
 }
-    
-function run() {
-    const span = parseFloat(document.getElementById('input-span').value) || 0;
+
+// Build brace point array from bracing mode UI.
+// Returns sorted array of positions including 0 and span.
+function getBracePoints(span) {
     const mode = document.getElementById('select-bracing-mode').value;
-    document.getElementById('custom-lb-container').style.display = (mode === 'custom') ? 'block' : 'none';
+    if (mode === 'fully-braced') return [0, span];
+    if (mode === 'unbraced')     return [0, span];
+    if (mode === 'repetitive') {
+        const s = parseFloat(document.getElementById('input-brace-spacing').value) || span;
+        const pts = [0];
+        for (let x = s; x < span - 1e-6; x += s) pts.push(parseFloat(x.toFixed(6)));
+        pts.push(span);
+        return pts;
+    }
+    // custom
+    const raw = document.getElementById('input-custom-braces').value;
+    const pts = [0];
+    raw.split(',').forEach(v => {
+        const n = parseFloat(v.trim());
+        if (!isNaN(n) && n > 0 && n < span) pts.push(n);
+    });
+    pts.push(span);
+    return pts.sort((a, b) => a - b);
+}
 
-    let Lb;
-    if (mode === 'fully-braced') Lb = 0;
-    else if (mode === 'unbraced') Lb = span;
-    else Lb = parseFloat(document.getElementById('input-lb').value) || 0;
+// ─── Analysis Engine ──────────────────────────────────────────────────────────
+function run() {
+    const span       = parseFloat(document.getElementById('input-span').value)   || 0;
+    const Fy         = parseFloat(document.getElementById('prop-fy').value)       || 0;
+    const d          = parseFloat(document.getElementById('prop-d').value)        || 0;
+    const tw         = parseFloat(document.getElementById('prop-tw').value)       || 0;
+    const Ix         = parseFloat(document.getElementById('prop-ix').value)       || 0;
+    const Sx         = parseFloat(document.getElementById('prop-sx').value)       || 0;
+    const Zx         = parseFloat(document.getElementById('prop-zx').value)       || 0;
+    const rts        = parseFloat(document.getElementById('prop-rts').value)      || 0;
+    const J          = parseFloat(document.getElementById('prop-j').value)        || 0;
+    const ho         = parseFloat(document.getElementById('prop-ho').value)       || 0;
+    const weightplf  = parseFloat(document.getElementById('prop-weight').value)   || 0;
 
-    const Fy = parseFloat(document.getElementById('prop-fy').value) || 0;
-    const d = parseFloat(document.getElementById('prop-d').value) || 0;
-    const tw = parseFloat(document.getElementById('prop-tw').value) || 0;
-    const Ix = parseFloat(document.getElementById('prop-ix').value) || 0;
-    const Sx = parseFloat(document.getElementById('prop-sx').value) || 0;
-    const Zx = parseFloat(document.getElementById('prop-zx').value) || 0;
-    const rts = parseFloat(document.getElementById('prop-rts').value) || 0;
-    const J = parseFloat(document.getElementById('prop-j').value) || 0;
-    const ho = parseFloat(document.getElementById('prop-ho').value) || 0;
-    const beamWeight = parseFloat(document.getElementById('prop-weight').value) || 0;
-    
     if (span <= 0 || d <= 0 || Ix <= 0 || Sx <= 0) return;
 
-    const ll_lim = parseFloat(document.getElementById('input-ll-lim').value) || 240;
-    const tl_lim = parseFloat(document.getElementById('input-tl-lim').value) || 360;
+    const EI            = 29000 * Ix;          // kip·in²
+    const L_in          = span * 12;
+    const ll_lim        = parseFloat(document.getElementById('input-ll-lim').value) || 240;
+    const tl_lim        = parseFloat(document.getElementById('input-tl-lim').value) || 360;
+    const selfWeightKLF = weightplf / 1000;
+    const mode          = document.getElementById('select-bracing-mode').value;
 
-    const nSteps = 100;
-    const dx = span / nSteps;
-    const E = 29000;
+    const nSteps  = 100;
+    const step_ft = span / nSteps;
 
-    let maxRatio = -1;
-    let controllingComboName = 'D Only';
-    let absMaxM = 0;
-    let absMaxV = 0;
-    
+    let maxRatio = -1, maxComboLabel = '';
+    let absMaxM = 0, absMaxV = 0;
     let envelopeV = new Array(nSteps + 1).fill(0);
     let envelopeM = new Array(nSteps + 1).fill(0);
-    let masterSummaryReport = null;
+    let summaryData = {};
 
-    const loadCards = document.querySelectorAll('#loads-table-body .load-card');
-    let compiledInputLoads = [];
+    ASD_COMBOS.forEach(combo => {
+        const V_arr    = new Array(nSteps + 1).fill(0);
+        const M_arr    = new Array(nSteps + 1).fill(0);
+        const M_arr_ll = new Array(nSteps + 1).fill(0);
 
-    loadCards.forEach(card => {
-        const type = card.querySelector('.type-input').value;
-        const start = parseFloat(card.querySelector('.start-input').value) || 0;
-        const end = parseFloat(card.querySelector('.end-input').value) || 0;
+        // FEM load vector assembly — same pattern as wood beam
+        const f_tl = [selfWeightKLF * combo.fD * span / 2,
+                      selfWeightKLF * combo.fD * span / 2];
+        const f_ll = [0, 0];
 
-        const parseLoadValue = (selector) => {
-            const el = card.querySelector(selector);
-            return el ? (parseFloat(el.value) || 0) : 0;
-        };
+        activeLoads.forEach(ld => {
+            const w1_tl = (combo.fD*ld.d1 + combo.fL*ld.l1 + combo.fS*ld.s1 + combo.fW*ld.w1 + combo.fE*ld.e1) / 1000;
+            const w2_tl = (combo.fD*ld.d2 + combo.fL*ld.l2 + combo.fS*ld.s2 + combo.fW*ld.w2 + combo.fE*ld.e2) / 1000;
+            const w1_ll = ld.l1 / 1000;
+            const w2_ll = ld.l2 / 1000;
 
-        compiledInputLoads.push({
-            type: type,
-            start: start,
-            end: end,
-            D:  parseLoadValue('.dead-input'),
-            D2: parseLoadValue('.dead-input2'),
-            L:  parseLoadValue('.live-input'),
-            L2: parseLoadValue('.live-input2'),
-            S:  parseLoadValue('.snow-input'),
-            S2: parseLoadValue('.snow-input2'),
-            W:  parseLoadValue('.wind-input'),
-            W2: parseLoadValue('.wind-input2'),
-            E:  parseLoadValue('.seismic-input'),
-            E2: parseLoadValue('.seismic-input2')
-        });
-    });
-
-    // 2. Evaluate Load Combinations Matrix
-    ASD_COMBINATIONS.forEach(combo => {
-        let pointLoadsList = [];
-        let distributedLoadsList = [];
-
-        if (beamWeight > 0) {
-            distributedLoadsList.push({ w1: beamWeight / 1000, w2: beamWeight / 1000, start: 0, end: span, isLL: false });
-        }
-
-        compiledInputLoads.forEach(ld => {
-            const factorD = combo.D;
-            const factorL = combo.L;
-            const factorS = combo.S;
-            const factorW = combo.W;
-            const factorE = combo.E;
-
-            const netW1 = (ld.D * factorD) + (ld.L * factorL) + (ld.S * factorS) + (ld.W * factorW) + (ld.E * factorE);
-            const netW2 = (ld.type === 'Trapezoid')
-                ? ((ld.D2 * factorD) + (ld.L2 * factorL) + (ld.S2 * factorS) + (ld.W2 * factorW) + (ld.E2 * factorE))
-                : netW1;
-
-            const hasLiveLoadComponent = (ld.L > 0 && factorL > 0);
-
-            if (ld.type === 'Point') {
-                if (netW1 !== 0) {
-                    pointLoadsList.push({ P: netW1 / 1000, pos: ld.start, isLL: hasLiveLoadComponent, rawLL: (ld.L * factorL) / 1000 });
-                }
+            if (ld.type === 'point') {
+                const a = Math.max(0, Math.min(span, ld.start));
+                f_tl[0] += w1_tl * (span - a) / span;
+                f_tl[1] += w1_tl * a / span;
+                f_ll[0] += w1_ll * (span - a) / span;
+                f_ll[1] += w1_ll * a / span;
             } else {
-                if (netW1 !== 0 || netW2 !== 0) {
-                    distributedLoadsList.push({
-                        w1: netW1 / 1000,
-                        w2: netW2 / 1000,
-                        start: Math.max(0, Math.min(span, ld.start)),
-                        end: Math.max(0, Math.min(span, ld.end)),
-                        isLL: hasLiveLoadComponent,
-                        rawLL1: (ld.L * factorL) / 1000,
-                        rawLL2: (ld.type === 'Trapezoid' ? (ld.L2 * factorL) / 1000 : (ld.L * factorL) / 1000)
-                    });
+                const s      = Math.max(0, Math.min(span, ld.start));
+                const e      = Math.max(s, Math.min(span, ld.end));
+                const load_L = e - s;
+                if (load_L <= 0) return;
+
+                const w_rect_tl = Math.min(w1_tl, w2_tl);
+                const w_rect_ll = Math.min(w1_ll, w2_ll);
+                const cent_rect = s + load_L / 2;
+                f_tl[0] += w_rect_tl * load_L * (span - cent_rect) / span;
+                f_tl[1] += w_rect_tl * load_L * cent_rect / span;
+                f_ll[0] += w_rect_ll * load_L * (span - cent_rect) / span;
+                f_ll[1] += w_rect_ll * load_L * cent_rect / span;
+
+                const tri_tl = Math.abs(w2_tl - w1_tl);
+                const tri_ll = Math.abs(w2_ll - w1_ll);
+                if (tri_tl > 0) {
+                    const cent = (w2_tl > w1_tl) ? s + (2/3)*load_L : s + (1/3)*load_L;
+                    f_tl[0] += 0.5 * tri_tl * load_L * (span - cent) / span;
+                    f_tl[1] += 0.5 * tri_tl * load_L * cent / span;
+                }
+                if (tri_ll > 0) {
+                    const cent = (w2_ll > w1_ll) ? s + (2/3)*load_L : s + (1/3)*load_L;
+                    f_ll[0] += 0.5 * tri_ll * load_L * (span - cent) / span;
+                    f_ll[1] += 0.5 * tri_ll * load_L * cent / span;
                 }
             }
         });
 
-        let totalLoadA = 0;
-        let totalLoadB = 0;
-        let liveLoadReactionA = 0;
-        let liveLoadReactionB = 0;
+        const R_A_tl = f_tl[0];
+        const R_A_ll = f_ll[0];
 
-        pointLoadsList.forEach(pl => {
-            const rB = (pl.P * pl.pos) / span;
-            const rA = pl.P - rB;
-            totalLoadA += rA;
-            totalLoadB += rB;
+        // Build V/M arrays
+        for (let i = 0; i <= nSteps; i++) {
+            const x = (i / nSteps) * span;
+            let V_x    = R_A_tl - selfWeightKLF * combo.fD * x;
+            let M_x    = R_A_tl * x - 0.5 * selfWeightKLF * combo.fD * x * x;
+            let M_x_ll = R_A_ll * x;
 
-            if (pl.isLL) {
-                const llRB = (pl.rawLL * pl.pos) / span;
-                liveLoadReactionA += (pl.rawLL - llRB);
-                liveLoadReactionB += llRB;
-            }
-        });
+            activeLoads.forEach(ld => {
+                const w1_tl = (combo.fD*ld.d1 + combo.fL*ld.l1 + combo.fS*ld.s1 + combo.fW*ld.w1 + combo.fE*ld.e1) / 1000;
+                const w2_tl = (combo.fD*ld.d2 + combo.fL*ld.l2 + combo.fS*ld.s2 + combo.fW*ld.w2 + combo.fE*ld.e2) / 1000;
+                const w1_ll = ld.l1 / 1000;
+                const w2_ll = ld.l2 / 1000;
 
-        distributedLoadsList.forEach(dl => {
-            const len = dl.end - dl.start;
-            if (len <= 0) return;
-
-            const totalW = 0.5 * (dl.w1 + dl.w2) * len;
-            const centroidLocal = (dl.w1 === dl.w2) 
-                ? (len / 2) 
-                : (len * (dl.w1 + 2 * dl.w2) / (3 * (dl.w1 + dl.w2)));
-            const globalCentroid = dl.start + centroidLocal;
-
-            const rB = (totalW * globalCentroid) / span;
-            const rA = totalW - rB;
-            totalLoadA += rA;
-            totalLoadB += rB;
-
-            if (dl.isLL) {
-                const totalLL = 0.5 * (dl.rawLL1 + dl.rawLL2) * len;
-                const llCentroidLocal = (dl.rawLL1 === dl.rawLL2)
-                    ? (len / 2)
-                    : (len * (dl.rawLL1 + 2 * dl.rawLL2) / (3 * (dl.rawLL1 + dl.rawLL2)));
-                const llGlobalCentroid = dl.start + llCentroidLocal;
-                const llRB = (totalLL * llGlobalCentroid) / span;
-                liveLoadReactionA += (totalLL - llRB);
-                liveLoadReactionB += llRB;
-            }
-        });
-
-        let V_arr = new Array(nSteps + 1).fill(0);
-        let M_arr = new Array(nSteps + 1).fill(0);
-        let M_arr_ll = new Array(nSteps + 1).fill(0);
-
-        for (let idx = 0; idx <= nSteps; idx++) {
-            const x = idx * dx;
-
-            // --- Shear Forces V(x) ---
-            let currentVx = totalLoadA;
-            pointLoadsList.forEach(pl => { if (x > pl.pos) currentVx -= pl.P; });
-            distributedLoadsList.forEach(dl => {
-                if (x <= dl.start) return;
-                if (x >= dl.end) {
-                    currentVx -= 0.5 * (dl.w1 + dl.w2) * (dl.end - dl.start);
+                if (ld.type === 'point') {
+                    if (x > ld.start) {
+                        V_x    -= w1_tl;
+                        M_x    -= w1_tl * (x - ld.start);
+                        M_x_ll -= w1_ll * (x - ld.start);
+                    }
                 } else {
-                    const localLen = x - dl.start;
-                    const wx = dl.w1 + ((dl.w2 - dl.w1) / (dl.end - dl.start)) * localLen;
-                    currentVx -= 0.5 * (dl.w1 + wx) * localLen;
+                    const s      = Math.max(0, Math.min(span, ld.start));
+                    const e      = Math.max(s, Math.min(span, ld.end));
+                    const load_L = e - s;
+                    if (load_L <= 0 || x <= s) return;
+                    const cx       = Math.min(x, e) - s;
+                    const slope_tl = (w2_tl - w1_tl) / load_L;
+                    const slope_ll = (w2_ll - w1_ll) / load_L;
+                    const wx_tl    = w1_tl + slope_tl * cx;
+                    const wx_ll    = w1_ll + slope_ll * cx;
+                    const area_tl  = 0.5 * (w1_tl + wx_tl) * cx;
+                    const area_ll  = 0.5 * (w1_ll + wx_ll) * cx;
+                    const arm_tl   = (w1_tl + wx_tl > 0) ? cx * (w1_tl + 2*wx_tl) / (3*(w1_tl + wx_tl)) : 0;
+                    const arm_ll   = (w1_ll + wx_ll > 0) ? cx * (w1_ll + 2*wx_ll) / (3*(w1_ll + wx_ll)) : 0;
+                    V_x    -= area_tl;
+                    M_x    -= area_tl * (x - s - cx + arm_tl);
+                    M_x_ll -= area_ll * (x - s - cx + arm_ll);
                 }
             });
-            V_arr[idx] = currentVx;
 
-            // --- Total Bending Moments M(x) ---
-            let currentMx = totalLoadA * x;
-            pointLoadsList.forEach(pl => { if (x > pl.pos) currentMx -= pl.P * (x - pl.pos); });
-            distributedLoadsList.forEach(dl => {
-                if (x <= dl.start) return;
-                if (x >= dl.end) {
-                    const len = dl.end - dl.start;
-                    const totalW = 0.5 * (dl.w1 + dl.w2) * len;
-                    const cLocal = (dl.w1 === dl.w2) ? (len / 2) : (len * (dl.w1 + 2 * dl.w2) / (3 * (dl.w1 + dl.w2)));
-                    currentMx -= totalW * (x - (dl.start + cLocal));
-                } else {
-                    const localLen = x - dl.start;
-                    const wx = dl.w1 + ((dl.w2 - dl.w1) / (dl.end - dl.start)) * localLen;
-                    const totalW = 0.5 * (dl.w1 + wx) * localLen;
-                    const cLocal = (dl.w1 === wx) ? (localLen / 2) : (localLen * (dl.w1 + 2 * wx) / (3 * (dl.w1 + totalW)));
-                    currentMx -= totalW * (x - (dl.start + cLocal));
-                }
-            });
-            M_arr[idx] = currentMx;
-
-            let currentMxLL = liveLoadReactionA * x;
-            pointLoadsList.forEach(pl => { if (pl.isLL && x > pl.pos) currentMxLL -= pl.rawLL * (x - pl.pos); });
-            distributedLoadsList.forEach(dl => {
-                if (!dl.isLL || x <= dl.start) return;
-                if (x >= dl.end) {
-                    const len = dl.end - dl.start;
-                    const totalW = 0.5 * (dl.rawLL1 + dl.rawLL2) * len;
-                    const cLocal = (dl.rawLL1 === dl.rawLL2) ? (len / 2) : (len * (dl.rawLL1 + 2 * dl.rawLL2) / (3 * (dl.rawLL1 + totalW)));
-                    currentMxLL -= totalW * (x - (dl.start + cLocal));
-                } else {
-                    const localLen = x - dl.start;
-                    const wx = dl.rawLL1 + ((dl.rawLL2 - dl.rawLL1) / (dl.end - dl.start)) * localLen;
-                    const totalW = 0.5 * (dl.rawLL1 + wx) * localLen;
-                    const cLocal = (dl.rawLL1 === wx) ? (localLen / 2) : (localLen * (dl.rawLL1 + 2 * wx) / (3 * (dl.rawLL1 + totalW)));
-                    currentMxLL -= totalW * (x - (dl.start + cLocal));
-                }
-            });
-            M_arr_ll[idx] = currentMxLL;
+            V_arr[i]    = V_x;
+            M_arr[i]    = M_x;
+            M_arr_ll[i] = M_x_ll;
         }
 
-        const maxM_kft = Math.max(...M_arr.map(Math.abs));
-        const maxV_kips = Math.max(...V_arr.map(Math.abs));
-
-        let conjugateSlope = 0;
-        let conjugateM = new Array(nSteps + 1).fill(0);
-        let liveConjugateSlope = 0;
-        let liveConjugateM = new Array(nSteps + 1).fill(0);
-
-        for (let i = 0; i < nSteps; i++) {
-            conjugateSlope += 0.5 * (M_arr[i] + M_arr[i+1]) * dx;
-            liveConjugateSlope += 0.5 * (M_arr_ll[i] + M_arr_ll[i+1]) * dx;
-        }
-        let reactionLeftConjugate = conjugateSlope / 2;
-        let reactionLeftLiveConjugate = liveConjugateSlope / 2;
-
-        for (let idx = 0; idx <= nSteps; idx++) {
-            const x = idx * dx;
-            let currentConjM = reactionLeftConjugate * x;
-            let currentLiveConjM = reactionLeftLiveConjugate * x;
-
-            for (let i = 0; i < idx; i++) {
-                const segX = i * dx + dx / 2;
-                const area = 0.5 * (M_arr[i] + M_arr[i+1]) * dx;
-                currentConjM -= area * (x - segX);
-
-                const areaLL = 0.5 * (M_arr_ll[i] + M_arr_ll[i+1]) * dx;
-                currentLiveConjM -= areaLL * (x - segX);
+        // Deflection — Simpson virtual work (same as wood beam)
+        const defl_TL = new Array(nSteps + 1).fill(0);
+        const defl_LL = new Array(nSteps + 1).fill(0);
+        for (let i = 1; i < nSteps; i++) {
+            const x_t = (i / nSteps) * span;
+            let s_tl = 0, s_ll = 0;
+            for (let j = 0; j <= nSteps; j++) {
+                const x_e = (j / nSteps) * span;
+                const mv  = (x_e <= x_t)
+                    ? (span - x_t) * x_e / span
+                    :  x_t * (span - x_e) / span;
+                const w   = (j === 0 || j === nSteps) ? 1 : (j % 2 === 1 ? 4 : 2);
+                s_tl += w * (M_arr[j]    * 12) * (mv * 12);
+                s_ll += w * (M_arr_ll[j] * 12) * (mv * 12);
             }
-            conjugateM[idx] = currentConjM;
-            liveConjugateM[idx] = currentLiveConjM;
+            defl_TL[i] = (s_tl * (step_ft * 12) / 3) / EI;
+            defl_LL[i] = (s_ll * (step_ft * 12) / 3) / EI;
         }
 
-        const maxD_TL = (Math.max(...conjugateM.map(Math.abs)) * 1728) / (E * Ix);
-        const maxD_LL = (Math.max(...liveConjugateM.map(Math.abs)) * 1728) / (E * Ix);
+        const maxM_kft  = Math.max(...M_arr.map(v => Math.abs(v)));
+        const maxV_kips = Math.max(...V_arr.map(v => Math.abs(v)));
+        const maxD_TL   = Math.max(...defl_TL.map(v => Math.abs(v)));
+        const maxD_LL   = Math.max(...defl_LL.map(v => Math.abs(v)));
 
-        const activeComboCb = calculateAISCFlangeFactor(M_arr, span, Lb);
+        // ── AISC Chapter F — Bending Strength ────────────────────────────────
+        // Compute Cb per unbraced segment, take worst (lowest) for governing LTB
+        let governingCb = 1.0;
+        let Mn = Fy * Zx; // start at Mp (kip·in)
 
-        const Mp = Fy * Zx;
-        let Mn = Fy * Sx;
-
-        if (Lb > 0) {
-            const Lr = 1.95 * rts * (E / (0.7 * Fy)) * Math.sqrt((J / (Sx * ho)) + Math.sqrt(Math.pow(J / (Sx * ho), 2) + 6.76 * Math.pow((0.7 * Fy) / E, 2)));
-            const Lp = 1.76 * rts * Math.sqrt(E / Fy);
-
-        if (Lb <= Lp) {
-                Mn = Mp;
-            } else if (Lb > Lp && Lb <= Lr) {
-                const ltbInelastic = activeComboCb * (Mp - (Mp - 0.7 * Fy * Sx) * ((Lb - Lp) / (Lr - Lp)));
-                Mn = Math.min(Mp, ltbInelastic);
-            } else {
-                const Fcr = (activeComboCb * Math.PI * Math.PI * E / Math.pow(Lb / rts, 2)) * Math.sqrt(1 + 0.078 * (J / (Sx * ho)) * Math.pow(Lb / rts, 2));
-                Mn = Math.min(Mp, Fcr * Sx);
-            }
+        if (mode === 'fully-braced') {
+            // No LTB check — Mn = Mp
+            governingCb = 1.0;
+            Mn = Fy * Zx;
         } else {
-            Mn = Mp;
+            const bracePoints = getBracePoints(span);
+            const Lp = 1.76 * rts * Math.sqrt(29000 / Fy);       // in
+            const Lr = 1.95 * rts * (29000 / (0.7 * Fy))
+                * Math.sqrt((J / (Sx * ho))
+                    + Math.sqrt(Math.pow(J / (Sx * ho), 2)
+                        + 6.76 * Math.pow((0.7 * Fy) / 29000, 2))); // in
+            const Mp = Fy * Zx; // kip·in
+
+            let worstMn = Mp;
+            let worstCb = 3.0;
+
+            for (let seg = 0; seg < bracePoints.length - 1; seg++) {
+                const x0   = bracePoints[seg];
+                const x1   = bracePoints[seg + 1];
+                const Lb_ft = x1 - x0;
+                const Lb_in = Lb_ft * 12;
+
+                const Cb = computeCb(M_arr, x0, x1, span, nSteps);
+
+                let Mn_seg;
+                if (Lb_in <= Lp) {
+                    Mn_seg = Mp;
+                } else if (Lb_in <= Lr) {
+                    Mn_seg = Math.min(Mp,
+                        Cb * (Mp - (Mp - 0.7 * Fy * Sx) * ((Lb_in - Lp) / (Lr - Lp))));
+                } else {
+                    const Fcr = (Cb * Math.PI * Math.PI * 29000 / Math.pow(Lb_in / rts, 2))
+                        * Math.sqrt(1 + 0.078 * (J / (Sx * ho)) * Math.pow(Lb_in / rts, 2));
+                    Mn_seg = Math.min(Mp, Fcr * Sx);
+                }
+
+                // Worst segment = lowest Mn
+                if (Mn_seg < worstMn) {
+                    worstMn = Mn_seg;
+                    worstCb = Cb;
+                }
+            }
+            Mn = worstMn;
+            governingCb = worstCb;
         }
 
-        const Mn_over_omega = (Mn / 12) / 1.67;
-        const Vn_over_omega = (0.6 * Fy * d * tw) / 1.50;
-        const tl_limit_in = (span * 12) / tl_lim;
-        const ll_limit_in = (span * 12) / ll_lim;
+        const allowable_M = (Math.min(Fy * Zx, Mn) / 12) / 1.67; // kip·ft
+        const allowable_V = (0.6 * Fy * d * tw) / 1.50;           // kips
 
-        const ratio_M  = maxM_kft / Mn_over_omega;
-        const ratio_V  = maxV_kips / Vn_over_omega;
-        const ratio_tl = maxD_TL / tl_limit_in;
-        const ratio_ll = maxD_LL / ll_limit_in;
+        const ll_limit_in = L_in / ll_lim;
+        const tl_limit_in = L_in / tl_lim;
 
-        const currentMaxRatio = Math.max(ratio_M, ratio_V, ratio_tl, ratio_ll);
+        const ratio_M  = maxM_kft  / allowable_M;
+        const ratio_V  = maxV_kips / allowable_V;
+        const ratio_ll = maxD_LL   / ll_limit_in;
+        const ratio_tl = maxD_TL   / tl_limit_in;
 
-        if (currentMaxRatio > maxRatio) {
-            maxRatio = currentMaxRatio;
-            controllingComboName = combo.name;
-            absMaxM = maxM_kft;
-            absMaxV = maxV_kips;
-            envelopeV = V_arr.slice();
-            envelopeM = M_arr.slice();
-
-            masterSummaryReport = {
-                governingCb: activeComboCb,
-                flexure: { ratio: ratio_M, allowable: Mn_over_omega, actual: maxM_kft, formulaString: `Mn/Ω = ${Mn_over_omega.toFixed(1)} k-ft` },
-                shear:   { ratio: ratio_V, allowable: Vn_over_omega, actual: maxV_kips, formulaString: `Vn/Ω = ${Vn_over_omega.toFixed(1)} kips` },
-                'tl-defl': { ratio: ratio_tl, allowable: tl_limit_in, actual: maxD_TL },
-                'll-defl': { ratio: ratio_ll, allowable: ll_limit_in, actual: maxD_LL }
+        const govRatio = Math.max(ratio_M, ratio_V, ratio_ll, ratio_tl);
+        if (govRatio > maxRatio) {
+            maxRatio     = govRatio;
+            maxComboLabel = combo.label;
+            absMaxM      = maxM_kft;
+            absMaxV      = maxV_kips;
+            envelopeV    = V_arr.slice();
+            envelopeM    = M_arr.slice();
+            summaryData  = {
+                flexure:   { demand: maxM_kft,  capacity: allowable_M, ratio: ratio_M,
+                             mathStr: `${maxM_kft.toFixed(2)} / ${allowable_M.toFixed(2)} k-ft  (Cb = ${governingCb.toFixed(2)})` },
+                shear:     { demand: maxV_kips, capacity: allowable_V, ratio: ratio_V,
+                             mathStr: `${maxV_kips.toFixed(2)} / ${allowable_V.toFixed(2)} kips` },
+                'defl-ll': { val: maxD_LL, limit: ll_limit_in, ratio: ratio_ll,
+                             mathStr: `${maxD_LL.toFixed(3)}" vs Limit ${ll_limit_in.toFixed(2)}"` },
+                'defl-tl': { val: maxD_TL, limit: tl_limit_in, ratio: ratio_tl,
+                             mathStr: `${maxD_TL.toFixed(3)}" vs Limit ${tl_limit_in.toFixed(2)}"` },
+                governingCb
             };
         }
     });
 
-    if (!masterSummaryReport) return;
-
-    const updateReportPill = (id, ratio, text) => {
-        const valueEl = document.getElementById(`ratio-${id}`);
-        const pillEl = document.getElementById(`pill-${id}`);
-        if (valueEl) valueEl.innerText = ratio.toFixed(3);
-        if (pillEl) {
-            pillEl.innerText = ratio <= 1.0 ? 'Pass' : 'Fail';
-            pillEl.className = `status-pill ${ratio <= 1.0 ? 'pass' : 'fail'}`;
-        }
-    };
-
-    updateReportPill('flexure', masterSummaryReport.flexure.ratio);
-    updateReportPill('shear', masterSummaryReport.shear.ratio);
-    updateReportPill('tl-defl', masterSummaryReport['tl-defl'].ratio);
-    updateReportPill('ll-defl', masterSummaryReport['ll-defl'].ratio);
-
-    document.getElementById('math-flexure').innerText = `Mn/Ω = ${masterSummaryReport.flexure.allowable.toFixed(1)} k-ft (Cb = ${masterSummaryReport.governingCb.toFixed(2)})`;
-    document.getElementById('math-shear').innerText = masterSummaryReport.shear.formulaString;
-    document.getElementById('math-tl-defl').innerText = `Max: ${masterSummaryReport['tl-defl'].actual.toFixed(3)}" vs Limit: ${masterSummaryReport['tl-defl'].allowable.toFixed(2)}"`;
-    document.getElementById('math-ll-defl').innerText = `Max: ${masterSummaryReport['ll-defl'].actual.toFixed(3)}" vs Limit: ${masterSummaryReport['ll-defl'].allowable.toFixed(2)}"`;
-
-    document.getElementById('controlling-comb-display').innerText = 
-        `Governing Combo: ${controllingComboName} | M_max = ${absMaxM.toFixed(1)} k-ft | V_max = ${absMaxV.toFixed(1)} kips | Cb = ${masterSummaryReport.governingCb.toFixed(2)}`;
-
-    document.getElementById('react-ra').innerText = `${Math.abs(envelopeV[0]).toFixed(1)} kips`;
-    document.getElementById('react-rb').innerText = `${Math.abs(envelopeV[envelopeV.length - 1]).toFixed(1)} kips`;
-    document.getElementById('label-max-v').innerText = `MAX: ${absMaxV.toFixed(1)} kips`;
-    document.getElementById('label-max-m').innerText = `MAX: ${absMaxM.toFixed(1)} k-ft`;
-
-    drawShearDiagram(envelopeV);
-    drawMomentDiagram(envelopeM);
-    drawBeamProfile(span);
+    updateUI(summaryData, maxComboLabel, absMaxM, absMaxV, envelopeV, envelopeM, span);
 }
-    
+
+// ─── UI Update (matching wood beam updateUI signature) ────────────────────────
+function updateUI(sd, combo, M, V, V_arr, M_arr, L) {
+    const cb = sd.governingCb ?? 1.0;
+    document.getElementById('controlling-comb-display').innerText =
+        `Governing Combo: ${combo} | Max M = ${M.toFixed(2)} k-ft | Abs V = ${V.toFixed(2)} kips | Cb = ${cb.toFixed(2)}`;
+    document.getElementById('label-max-v').innerText = `Max: ${V.toFixed(2)} kips`;
+    document.getElementById('label-max-m').innerText = `Max: ${M.toFixed(2)} k-ft`;
+
+    const UI_KEYS    = ['flexure', 'shear', 'defl-ll', 'defl-tl'];
+    const DATA_KEYS  = ['flexure', 'shear', 'defl-ll', 'defl-tl'];
+    UI_KEYS.forEach((key, idx) => {
+        const data = sd[DATA_KEYS[idx]];
+        if (!data) return;
+        document.getElementById(`ratio-${key}`).innerText = data.ratio.toFixed(3);
+        document.getElementById(`math-${key}`).innerText  = data.mathStr;
+        const pill = document.getElementById(`pill-${key}`);
+        pill.innerText   = data.ratio <= 1.0 ? 'Pass' : 'Fail';
+        pill.className   = `status-pill ${data.ratio <= 1.0 ? 'pass' : 'fail'}`;
+    });
+
+    document.getElementById('react-ra').innerText = `${Math.abs(V_arr[0]).toFixed(2)} kips`;
+    document.getElementById('react-rb').innerText = `${Math.abs(V_arr[V_arr.length-1]).toFixed(2)} kips`;
+
+    // Bracing info display
+    const infoEl = document.getElementById('bracing-info-display');
+    const mode = document.getElementById('select-bracing-mode').value;
+    const span = L;
+    if (mode === 'fully-braced') {
+        infoEl.style.display = 'none';
+    } else {
+        const pts = getBracePoints(span);
+        const segs = pts.slice(0,-1).map((p,i) => `${p}–${pts[i+1]} ft`).join('  |  ');
+        infoEl.style.display = 'block';
+        infoEl.innerText = `Unbraced segments: ${segs}  →  Governing Cb = ${cb.toFixed(3)}`;
+    }
+
+    drawShearDiagram(V_arr);
+    drawMomentDiagram(M_arr);
+    drawBeamProfile(L);
+}
+
+// ─── Draw Functions (unchanged from gold standard) ────────────────────────────
 function drawShearDiagram(V) {
     const canvas = document.getElementById('shearCanvas');
     const ctx = canvas.getContext('2d');
     const W = canvas.width = canvas.offsetWidth * 2;
     const H = canvas.height = canvas.offsetHeight * 2;
-    ctx.scale(2, 2);
-    ctx.clearRect(0, 0, W, H);
-
-    const baseWidth = canvas.offsetWidth;
-    const baseHeight = canvas.offsetHeight;
-    const pad = 25;
-    const gWidth = baseWidth - pad * 2;
-    const midY = baseHeight / 2;
-    const amplitude = midY - 20;
-
-    ctx.fillStyle = "#111827"; ctx.fillRect(0, 0, baseWidth, baseHeight);
+    ctx.scale(2, 2); ctx.clearRect(0, 0, W, H);
+    const bW = canvas.offsetWidth, bH = canvas.offsetHeight;
+    const pad = 25, gWidth = bW - pad * 2;
+    const midY = bH / 2, amplitude = midY - 20;
+    ctx.fillStyle = "#111827"; ctx.fillRect(0, 0, bW, bH);
     ctx.strokeStyle = "#334155"; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(pad, midY); ctx.lineTo(pad + gWidth, midY); ctx.stroke();
-
     const maxV = Math.max(...V.map(Math.abs)) || 1;
     ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 1.75;
-    ctx.fillStyle = 'rgba(56, 189, 248, 0.08)';
-    ctx.beginPath();
-    ctx.moveTo(pad, midY);
+    ctx.fillStyle = 'rgba(56,189,248,0.08)';
+    ctx.beginPath(); ctx.moveTo(pad, midY);
     for (let i = 0; i < V.length; i++) {
-        const px = pad + (i / (V.length - 1)) * gWidth;
-        const py = midY - (V[i] / maxV) * amplitude;
-        ctx.lineTo(px, py);
+        ctx.lineTo(pad + (i/(V.length-1))*gWidth, midY - (V[i]/maxV)*amplitude);
     }
     ctx.lineTo(pad + gWidth, midY); ctx.closePath(); ctx.fill(); ctx.stroke();
 }
@@ -1090,33 +1068,22 @@ function drawMomentDiagram(M) {
     const ctx = canvas.getContext('2d');
     const W = canvas.width = canvas.offsetWidth * 2;
     const H = canvas.height = canvas.offsetHeight * 2;
-    ctx.scale(2, 2);
-    ctx.clearRect(0, 0, W, H);
-
-    const baseWidth = canvas.offsetWidth;
-    const baseHeight = canvas.offsetHeight;
-    const pad = 25;
-    const gWidth = baseWidth - pad * 2;
-    const maxPos = Math.max(0, ...M);
-    const maxNeg = Math.abs(Math.min(0, ...M));
+    ctx.scale(2, 2); ctx.clearRect(0, 0, W, H);
+    const bW = canvas.offsetWidth, bH = canvas.offsetHeight;
+    const pad = 25, gWidth = bW - pad * 2;
+    const maxPos = Math.max(0, ...M), maxNeg = Math.abs(Math.min(0, ...M));
     const totalRange = (maxPos + maxNeg) || 1;
-    const margin = 20;
-    const drawHeight = baseHeight - margin * 2;
+    const margin = 20, drawHeight = bH - margin * 2;
     const baseY = margin + (maxPos / totalRange) * drawHeight;
     const scale = drawHeight / totalRange;
-
-    ctx.fillStyle = "#111827"; ctx.fillRect(0, 0, baseWidth, baseHeight);
+    ctx.fillStyle = "#111827"; ctx.fillRect(0, 0, bW, bH);
     ctx.strokeStyle = "#334155"; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(pad, baseY); ctx.lineTo(pad + gWidth, baseY); ctx.stroke();
-
     ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 1.75;
-    ctx.fillStyle = 'rgba(251, 191, 36, 0.08)';
-    ctx.beginPath();
-    ctx.moveTo(pad, baseY);
+    ctx.fillStyle = 'rgba(251,191,36,0.08)';
+    ctx.beginPath(); ctx.moveTo(pad, baseY);
     for (let i = 0; i < M.length; i++) {
-        const px = pad + (i / (M.length - 1)) * gWidth;
-        const py = baseY - (M[i] * scale);
-        ctx.lineTo(px, py);
+        ctx.lineTo(pad + (i/(M.length-1))*gWidth, baseY - M[i]*scale);
     }
     ctx.lineTo(pad + gWidth, baseY); ctx.closePath(); ctx.fill(); ctx.stroke();
 }
@@ -1126,106 +1093,61 @@ function drawBeamProfile(L) {
     const ctx = canvas.getContext('2d');
     const W = canvas.width = canvas.offsetWidth * 2;
     const H = canvas.height = canvas.offsetHeight * 2;
-    ctx.scale(2, 2);
-    ctx.clearRect(0, 0, W, H);
-
-    const baseWidth = canvas.offsetWidth;
-    const baseHeight = canvas.offsetHeight;
-    const pad = 25;
-    const gWidth = baseWidth - pad * 2;
-    const beamY = baseHeight - 35;
-    const arrowSpace = beamY - 20;
-    const arrowH = Math.min(arrowSpace * 0.7, 120);
+    ctx.scale(2, 2); ctx.clearRect(0, 0, W, H);
+    const bW = canvas.offsetWidth, bH = canvas.offsetHeight;
+    const pad = 25, gWidth = bW - pad * 2;
+    const beamY = bH - 35;
+    const arrowH = Math.min((beamY - 20) * 0.7, 120);
     const arrowTop = beamY - arrowH;
-
-    ctx.fillStyle = "#111827"; ctx.fillRect(0, 0, baseWidth, baseHeight);
+    ctx.fillStyle = "#111827"; ctx.fillRect(0, 0, bW, bH);
     ctx.fillStyle = "#475569"; ctx.fillRect(pad, beamY, gWidth, 10);
-
     ctx.strokeStyle = "#94a3b8"; ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.moveTo(pad, beamY + 10); ctx.lineTo(pad - 6, beamY + 20); ctx.lineTo(pad + 6, beamY + 20); ctx.closePath(); ctx.stroke();
-    ctx.beginPath(); ctx.arc(pad + gWidth, beamY + 15, 4, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(pad, beamY+10); ctx.lineTo(pad-6, beamY+20); ctx.lineTo(pad+6, beamY+20); ctx.closePath(); ctx.stroke();
+    ctx.beginPath(); ctx.arc(pad+gWidth, beamY+15, 4, 0, Math.PI*2); ctx.stroke();
 
-const parsedLoads = parseInputLoads();
-    parsedLoads.forEach(load => {
-        const mag1 = load.D + load.L + load.S + load.W + load.E;
-        const mag2 = load.D2 + load.L2 + load.S2 + load.W2 + load.E2;
+    activeLoads.forEach(ld => {
+        const mag1 = ld.d1 + ld.l1 + ld.s1 + ld.w1 + ld.e1;
+        const mag2 = ld.d2 + ld.l2 + ld.s2 + ld.w2 + ld.e2;
+        if (mag1 === 0 && mag2 === 0) return;
 
-        if (load.type === 'Point') {
-            let arrowX = pad + (load.start / L) * gWidth;
-            if (arrowX < pad) arrowX = pad;
-            if (arrowX > pad + gWidth) arrowX = pad + gWidth;
-
-            ctx.strokeStyle = "#f87171";
-            ctx.lineWidth = 2;
+        if (ld.type === 'point') {
+            const pX = pad + (ld.start / L) * gWidth;
+            if (pX < pad || pX > pad+gWidth) return;
+            ctx.strokeStyle = "#f87171"; ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.moveTo(arrowX, beamY - arrowH);
-            ctx.lineTo(arrowX, beamY - 2);
-            ctx.moveTo(arrowX - 4, beamY - 10);
-            ctx.lineTo(arrowX, beamY - 2);
-            ctx.lineTo(arrowX + 4, beamY - 10);
+            ctx.moveTo(pX, arrowTop); ctx.lineTo(pX, beamY-2);
+            ctx.moveTo(pX-4, beamY-10); ctx.lineTo(pX, beamY-2); ctx.lineTo(pX+4, beamY-10);
             ctx.stroke();
-        } else if (load.type === 'Uniform') {
-            let sX = pad + (load.start / L) * gWidth;
-            let eX = pad + (load.end / L) * gWidth;
-            if (sX < pad) sX = pad;
-            if (eX > pad + gWidth) eX = pad + gWidth;
+
+        } else if (ld.type === 'uniform') {
+            let sX = pad+(ld.start/L)*gWidth, eX = pad+(ld.end/L)*gWidth;
+            if (sX < pad) sX = pad; if (eX > pad+gWidth) eX = pad+gWidth;
             if (eX <= sX) return;
-
-            ctx.fillStyle = "rgba(52, 211, 153, 0.12)";
-            ctx.strokeStyle = "#34d399";
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(sX, beamY - 2);
-            ctx.lineTo(sX, beamY - 2 - arrowH);
-            ctx.lineTo(eX, beamY - 2 - arrowH);
-            ctx.lineTo(eX, beamY - 2);
-            ctx.closePath();
-            ctx.fill();
-            ctx.stroke();
-
-            ctx.lineWidth = 1.25;
-            for (let x = sX; x <= eX; x += (eX - sX) / 5) {
-                ctx.beginPath();
-                ctx.moveTo(x, beamY - 2 - arrowH);
-                ctx.lineTo(x, beamY - 2);
-                ctx.moveTo(x - 3, beamY - 8);
-                ctx.lineTo(x, beamY - 2);
-                ctx.lineTo(x + 3, beamY - 8);
+            ctx.fillStyle = "rgba(52,211,153,0.12)"; ctx.strokeStyle = "#34d399"; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(sX, beamY-2); ctx.lineTo(sX, arrowTop);
+            ctx.lineTo(eX, arrowTop); ctx.lineTo(eX, beamY-2); ctx.closePath(); ctx.fill(); ctx.stroke();
+            for (let i = 0; i <= 5; i++) {
+                const ax = sX + (i/5)*(eX-sX);
+                ctx.beginPath(); ctx.moveTo(ax, arrowTop); ctx.lineTo(ax, beamY-2);
+                ctx.moveTo(ax-3, beamY-8); ctx.lineTo(ax, beamY-2); ctx.lineTo(ax+3, beamY-8);
                 ctx.stroke();
             }
-        } else if (load.type === 'Trapezoid') {
-            let sX = pad + (load.start / L) * gWidth;
-            let eX = pad + (load.end / L) * gWidth;
-            if (sX < pad) sX = pad;
-            if (eX > pad + gWidth) eX = pad + gWidth;
+
+        } else if (ld.type === 'trap') {
+            let sX = pad+(ld.start/L)*gWidth, eX = pad+(ld.end/L)*gWidth;
+            if (sX < pad) sX = pad; if (eX > pad+gWidth) eX = pad+gWidth;
             if (eX <= sX) return;
-
             const maxMag = Math.max(mag1, mag2) || 1;
-            const topY1 = beamY - 2 - (mag1 / maxMag) * arrowH;
-            const topY2 = beamY - 2 - (mag2 / maxMag) * arrowH;
-
-            ctx.fillStyle = "rgba(251, 191, 36, 0.10)";
-            ctx.strokeStyle = "#fbbf24";
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(sX, beamY - 2);
-            ctx.lineTo(sX, topY1);
-            ctx.lineTo(eX, topY2);
-            ctx.lineTo(eX, beamY - 2);
-            ctx.closePath();
-            ctx.fill();
-            ctx.stroke();
-
+            const topY1 = beamY - 2 - (mag1/maxMag)*arrowH;
+            const topY2 = beamY - 2 - (mag2/maxMag)*arrowH;
+            ctx.fillStyle = "rgba(251,191,36,0.10)"; ctx.strokeStyle = "#fbbf24"; ctx.lineWidth = 1;
+            ctx.beginPath(); ctx.moveTo(sX, beamY-2); ctx.lineTo(sX, topY1);
+            ctx.lineTo(eX, topY2); ctx.lineTo(eX, beamY-2); ctx.closePath(); ctx.fill(); ctx.stroke();
             for (let i = 0; i <= 5; i++) {
-                const t = i / 5;
-                const arrowX = sX + t * (eX - sX);
-                const arrowTop = topY1 + t * (topY2 - topY1);
-                ctx.beginPath();
-                ctx.moveTo(arrowX, arrowTop);
-                ctx.lineTo(arrowX, beamY - 2);
-                ctx.moveTo(arrowX - 3, beamY - 8);
-                ctx.lineTo(arrowX, beamY - 2);
-                ctx.lineTo(arrowX + 3, beamY - 8);
+                const t = i/5;
+                const ax = sX + t*(eX-sX), ay = topY1 + t*(topY2-topY1);
+                ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(ax, beamY-2);
+                ctx.moveTo(ax-3, beamY-8); ctx.lineTo(ax, beamY-2); ctx.lineTo(ax+3, beamY-8);
                 ctx.stroke();
             }
         }
