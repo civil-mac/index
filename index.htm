@@ -623,7 +623,7 @@ function onYouTubeIframeAPIReady() {
                 updatePrevButton();
                 
                 document.getElementById('info').innerText =
-                    'Track ' + (currentIndex + 1) + ' of ' + pool.length;
+                    'Track ' + (currentIndex + 1) + ' of ' + (pool.length - 5);
             },
             onStateChange: function(e) {
                 if (e.data === YT.PlayerState.PLAYING) {
