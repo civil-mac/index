@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VIZR // Professional Audio Engine</title>
+<title>VISULASIZER // Professional Audio Engine</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap');
 
@@ -307,12 +307,20 @@
 
   <hr style="border: 0; border-top: 1px solid var(--border); margin: 16px 0;">
 
-  <div class="panel-label">Step 2: Direct Audio Ingestion</div>
+    <div class="panel-label">Step 2: FFMPEG Audio Remastering</div>
+  <div id="drop-zone">
+    <input type="file" id="audioUpload" accept="audio/*">
+    <div class="drop-icon">🎵</div>
+    <div class="drop-text">Drop extracted audio file</div>
+    <div class="drop-sub"></div>
+  </div>
+  
+  <div class="panel-label">Step 3: Direct Audio Ingestion</div>
   <div id="drop-zone">
     <input type="file" id="audioUpload" accept="audio/*">
     <div class="drop-icon">🎵</div>
     <div class="drop-text">Drop explicit audio file</div>
-    <div class="drop-sub">Bypasses Step 1 extraction</div>
+    <div class="drop-sub">Bypasses Step 1 and 2 extraction</div>
   </div>
   <div id="file-info">No source data initialized</div>
   
@@ -421,8 +429,6 @@ const config = {
   trailDecay: 0.12,
   barCount: 128,
   theme: 0,
-  
-  // Your 6 new premium layering toggles
   TransWave: false,
   CosmicNAS: false,
   RadialOscill: false,
@@ -439,8 +445,6 @@ const THEMES = [
   { bars: '#ffdd00', wave: '#ffffff', particles: '#ffaa00', bg: 'rgba(6,5,3,' },
 ];
 const SWATCHES = ['#00e5ff','#ff3d71','#7fff7f','#bf80ff','#ffdd00'];
-
-// ─── Step 1: Video Demuxing Logic ──────────────────────────────────────────
 const videoInput = document.getElementById('videoUpload');
 const videoDropZone = document.getElementById('video-drop-zone');
 const videoFileInfo = document.getElementById('video-file-info');
@@ -462,25 +466,20 @@ async function handleVideoFile(file) {
   document.getElementById('export-status').textContent = 'Extracting audio bitstream from container...';
 
   try {
-    // Crucial trick: AudioContext can natively decode audio tracks out of video files!
     if (!audioCtx) {
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     }
-    
-    // Read the MP4 as a raw binary array buffer
+
     const arrayBuffer = await file.arrayBuffer();
     
     videoFileInfo.textContent = `DECODING TRACKS...`;
-    
-    // Extract and decode the audio track natively
+
     audioCtx.decodeAudioData(arrayBuffer, (decodedBuffer) => {
       audioBuffer = decodedBuffer;
       
-      // Update UI to reflect successful automated transition to Step 2
       document.getElementById('file-info').textContent = `EXTRACTED: ${file.name.toUpperCase()}`;
       videoFileInfo.textContent = 'TRACK EXTRACTION SUCCESSFUL VECTORS LOCKED';
       
-      // Re-link the analyzer nodes just like initAudio does
       if (analyserNode) analyserNode.disconnect();
       analyserNode = audioCtx.createAnalyser();
       analyserNode.fftSize = FFT_SIZE;
@@ -501,7 +500,6 @@ async function handleVideoFile(file) {
   }
 }
 
-// ─── Computational Audio Core ───────────────────────────────────────────────
 let audioCtx, analyserNode, sourceNode, audioBuffer;
 let isPlaying = false, startTime = 0, pauseOffset = 0;
 let isExporting = false;
@@ -512,7 +510,7 @@ async function initAudio(file) {
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   analyserNode = audioCtx.createAnalyser();
   analyserNode.fftSize = FFT_SIZE;
-  analyserNode.smoothingTimeConstant = 0.75; // Increased fluidity
+  analyserNode.smoothingTimeConstant = 0.75;
   analyserNode.connect(audioCtx.destination);
 
   const arrayBuffer = await file.arrayBuffer();
@@ -558,16 +556,12 @@ function updateButtons(loaded) {
   playBtn.textContent = isPlaying ? '⏸ PAUSE MODULE' : '▶ PLAY COMPONENT';
 }
 
-// ─── Canvas Render Engine ───────────────────────────────────────────────────
 const canvas = document.getElementById('viz');
 const ctx = canvas.getContext('2d');
 const W = canvas.width, H = canvas.height;
 
-// High-Density Kinetic Particle Field
 const MAX_PARTICLES = 450; 
 let particles = [];
-
-// ─── FOREGROUND EFFECTS ─────────────────────────────────────────────────────
 
 function drawTransWave(audio) {
   const length = audio.timeData.length;
@@ -645,8 +639,6 @@ function drawPolarAxisRing(audio) {
   ctx.shadowBlur = 0; 
 }
 
-// ─── BACKGROUND EFFECTS ─────────────────────────────────────────────────────
-
 function drawCosmicNAS(audio) {
   const highFreqIntense = audio.freqData[Math.floor(audio.freqData.length * 0.85)] / 255;
   ctx.globalCompositeOperation = 'screen';
@@ -718,13 +710,10 @@ function spawnParticle(energy, angleOverride) {
   particles.push({
     x: W / 2,
     y: H / 2,
-    // Keep these for the classic kinetic fallback loop
     vx: Math.cos(angle) * speed,
     vy: Math.sin(angle) * speed,
-    // Add these for the new Nebula, Cosmic Waves, and Mercury Ribbon engines
     angle: angle,
     speed: speed,
-    // Keep these for global life cycle management
     life: 1.0,
     decay: 0.005 + Math.random() * 0.012,
     size: 1.0 + Math.random() * 4.5 * energy,
@@ -745,10 +734,8 @@ function draw() {
     analyserNode.getByteTimeDomainData(timeData);
   }
 
-  // Package the current audio framework for your engines
   const audioPack = { freqData, timeData };
 
-  // Energy Coefficients & Beats calculation logic
   let energy = 0;
   const bassEnd = Math.floor(freqData.length * 0.10);
   for (let i = 0; i < bassEnd; i++) energy += freqData[i];
@@ -757,7 +744,6 @@ function draw() {
   const isBeat = energy > 0.52 && energy > lastBeatEnergy * 1.12;
   lastBeatEnergy = lastBeatEnergy * 0.88 + energy * 0.12;
 
-  // Background Rasterization Matrix / Persistence Trails
   if (config.useTrails) {
     ctx.fillStyle = theme.bg + config.trailDecay + ')';
     ctx.fillRect(0, 0, W, H);
@@ -766,7 +752,6 @@ function draw() {
     ctx.fillRect(0, 0, W, H);
   }
 
-  // Subdued Edge Glow Execution
   if (isBeat && isPlaying) {
     ctx.save();
     let glowGrad = ctx.createRadialGradient(W/2, H/2, H*0.3, W/2, H/2, W*0.6);
@@ -777,8 +762,6 @@ function draw() {
     ctx.restore();
   }
 
-  // Global Particle Spawning Constraints Manager
-  // (Runs if any particle engine or original kinetic field demands particles)
   const needsParticles = config.showParticles || config.CosmicNAS || config.InterstellarNebula || config.MercuryRibbon;
   if (needsParticles) {
     if (isBeat && particles.length < MAX_PARTICLES) {
@@ -789,12 +772,10 @@ function draw() {
     }
   }
 
-  // ─── EXECUTE BACKGROUND LAYER EFFECTS ─────────────────────────────────────
   if (config.CosmicNAS)          drawCosmicNAS(audioPack);
   if (config.InterstellarNebula) drawInterstellarNebula(audioPack);
   if (config.MercuryRibbon)      drawMercuryRibbon(audioPack);
 
-  // Fallback: Original Vector Kinetic Field loop execution
   if (config.showParticles) {
     const pColor = theme.particles;
     for (let i = particles.length - 1; i >= 0; i--) {
@@ -818,12 +799,10 @@ function draw() {
     }
   }
 
-  // ─── EXECUTE FOREGROUND SPECTRA EFFECTS ───────────────────────────────────
   if (config.TransWave)       drawTransWave(audioPack);
   if (config.RadialOscill)    drawRadialOscill(audioPack);
   if (config.PolarAxisRing)   drawPolarAxisRing(audioPack);
 
-  // Fallback: Original Symmetric Center-Outward Mirror Bars
   if (config.showBars && analyserNode) {
     const totalBars = config.barCount;
     const halfBars = Math.floor(totalBars / 2);
@@ -850,7 +829,6 @@ function draw() {
     }
   }
 
-  // Fallback: Original High-Fidelity Standard Linear Waveform Loop
   if (config.showWave && analyserNode) {
     ctx.save();
     ctx.beginPath();
@@ -877,7 +855,6 @@ function draw() {
     ctx.restore();
   }
 
-  // Idle Screen Canvas Vector Grid Matrix Overlay
   if (!analyserNode) {
     ctx.strokeStyle = '#111111';
     ctx.lineWidth = 1;
@@ -891,7 +868,6 @@ function draw() {
     ctx.fillText('AWAITING DATA VECTOR INGESTION', W / 2, H / 2);
   }
 
-  // Track Progress Timeline Rendering
   if (audioBuffer && isPlaying) {
     const elapsed = audioCtx.currentTime - startTime;
     const pct = Math.min(elapsed / audioBuffer.duration, 1) * 100;
@@ -902,8 +878,8 @@ function draw() {
 function drawLinearGradientBar(x, y, w, h, baseColor, isBottomOffset) {
   const targetY = isBottomOffset ? y - h : y + h;
   const grad = ctx.createLinearGradient(x, y, x, targetY);
-  grad.addColorStop(0, baseColor + 'e6'); // Dense base
-  grad.addColorStop(1, baseColor + '00'); // Clean falloff
+  grad.addColorStop(0, baseColor + 'e6'); 
+  grad.addColorStop(1, baseColor + '00'); 
   ctx.fillStyle = grad;
   ctx.fillRect(x, isBottomOffset ? y - h : y, w, h);
 }
@@ -912,7 +888,6 @@ function mapRange(value, inMin, inMax, outMin, outMax) {
   return ((value - inMin) * (outMax - outMin)) / (inMax - inMin) + outMin;
 }
 
-// ─── Automated 1:1 Synchronous Export System ────────────────────────────────
 let mediaRecorder = null, recordedChunks = [];
 
 function startAutomatedExport() {
@@ -923,16 +898,13 @@ function startAutomatedExport() {
   document.getElementById('rec-pill').classList.add('visible');
   document.getElementById('export-status').textContent = 'Initial pipeline verification active. Encoding bitstream...';
 
-  // Force capture stream lock at a locked 60Hz vector standard
   const stream = canvas.captureStream(60);
 
-  // Mix structural audio node parameters into stream allocation channel
   const audioDestination = audioCtx.createMediaStreamDestination();
-  analyserNode.disconnect(audioCtx.destination); // Mute client node during deep pass export
+  analyserNode.disconnect(audioCtx.destination); 
   analyserNode.connect(audioDestination);
   audioDestination.stream.getAudioTracks().forEach(track => stream.addTrack(track));
 
-  // Verify container logic profile structures
   const codecOptions = MediaRecorder.isTypeSupported('video/webm;codecs=vp9') 
     ? { mimeType: 'video/webm;codecs=vp9', videoBitsPerSecond: 12000000 }
     : { mimeType: 'video/webm', videoBitsPerSecond: 12000000 };
@@ -942,14 +914,14 @@ function startAutomatedExport() {
   mediaRecorder.onstop = triggerContainerDownload;
   
   mediaRecorder.start();
-  playAudio(0); // Synchronize execution cycle cleanly at absolute zero
+  playAudio(0); 
 }
 
 function stopExportPipeline() {
   if (mediaRecorder && mediaRecorder.state !== 'inactive') {
     mediaRecorder.stop();
   }
-  // Re-link core client target monitors
+ 
   analyserNode.disconnect();
   analyserNode.connect(audioCtx.destination);
   
@@ -971,7 +943,6 @@ function triggerContainerDownload() {
   document.getElementById('progress-bar').style.width = '0%';
 }
 
-// ─── Control Board Event Bindings ───────────────────────────────────────────
 const playBtn = document.getElementById('playBtn');
 const stopBtn = document.getElementById('stopBtn');
 const autoExportBtn = document.getElementById('autoExportBtn');
@@ -1014,14 +985,12 @@ async function handleFile(file) {
 document.querySelectorAll('.toggle-item').forEach(item => {
   item.onclick = () => {
     const key = item.getAttribute('data-key');
-    
-    // Natively toggles true/false inside config for any key found
+
     config[key] = !config[key]; 
     item.classList.toggle('on', config[key]);
   };
 });
 
-// Parameter Slider Controls Evaluated & Tuned
 const sensitivitySlider = document.getElementById('sensitivity');
 sensitivitySlider.oninput = () => {
   config.sensitivity = parseFloat(sensitivitySlider.value);
@@ -1062,7 +1031,6 @@ document.getElementById('progress-wrap').onclick = e => {
   if (isPlaying) playAudio(seekTo);
 };
 
-// Fire Continuous Execution Loop
 draw();
 </script>
 </body>
