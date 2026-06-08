@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Audio Visualizer Engine</title>
+    
+    <style>
+  body { margin: 0; background: #0f0f0f; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; }
+  #ui { padding: 20px; display: flex; gap: 20px; align-items: center; }
+  .toggles { display: flex; gap: 15px; }
+  canvas { border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+    </style>
+</head>
+<body>
+    <script>
+        console.log("Visualizer script loaded!");
+        let audio, fft, analyzer;
+const config = { showBars: true, showParticles: false, useTrails: false };
+
+function setup() {
+    let canvas = createCanvas(1280, 720);
+    canvas.parent('canvas-container');
+    
+    // UI Event Listeners
+    document.getElementById('audioUpload').onchange = handleFile;
+    document.getElementById('showBars').onchange = (e) => config.showBars = e.target.checked;
+    document.getElementById('showParticles').onchange = (e) => config.showParticles = e.target.checked;
+    document.getElementById('useTrails').onchange = (e) => config.useTrails = e.target.checked;
+
+    fft = new p5.FFT(0.9, 128);
+}
+
+function draw() {
+    // Trails logic: semi-transparent background
+    if (config.useTrails) { fill(0, 20); rect(0, 0, width, height); }
+    else { background(0); }
+
+    let spectrum = fft.analyze();
+
+    if (config.showBars) {
+        stroke(100, 200, 255);
+        for (let i = 0; i < spectrum.length; i++) {
+            let h = map(spectrum[i], 0, 255, 0, height);
+            rect(i * 10, height - h, 8, h);
+        }
+    }
+}
+
+function handleFile(event) {
+    let file = event.target.files[0];
+    audio = loadSound(URL.createObjectURL(file), () => audio.play());
+    fft.setInput(audio);
+}
+    </script>
+</body>
+</html>
