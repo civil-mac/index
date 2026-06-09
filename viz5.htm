@@ -912,9 +912,10 @@ async function runRemaster() {
     const baseURL = '.';
 
     await ffmpeg.load({
-      coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
-      wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+      coreURL: './ffmpeg-core.js',
+      wasmURL: './ffmpeg-core.wasm'
     });
+    
     addRemasterLog('WASM loaded. Writing input file...', 'ok');
     setReasterPct(15, 'Writing input');
 
