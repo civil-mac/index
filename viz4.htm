@@ -661,6 +661,30 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px;
      SCRIPT
 ═══════════════════════════════════════════════════════════ -->
 <script>
+  // ── GLOBAL WORKER PROXY PATCH FOR COEP/COOP CONTEXTS ─────────────────
+// Intercepts cross-origin CDN worker requests from FFmpeg and wraps them 
+// in same-origin Blobs to bypass strict browser security blocks.
+(function() {
+  const OriginalWorker = window.Worker;
+  window.Worker = function(scriptURL, options) {
+    const urlStr = scriptURL.toString();
+    // Check if the worker script is trying to load from an outside CDN
+    if (urlStr.startsWith('http') && !urlStr.includes(window.location.origin)) {
+      let blobCode;
+      // Handle both ES Module workers and Classic workers automatically
+      if (options && options.type === 'module') {
+        blobCode = `import "${urlStr}";`;
+      } else {
+        blobCode = `importScripts("${urlStr}");`;
+      }
+      const blob = new Blob([blobCode], { type: 'text/javascript' });
+      const blobURL = URL.createObjectURL(blob);
+      return new OriginalWorker(blobURL, options);
+    }
+    return new OriginalWorker(scriptURL, options);
+  };
+})();
+// ─────────────────────────────────────────────────────────────────────
 // ─── PIPELINE STATE ───────────────────────────────────────────────────────────
 const pipelineState = {
   step1Done: false,    // Audio loaded from video OR direct
