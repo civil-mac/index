@@ -1,4 +1,3 @@
-// ffmpeg-main.js - Local ESM implementation compatible with @ffmpeg/ffmpeg v0.12+ API
 export class FFmpeg {
     constructor() {
         this.listeners = {};
@@ -15,21 +14,19 @@ export class FFmpeg {
     }
 
     emit(event, data) {
-        if (this.listeners[event]) {
-            this.listeners[event].forEach(cb => cb(data));
-        }
+        if (this.listeners[event]) this.listeners[event].forEach(cb => cb(data));
     }
 
     async load(config = {}) {
         if (this.loaded) return;
-        const { coreURL, wasmURL } = config;
+        
+        // Resolve absolute paths securely on your own domain
+        const absCore = new URL(config.coreURL || './ffmpeg-core.js', window.location.href).href;
+        const absWasm = new URL(config.wasmURL || './ffmpeg-core.wasm', window.location.href).href;
 
-        // Resolve absolute paths so the Blob worker successfully locates the root assets
-        const absCore = new URL(coreURL, window.location.href).href;
-        const absWasm = new URL(wasmURL, window.location.href).href;
-
+        // Create a standard Web Worker that natively understands ES Modules
         const workerCode = `
-            importScripts("${absCore}");
+            import createFFmpegCore from "${absCore}";
             onmessage = async (e) => {
                 const { id, type, method, args } = e.data;
                 if (type === "init") {
@@ -66,7 +63,9 @@ export class FFmpeg {
 
         const blob = new Blob([workerCode], { type: "text/javascript" });
         const blobURL = URL.createObjectURL(blob);
-        this.worker = new Worker(blobURL);
+        
+        // CRITICAL: Tells the browser this worker uses modern imports
+        this.worker = new Worker(blobURL, { type: "module" });
 
         this.worker.onmessage = (e) => {
             const { id, type, message, progress, error, ret } = e.data;
@@ -97,24 +96,9 @@ export class FFmpeg {
         });
     }
 
-    async writeFile(path, data) {
-        return this.send("fs", "writeFile", [path, data]);
-    }
-
-    async readFile(path, encoding = "binary") {
-        return this.send("fs", "readFile", [path, args = { encoding }]);
-    }
-
-    async deleteFile(path) {
-        return this.send("fs", "unlink", [path]);
-    }
-
-    async exec(args) {
-        return this.send("exec", "", [args]);
-    }
-
-    terminate() {
-        if (this.worker) this.worker.terminate();
-        this.loaded = false;
-    }
+    async writeFile(path, data) { return this.send("fs", "writeFile", [path, data]); }
+    async readFile(path, encoding = "binary") { return this.send("fs", "readFile", [path, { encoding }]); }
+    async deleteFile(path) { return this.send("fs", "unlink", [path]); }
+    async exec(args) { return this.send("exec", "", [args]); }
+    terminate() { if (this.worker) this.worker.terminate(); this.loaded = false; }
 }
