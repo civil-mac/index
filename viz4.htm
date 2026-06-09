@@ -934,16 +934,19 @@ async function runRemaster() {
 
 addRemasterLog('WASM loaded. Compiling local memory buffers...', 'warn');
 
-// Define the absolute base path for the core ESM modules (for the JS file)
+// Define the absolute base path for the core ESM modules
 const baseURL = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/esm';
 
 // Explicitly compile the assets into valid local blobs *before* loading
 await ffmpeg.load({
-  // Pull the small JS file from the CDN
+  // 1. Convert the CDN core script into a safe local blob
   coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
   
-  // PULL THE HEAVY ASSET FROM YOUR OWN GITHUB REPOSITORY!
+  // 2. Point directly to the heavy engine you successfully pushed to your repository
   wasmURL: await toBlobURL('./ffmpeg-core.wasm', 'application/wasm'),
+
+  // 3. Convert the CDN worker script into a safe local blob to bypass origin locks
+  workerURL: await toBlobURL(`${baseURL}/ffmpeg-core.worker.js`, 'text/javascript'),
 });
 
 addRemasterLog('WASM loaded. Writing input file...', 'ok');
