@@ -934,16 +934,20 @@ async function runRemaster() {
 
 addRemasterLog('WASM loaded. Compiling local memory buffers...', 'warn');
 
-// Define the absolute base path for the core ESM modules
+// Define the absolute base path for the core ESM modules (for the JS file)
 const baseURL = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/esm';
 
-// Explicitly compile the CDN assets into valid local blobs *before* loading
+// Explicitly compile the assets into valid local blobs *before* loading
 await ffmpeg.load({
+  // Pull the small JS file from the CDN
   coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
-  wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+  
+  // PULL THE HEAVY ASSET FROM YOUR OWN GITHUB REPOSITORY!
+  wasmURL: await toBlobURL('./ffmpeg-core.wasm', 'application/wasm'),
 });
-    addRemasterLog('WASM loaded. Writing input file...', 'ok');
-    setReasterPct(15, 'Writing input');
+
+addRemasterLog('WASM loaded. Writing input file...', 'ok');
+setReasterPct(15, 'Writing input');
 
     // Render pipelineState.rawAudioBuffer back to a WAV blob to give ffmpeg
     const wavBlob = await audioBufferToWavBlob(pipelineState.rawAudioBuffer);
