@@ -779,12 +779,15 @@ function executeClientQuery() {
 
         const nominalTitle = masterTrackMap[currentId] || '';
         const sequenceHeader = `Track ${trackingIndex}`;
+        
+        // KEEPING TRACK NUMBERS SEARCHABLE: We index sequenceHeader here so typing "319" still triggers a match...
         const searchBlob = `${sequenceHeader} ${currentId} ${nominalTitle}`.toLowerCase();
 
         if (searchBlob.includes(queryToken)) {
             queryMatches.push({
                 id: currentId,
-                displayText: nominalTitle ? `${sequenceHeader}: ${nominalTitle}` : `${sequenceHeader} (${currentId})`
+                // ...BUT WE DROP IT HERE: The dropdown display string reads only the pristine song title cleanly!
+                displayText: nominalTitle ? nominalTitle : `Untitled (${currentId})`
             });
         }
         trackingIndex++;
