@@ -1,14 +1,11 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VIZR — Professional Audio Processing Engine</title>
-
-<script src="./coi-serviceworker.js"></script>
-
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap');
-/* ... rest of your CSS ... */
 
 :root {
   --bg: #050505;
@@ -383,7 +380,7 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px;
 <body>
 
 <header>
-  <div class="logo">V<span>I</span>ZUALIZER</div>
+  <div class="logo">V<span>I</span>ZR</div>
   <div class="tagline">Professional Audio Processing Engine v4</div>
 </header>
 
@@ -661,30 +658,6 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px;
      SCRIPT
 ═══════════════════════════════════════════════════════════ -->
 <script>
-  // ── GLOBAL WORKER PROXY PATCH FOR COEP/COOP CONTEXTS ─────────────────
-// Intercepts cross-origin CDN worker requests from FFmpeg and wraps them 
-// in same-origin Blobs to bypass strict browser security blocks.
-(function() {
-  const OriginalWorker = window.Worker;
-  window.Worker = function(scriptURL, options) {
-    const urlStr = scriptURL.toString();
-    // Check if the worker script is trying to load from an outside CDN
-    if (urlStr.startsWith('http') && !urlStr.includes(window.location.origin)) {
-      let blobCode;
-      // Handle both ES Module workers and Classic workers automatically
-      if (options && options.type === 'module') {
-        blobCode = `import "${urlStr}";`;
-      } else {
-        blobCode = `importScripts("${urlStr}");`;
-      }
-      const blob = new Blob([blobCode], { type: 'text/javascript' });
-      const blobURL = URL.createObjectURL(blob);
-      return new OriginalWorker(blobURL, options);
-    }
-    return new OriginalWorker(scriptURL, options);
-  };
-})();
-// ─────────────────────────────────────────────────────────────────────
 // ─── PIPELINE STATE ───────────────────────────────────────────────────────────
 const pipelineState = {
   step1Done: false,    // Audio loaded from video OR direct
@@ -959,8 +932,16 @@ async function runRemaster() {
       setReasterPct(Math.round(progress * 100), 'Processing');
     });
 
-    addRemasterLog('Loading WASM core...', 'warn');
-    await ffmpeg.load();
+addRemasterLog('WASM loaded. Compiling local memory buffers...', 'warn');
+
+// Define the absolute base path for the core ESM modules
+const baseURL = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/esm';
+
+// Explicitly compile the CDN assets into valid local blobs *before* loading
+await ffmpeg.load({
+  coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+  wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+});
     addRemasterLog('WASM loaded. Writing input file...', 'ok');
     setReasterPct(15, 'Writing input');
 
