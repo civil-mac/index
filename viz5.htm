@@ -1,11 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VIZR — Professional Audio Processing Engine</title>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap');
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VIZR — Professional Audio Processing Engine</title>
+  
+  <script src="coi-serviceworker.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap');
 
 :root {
   --bg: #050505;
@@ -633,7 +636,9 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px;
   </div>
 </div>
 
-<script>
+<script type="module">
+import { FFmpeg } from './ffmpeg-main.js';
+import { toBlobURL, fetchFile } from './ffmpeg-util.js';
 // ─── PIPELINE STATE ───────────────────────────────────────────────────────────
 const pipelineState = {
   step1Done: false,    // Audio loaded from video OR direct
