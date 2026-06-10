@@ -1092,16 +1092,17 @@ async function startExport() {
     exportProgress(0.18, 'FFmpeg ready', '');
 
 // ── Step C: Render + encode each segment ────────────────────────────────
+    console.log("Entering export loop. Total segments:", numSegments); 
+
     for (let seg = 0; seg < numSegments; seg++) {
+      console.log("Starting segment:", seg); 
+      
       if (_abortExport) throw new Error('Aborted');
 
-      // 1. RE-INITIALIZE FFmpeg for EVERY segment to purge the 4GB heap
-      if (ffmpeg) {
-          await ffmpeg.terminate(); 
-      }
+      // 1. RE-INITIALIZE FFmpeg
+      if (ffmpeg) { await ffmpeg.terminate(); }
       ffmpeg = new FFmpeg();
       
-      // Re-attach the log listener so your UI updates work for every chunk
       ffmpeg.on('log', ({ message }) => {
         if (message && message.length > 4 && !message.startsWith('  ') && !message.startsWith('['))
           document.getElementById('export-status').textContent = message.substring(0, 90);
@@ -1113,22 +1114,26 @@ async function startExport() {
       const segEnd   = Math.min(segStart + framesPerSeg, totalFrames);
       const segCount = segEnd - segStart;
 
-    // Phase 1: render frames
+      // Phase 1: render frames
       for (let fi = 0; fi < segCount; fi++) {
         if (_abortExport) throw new Error('Aborted');
         const gf = segStart + fi;
         
         drawOfflineFrame({ freqData: freqFrames[gf], timeData: timeFrames[gf] });
 
-        // Force cleanup of the blob reference
         let blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.85));
         const bytes = await fetchFile(blob);
-        
         await ffmpeg.writeFile('f' + String(fi).padStart(6, '0') + '.jpg', bytes);
         
-        blob = null; // Explicitly drop the reference so GC can reclaim it
-        
-        // ... (rest of progress logic)
+        blob = null; // Help GC
+
+        // CRITICAL: Throttling to prevent Memory Explosion
+        // We pause every 5 frames instead of 20 to keep memory flat
+        if (fi % 5 === 0) {
+          const globalPct = 0.18 + ((segStart + fi) / totalFrames) * 0.67;
+          exportProgress(globalPct, `Rendering ${Math.round((segStart + fi) / totalFrames * 100)}%`, `Frame ${segStart + fi + 1} / ${totalFrames}`);
+          await yieldFrame(); 
+        }
       }
 
       // Phase 2: encode segment
@@ -1141,7 +1146,6 @@ async function startExport() {
       const segData = await ffmpeg.readFile('seg_out.webm');
       segmentBlobs.push(new Blob([segData.buffer], { type: 'video/webm' }));
     }
-    // Cleanup/Finalize logic follows...
 
     // ── Step D: Concat all segment WebMs + mux audio ─────────────────────────
     exportProgress(0.87, 'Muxing final output…', `${numSegments} segments`);
@@ -1264,15 +1268,15 @@ let _offlineAudioPack = null;
 function draw() {
   requestAnimationFrame(draw);
 
-  // THE CPU GATE: This is mandatory. 
-  // It pauses the expensive visualizer engine while the export overlay is active.
-  if (document.getElementById('render-overlay').classList.contains('visible')) {
+  // The 'isExporting' variable is explicitly set to true 
+  // when the export starts and false when it ends. This is 100% reliable.
+  if (typeof isExporting !== 'undefined' && isExporting) {
     return; 
   }
 
   drawFrame();
 }
-
+  
 function drawFrame() {
   const theme = THEMES[config.theme];
   let freqData, timeData;
