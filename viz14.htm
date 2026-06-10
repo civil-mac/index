@@ -639,32 +639,35 @@ document.getElementById('playBtn').onclick = async () => {
 document.getElementById('stopBtn').onclick = () => stopAudio();
 
 // ════════════════════════════════════════════════════════════
-// STEP 1
+// STEP 1 — HARDENED UPLOAD ZONE
 // ════════════════════════════════════════════════════════════
-const videoInput    = document.getElementById('videoUpload');
+const videoInput = document.getElementById('videoUpload');
 const videoDropZone = document.getElementById('video-drop-zone');
+
 videoInput.onchange = e => handleVideoFile(e.target.files[0]);
-// Click the drop zone div → programmatically open the file picker
-// (input has pointer-events:none so drag reaches the div, but we restore
-// click behaviour manually here)
 videoDropZone.onclick = () => videoInput.click();
-videoDropZone.ondragover  = e => { e.preventDefault(); videoDropZone.classList.add('drag-over'); };
-videoDropZone.ondragleave = () => videoDropZone.classList.remove('drag-over');
-videoDropZone.ondrop = e => {
-  e.preventDefault(); videoDropZone.classList.remove('drag-over');
+
+// Add these three listeners to prevent browser navigation
+['dragover', 'dragenter'].forEach(evt => {
+  videoDropZone.addEventListener(evt, e => {
+    e.preventDefault();
+    e.stopPropagation();
+    videoDropZone.classList.add('drag-over');
+  });
+});
+
+['dragleave', 'drop'].forEach(evt => {
+  videoDropZone.addEventListener(evt, e => {
+    e.preventDefault();
+    e.stopPropagation();
+    videoDropZone.classList.remove('drag-over');
+  });
+});
+
+videoDropZone.addEventListener('drop', e => {
   const f = e.dataTransfer.files[0];
-  if (!f) return;
-  // Accept any video/* or mp4/mov/mkv/webm by extension if MIME is missing/wrong
-  const ext = f.name.split('.').pop().toLowerCase();
-  const videoExts = ['mp4','m4v','mov','webm','mkv','avi','mpg','mpeg'];
-  const isVideo = f.type.startsWith('video/') || f.type === 'application/mp4'
-                  || videoExts.includes(ext);
-  if (isVideo) {
-    handleVideoFile(f);
-  } else {
-    document.getElementById('video-file-info').textContent = 'ERROR: not a recognised video file';
-  }
-};
+  if (f) handleVideoFile(f);
+});
 
 async function handleVideoFile(file) {
   if (!file) return;
