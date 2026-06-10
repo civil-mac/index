@@ -1266,11 +1266,11 @@ let _offlineAudioPack = null;
 
 function draw() {
   requestAnimationFrame(draw);
-  
-  // ADD THIS GATE
-  // If we are currently exporting, skip the live animation to save CPU/RAM
-  if (document.getElementById('render-pill').classList.contains('visible')) {
-    return; 
+
+  // Use the overlay because it signifies that the export process is 
+  // currently actively locking the UI and handling the FFmpeg pass.
+  if (document.getElementById('render-overlay').classList.contains('visible')) {
+    return; // CPU remains idle during export
   }
 
   drawFrame();
