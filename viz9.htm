@@ -1,0 +1,1335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VIZR — Professional Audio Processing Engine</title>
+<script src="coi-serviceworker.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap');
+:root {
+  --bg:#050505; --panel:#0d0d0d; --border:#1c1c1c;
+  --accent:#00e5ff; --accent2:#ff3d71; --text:#a5a5a5; --dim:#3a3a3a;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;overflow-x:hidden;}
+
+/* ── TOP BAR ── */
+header{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid var(--border);}
+.logo{font-family:'Space Mono',monospace;font-size:20px;font-weight:700;letter-spacing:.15em;color:#fff;}
+.logo span{color:var(--accent);}
+.tagline{font-size:10px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;font-family:'Space Mono',monospace;}
+
+/* ── PIPELINE RAIL ── */
+#pipeline-rail{display:flex;align-items:center;padding:14px 24px;border-bottom:1px solid var(--border);gap:0;}
+.step-node{display:flex;flex-direction:column;align-items:center;gap:5px;flex-shrink:0;}
+.step-circle{width:32px;height:32px;border-radius:50%;border:1.5px solid var(--border);background:var(--panel);display:flex;align-items:center;justify-content:center;font-family:'Space Mono',monospace;font-size:12px;color:var(--dim);transition:all .3s;}
+.step-node.active .step-circle{border-color:var(--accent);color:var(--accent);background:rgba(0,229,255,.06);}
+.step-node.complete .step-circle{border-color:var(--accent);background:var(--accent);color:#000;}
+.step-label{font-size:9px;font-family:'Space Mono',monospace;color:var(--dim);letter-spacing:.08em;white-space:nowrap;}
+.step-node.active .step-label{color:var(--accent);}
+.step-connector{flex:1;height:1px;background:var(--border);margin:0 6px 18px;transition:background .3s;}
+.step-connector.lit{background:var(--accent);}
+
+/* ── CORS BANNER ── */
+#cors-banner{display:none;margin:12px 24px;background:rgba(255,61,113,.06);border:1px solid rgba(255,61,113,.3);border-radius:6px;padding:10px 16px;font-family:'Space Mono',monospace;font-size:10px;color:var(--accent2);}
+#cors-banner.show{display:block;}
+#cors-banner strong{color:#fff;}
+
+/* ── MAIN TWO-COLUMN LAYOUT ── */
+#app-body{display:grid;grid-template-columns:380px 1fr;height:calc(100vh - 105px);overflow:hidden;}
+
+/* ── LEFT PANEL (steps) ── */
+#steps-col{border-right:1px solid var(--border);overflow-y:auto;display:flex;flex-direction:column;gap:0;}
+#steps-col::-webkit-scrollbar{width:4px;}
+#steps-col::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+.step-panel{border-bottom:1px solid var(--border);transition:border-color .3s;}
+.step-panel.active-step{border-left:2px solid var(--accent);}
+.step-header{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;cursor:pointer;user-select:none;}
+.step-header-left{display:flex;align-items:center;gap:10px;}
+.step-badge{font-family:'Space Mono',monospace;font-size:9px;padding:2px 7px;border-radius:3px;background:#111;border:1px solid var(--border);color:var(--dim);letter-spacing:.08em;}
+.step-panel.active-step .step-badge{background:rgba(0,229,255,.08);border-color:rgba(0,229,255,.3);color:var(--accent);}
+.step-title{font-size:12px;color:#fff;font-weight:500;}
+.step-subtitle{font-size:10px;color:var(--dim);}
+.step-status{font-family:'Space Mono',monospace;font-size:9px;color:var(--dim);}
+.step-status.ok{color:#4cff91;} .step-status.warn{color:var(--accent2);}
+.step-body{padding:14px 16px;}
+.step-body.collapsed{display:none;}
+
+/* ── RIGHT PANEL (canvas + viz controls) ── */
+#viz-col{display:flex;flex-direction:column;overflow:hidden;}
+#canvas-wrap{position:relative;background:#000;flex-shrink:0;}
+canvas{display:block;width:100%;aspect-ratio:16/9;max-height:55vh;}
+#rec-pill{position:absolute;top:10px;right:10px;background:rgba(8,8,8,.9);border:1px solid var(--accent2);border-radius:20px;padding:5px 12px;font-family:'Space Mono',monospace;font-size:10px;color:var(--accent2);display:none;align-items:center;gap:7px;backdrop-filter:blur(8px);}
+#rec-pill.visible{display:flex;}
+.rec-dot{width:7px;height:7px;border-radius:50%;background:var(--accent2);animation:blink 1s step-start infinite;}
+@keyframes blink{50%{opacity:0;}}
+#render-pill{position:absolute;top:10px;left:10px;background:rgba(8,8,8,.92);border:1px solid var(--accent);border-radius:20px;padding:5px 14px;font-family:'Space Mono',monospace;font-size:10px;color:var(--accent);display:none;align-items:center;gap:8px;backdrop-filter:blur(8px);}
+#render-pill.visible{display:flex;}
+
+/* viz controls scrollable area */
+#viz-controls-scroll{flex:1;overflow-y:auto;padding:14px 16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;align-content:start;}
+#viz-controls-scroll::-webkit-scrollbar{width:4px;}
+#viz-controls-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+/* playback bar — fixed at bottom of viz col */
+#playback-bar{padding:10px 16px;border-top:1px solid var(--border);background:var(--panel);display:flex;flex-direction:column;gap:8px;flex-shrink:0;}
+#progress-wrap{height:4px;background:var(--border);border-radius:2px;cursor:pointer;position:relative;}
+#progress-bar{height:100%;background:var(--accent);border-radius:2px;width:0%;pointer-events:none;}
+#progress-handle{position:absolute;top:-4px;width:12px;height:12px;border-radius:50%;background:var(--accent);border:2px solid #000;transform:translateX(-50%);left:0%;transition:left .08s linear;pointer-events:none;}
+.pb-controls{display:flex;gap:8px;align-items:center;}
+#time-display{font-family:'Space Mono',monospace;font-size:10px;color:var(--dim);margin-left:auto;}
+
+/* ── SHARED COMPONENTS ── */
+.panel-label{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);margin-bottom:10px;}
+.btn{padding:8px 13px;border:1px solid var(--border);border-radius:4px;background:#141414;color:#fff;font-family:'Space Mono',monospace;font-size:10px;cursor:pointer;transition:all .15s;letter-spacing:.05em;white-space:nowrap;}
+.btn:hover:not(:disabled){border-color:var(--accent);color:var(--accent);}
+.btn.primary{border-color:rgba(0,229,255,.5);color:var(--accent);}
+.btn.primary:hover:not(:disabled){background:rgba(0,229,255,.07);}
+.btn.accent2-btn{border-color:rgba(255,61,113,.4);color:var(--accent2);}
+.btn.accent2-btn:hover:not(:disabled){border-color:var(--accent2);background:rgba(255,61,113,.07);}
+.btn:disabled{opacity:.25;cursor:not-allowed;}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;}
+
+.drop-zone{border:1.5px dashed var(--border);border-radius:6px;padding:16px;text-align:center;cursor:pointer;position:relative;transition:border-color .2s,background .2s;}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--accent);background:rgba(0,229,255,.02);}
+.drop-zone.accent2{border-color:rgba(255,61,113,.4);}
+.drop-zone.accent2:hover{border-color:var(--accent2);background:rgba(255,61,113,.03);}
+.drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;}
+.drop-icon{font-size:20px;margin-bottom:4px;}
+.drop-text{font-size:12px;color:#fff;}
+.drop-sub{font-size:10px;color:var(--dim);margin-top:2px;}
+.file-info{margin-top:8px;font-family:'Space Mono',monospace;font-size:10px;min-height:14px;}
+.file-info.cyan{color:var(--accent);} .file-info.red{color:var(--accent2);}
+
+.path-picker{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;}
+.path-btn{padding:12px;border:1.5px solid var(--border);border-radius:6px;background:#111;color:var(--text);cursor:pointer;text-align:left;transition:all .15s;font-family:'DM Sans',sans-serif;}
+.path-btn:hover{border-color:var(--accent);}
+.path-btn.selected{border-color:var(--accent);background:rgba(0,229,255,.05);}
+.path-btn .path-label{font-family:'Space Mono',monospace;font-size:9px;color:var(--accent);margin-bottom:4px;letter-spacing:.1em;}
+.path-btn .path-desc{font-size:11px;color:#fff;margin-bottom:3px;}
+.path-btn .path-sub{font-size:10px;color:var(--dim);}
+
+.filter-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+.filter-toggle{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#111;border:1px solid var(--border);border-radius:4px;cursor:pointer;user-select:none;}
+.filter-toggle.on{border-color:rgba(0,229,255,.3);background:rgba(0,229,255,.04);}
+.filter-toggle .pip{width:26px;height:14px;border-radius:7px;background:#222;position:relative;flex-shrink:0;transition:background .2s;}
+.filter-toggle .pip::after{content:'';position:absolute;width:8px;height:8px;border-radius:50%;background:#555;top:3px;left:3px;transition:all .2s;}
+.filter-toggle.on .pip{background:rgba(0,229,255,.25);}
+.filter-toggle.on .pip::after{left:15px;background:var(--accent);}
+.filter-name{font-size:11px;color:#fff;}
+.filter-desc{font-size:9px;color:var(--dim);margin-top:1px;}
+
+.remaster-log{background:#080808;border:1px solid var(--border);border-radius:4px;padding:10px;font-family:'Space Mono',monospace;font-size:9px;color:var(--dim);height:70px;overflow-y:auto;margin-top:10px;}
+.remaster-log .log-line{margin-bottom:2px;}
+.remaster-log .log-line.ok{color:#4cff91;}
+.remaster-log .log-line.warn{color:var(--accent);}
+.remaster-log .log-line.err{color:var(--accent2);}
+.progress-block{margin-top:10px;}
+.progress-label{font-family:'Space Mono',monospace;font-size:9px;color:var(--dim);margin-bottom:5px;display:flex;justify-content:space-between;}
+.progress-track{height:3px;background:var(--border);border-radius:2px;}
+.progress-fill{height:100%;border-radius:2px;background:var(--accent);width:0%;transition:width .3s;}
+
+.toggle-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.toggle-item{display:flex;align-items:center;justify-content:space-between;padding:9px 10px;background:#111;border:1px solid var(--border);border-radius:4px;cursor:pointer;user-select:none;transition:border-color .15s;}
+.toggle-item.on{border-color:rgba(0,229,255,.35);background:rgba(0,229,255,.03);}
+.toggle-name{font-size:11px;color:#fff;}
+.toggle-pip{width:28px;height:15px;border-radius:7px;background:#222;position:relative;flex-shrink:0;transition:background .2s;}
+.toggle-pip::after{content:'';position:absolute;width:9px;height:9px;border-radius:50%;background:#555;top:3px;left:3px;transition:all .2s;}
+.toggle-item.on .toggle-pip{background:rgba(0,229,255,.25);}
+.toggle-item.on .toggle-pip::after{left:16px;background:var(--accent);}
+
+.slider-row{display:flex;flex-direction:column;gap:12px;}
+.slider-item label{display:flex;justify-content:space-between;font-size:11px;color:#fff;margin-bottom:5px;}
+.slider-item label span{font-family:'Space Mono',monospace;color:var(--accent);font-size:10px;}
+input[type=range]{-webkit-appearance:none;width:100%;height:3px;background:var(--border);outline:none;border-radius:2px;cursor:pointer;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:var(--accent);cursor:pointer;border:2px solid #000;}
+
+.color-row{display:flex;gap:8px;flex-wrap:wrap;}
+.color-swatch{width:22px;height:22px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .1s;}
+.color-swatch:hover{transform:scale(1.15);}
+.color-swatch.selected{border-color:#fff;}
+
+.export-options{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;}
+.export-option{padding:12px;border:1.5px solid var(--border);border-radius:6px;background:#111;cursor:pointer;transition:all .15s;}
+.export-option.available:hover{border-color:var(--accent);}
+.export-option.selected{border-color:var(--accent);background:rgba(0,229,255,.05);}
+.export-option.unavailable{opacity:.3;cursor:not-allowed;}
+.export-option .exp-num{font-family:'Space Mono',monospace;font-size:9px;color:var(--dim);margin-bottom:4px;}
+.export-option.selected .exp-num{color:var(--accent);}
+.export-option .exp-title{font-size:12px;color:#fff;margin-bottom:3px;}
+.export-option .exp-desc{font-size:10px;color:var(--dim);}
+.export-option .exp-req{font-size:9px;color:var(--accent2);margin-top:6px;font-family:'Space Mono',monospace;}
+#export-status{font-family:'Space Mono',monospace;font-size:10px;color:var(--dim);margin-top:10px;min-height:14px;line-height:1.5;}
+
+/* render progress overlay on canvas */
+#render-overlay{position:absolute;inset:0;background:rgba(5,5,5,.85);display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;}
+#render-overlay.visible{display:flex;}
+#render-overlay-label{font-family:'Space Mono',monospace;font-size:11px;color:var(--accent);}
+#render-overlay-bar-wrap{width:60%;height:3px;background:var(--border);border-radius:2px;}
+#render-overlay-bar{height:100%;background:var(--accent);border-radius:2px;width:0%;transition:width .1s;}
+#render-overlay-sub{font-family:'Space Mono',monospace;font-size:9px;color:var(--dim);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">V<span>I</span>ZR</div>
+  <div class="tagline">Professional Audio Processing Engine v5</div>
+</header>
+
+<div id="pipeline-rail">
+  <div class="step-node active" id="node-1"><div class="step-circle">1</div><div class="step-label">INGEST</div></div>
+  <div class="step-connector" id="conn-1"></div>
+  <div class="step-node" id="node-2"><div class="step-circle">2</div><div class="step-label">REMASTER</div></div>
+  <div class="step-connector" id="conn-2"></div>
+  <div class="step-node" id="node-3"><div class="step-circle">3</div><div class="step-label">VISUALIZE</div></div>
+  <div class="step-connector" id="conn-3"></div>
+  <div class="step-node" id="node-4"><div class="step-circle">4</div><div class="step-label">EXPORT</div></div>
+</div>
+
+<div id="cors-banner">
+  <strong>⚠ CORS Notice:</strong> FFmpeg.wasm requires <code>Cross-Origin-Opener-Policy: same-origin</code> and <code>Cross-Origin-Embedder-Policy: require-corp</code>. Step 2 disabled for this session.
+</div>
+
+<div id="app-body">
+
+  <!-- ═══ LEFT: STEPS COLUMN ═══ -->
+  <div id="steps-col">
+
+    <!-- STEP 1 -->
+    <div class="step-panel active-step" id="panel-step1">
+      <div class="step-header" onclick="togglePanel(1)">
+        <div class="step-header-left">
+          <span class="step-badge">STEP 01</span>
+          <div><div class="step-title">Source Ingestion</div><div class="step-subtitle">MP4 or raw audio</div></div>
+        </div>
+        <span class="step-status" id="status-1">AWAITING</span>
+      </div>
+      <div class="step-body" id="body-step1">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div>
+            <div class="panel-label">MP4 Container</div>
+            <div class="drop-zone accent2" id="video-drop-zone">
+              <input type="file" id="videoUpload" accept="video/*">
+              <div class="drop-icon">🎞️</div>
+              <div class="drop-text">Drop MP4</div>
+              <div class="drop-sub">Extracts audio</div>
+            </div>
+            <div class="file-info red" id="video-file-info">No video loaded</div>
+          </div>
+          <div>
+            <div class="panel-label">Audio File</div>
+            <div class="drop-zone" id="audio-drop-zone-s1">
+              <input type="file" id="audioUploadS1" accept="audio/*">
+              <div class="drop-icon">🎵</div>
+              <div class="drop-text">Drop Audio</div>
+              <div class="drop-sub">Skip Step 1</div>
+            </div>
+            <div class="file-info cyan" id="audio-file-info-s1">No audio loaded</div>
+          </div>
+        </div>
+        <div style="margin-top:12px;">
+          <div class="panel-label">Pipeline Path</div>
+          <div class="path-picker">
+            <div class="path-btn" id="pathA" onclick="selectPath('A')">
+              <div class="path-label">PATH A</div>
+              <div class="path-desc">Remaster first</div>
+              <div class="path-sub">Goes to Step 2</div>
+            </div>
+            <div class="path-btn" id="pathB" onclick="selectPath('B')">
+              <div class="path-label">PATH B</div>
+              <div class="path-desc">Skip to Visualizer</div>
+              <div class="path-sub">Goes to Step 3</div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:12px;">
+          <button class="btn primary" id="step1-proceed" disabled onclick="proceedFromStep1()">PROCEED →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="step-panel" id="panel-step2">
+      <div class="step-header" onclick="togglePanel(2)">
+        <div class="step-header-left">
+          <span class="step-badge">STEP 02</span>
+          <div><div class="step-title">DSP Mastering Chain</div><div class="step-subtitle">Two-pass EBU R128</div></div>
+        </div>
+        <span class="step-status" id="status-2">OPTIONAL</span>
+      </div>
+      <div class="step-body collapsed" id="body-step2">
+        <div class="panel-label">Filter Chain</div>
+        <div class="filter-grid" id="filter-grid"></div>
+        <div class="panel-label">Loudness Target</div>
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:12px;">
+          <div class="slider-item"><label>LUFS Integrated <span id="iVal">-14</span></label><input type="range" id="lufsI" min="-23" max="-9" step="0.5" value="-14"></div>
+          <div class="slider-item"><label>True Peak dBTP <span id="tpVal">-1.0</span></label><input type="range" id="lufsTp" min="-3" max="-0.5" step="0.5" value="-1.0"></div>
+          <div class="slider-item"><label>Loudness Range LRA <span id="lraVal">11</span></label><input type="range" id="lufsLra" min="4" max="20" step="1" value="11"></div>
+        </div>
+        <div class="progress-block" id="remaster-progress-block" style="display:none;">
+          <div class="progress-label"><span id="remaster-stage">Pass 1</span><span id="remaster-pct">0%</span></div>
+          <div class="progress-track"><div class="progress-fill" id="remaster-fill"></div></div>
+        </div>
+        <div class="remaster-log" id="remaster-log"><div class="log-line">Awaiting audio...</div></div>
+        <div class="btn-row" style="margin-top:10px;">
+          <button class="btn primary" id="runRemasterBtn" disabled onclick="runRemaster()">⚙ RUN CHAIN</button>
+          <button class="btn" id="skipRemasterBtn" onclick="skipRemaster()">SKIP →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div class="step-panel" id="panel-step3">
+      <div class="step-header" onclick="togglePanel(3)">
+        <div class="step-header-left">
+          <span class="step-badge">STEP 03</span>
+          <div><div class="step-title">Visualization Engine</div><div class="step-subtitle">Preview &amp; configure</div></div>
+        </div>
+        <span class="step-status" id="status-3">AWAITING</span>
+      </div>
+      <div class="step-body collapsed" id="body-step3">
+        <div class="file-info cyan" id="audio-file-info-s3" style="margin-bottom:8px;">No audio loaded</div>
+        <div style="margin-bottom:10px;">
+          <button class="btn primary" onclick="proceedToExport()" style="width:100%;">PROCEED TO EXPORT →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 4 -->
+    <div class="step-panel" id="panel-step4">
+      <div class="step-header" onclick="togglePanel(4)">
+        <div class="step-header-left">
+          <span class="step-badge">STEP 04</span>
+          <div><div class="step-title">Offline Export</div><div class="step-subtitle">Frame-perfect render + mux</div></div>
+        </div>
+        <span class="step-status" id="status-4">LOCKED</span>
+      </div>
+      <div class="step-body collapsed" id="body-step4">
+        <div class="panel-label">Export Mode</div>
+        <div class="export-options" id="export-options">
+          <div class="export-option unavailable" id="exp-opt-1" onclick="selectExport(1)">
+            <div class="exp-num">MODE 01</div>
+            <div class="exp-title">Remaster Audio Only</div>
+            <div class="exp-desc">Download mastered WAV. No video.</div>
+            <div class="exp-req">Requires: Step 2</div>
+          </div>
+          <div class="export-option unavailable" id="exp-opt-2" onclick="selectExport(2)">
+            <div class="exp-num">MODE 02</div>
+            <div class="exp-title">Visualization Video Only</div>
+            <div class="exp-desc">Offline render + original audio mux.</div>
+            <div class="exp-req">Requires: Step 3 + FFmpeg</div>
+          </div>
+          <div class="export-option unavailable" id="exp-opt-3" onclick="selectExport(3)">
+            <div class="exp-num">MODE 03</div>
+            <div class="exp-title">Full Master + New Video</div>
+            <div class="exp-desc">Mastered audio + offline viz render.</div>
+            <div class="exp-req">Requires: Steps 2 + 3 + FFmpeg</div>
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn accent2-btn" id="autoExportBtn" disabled onclick="startExport()">⏺ RUN EXPORT</button>
+          <button class="btn" id="stopExportBtn" disabled onclick="abortExport()">⏹ ABORT</button>
+        </div>
+        <div id="export-status">Complete Steps 1–3 to unlock.</div>
+      </div>
+    </div>
+
+  </div><!-- end steps-col -->
+
+  <!-- ═══ RIGHT: VIZ COLUMN ═══ -->
+  <div id="viz-col">
+    <div id="canvas-wrap">
+      <canvas id="viz" width="1920" height="1080"></canvas>
+      <div id="rec-pill"><div class="rec-dot"></div> RECORDING</div>
+      <div id="render-pill">⚙ RENDERING</div>
+      <div id="render-overlay">
+        <div id="render-overlay-label">OFFLINE RENDER — DO NOT CLOSE TAB</div>
+        <div id="render-overlay-bar-wrap"><div id="render-overlay-bar"></div></div>
+        <div id="render-overlay-sub">Frame 0 / 0</div>
+      </div>
+    </div>
+
+    <!-- playback bar -->
+    <div id="playback-bar">
+      <div id="progress-wrap">
+        <div id="progress-bar"></div>
+        <div id="progress-handle"></div>
+      </div>
+      <div class="pb-controls">
+        <button class="btn primary" id="playBtn" disabled>▶ PLAY</button>
+        <button class="btn" id="stopBtn" disabled>■ STOP</button>
+        <span id="time-display">0:00 / 0:00</span>
+      </div>
+    </div>
+
+    <!-- viz controls -->
+    <div id="viz-controls-scroll">
+      <div>
+        <div class="panel-label">Display Layers</div>
+        <div class="toggle-grid">
+          <div class="toggle-item on" data-key="showBars"><span class="toggle-name">Spectrum</span><div class="toggle-pip"></div></div>
+          <div class="toggle-item on" data-key="showWave"><span class="toggle-name">Waveform</span><div class="toggle-pip"></div></div>
+          <div class="toggle-item on" data-key="showParticles"><span class="toggle-name">Particles</span><div class="toggle-pip"></div></div>
+          <div class="toggle-item on" data-key="useTrails"><span class="toggle-name">Phosphor Decay</span><div class="toggle-pip"></div></div>
+          <div class="toggle-item" data-key="TransWave"><span class="toggle-name">Trans Wave</span><div class="toggle-pip"></div></div>
+          <div class="toggle-item" data-key="CosmicNAS"><span class="toggle-name">Cosmic Swirl</span><div class="toggle-pip"></div></div>
+          <div class="toggle-item" data-key="RadialOscill"><span class="toggle-name">Radial Osc.</span><div class="toggle-pip"></div></div>
+          <div class="toggle-item" data-key="InterstellarNebula"><span class="toggle-name">Nebula</span><div class="toggle-pip"></div></div>
+          <div class="toggle-item" data-key="MercuryRibbon"><span class="toggle-name">Mercury</span><div class="toggle-pip"></div></div>
+          <div class="toggle-item" data-key="PolarAxisRing"><span class="toggle-name">Polar Ring</span><div class="toggle-pip"></div></div>
+        </div>
+      </div>
+      <div>
+        <div class="panel-label">Parameters</div>
+        <div class="slider-row">
+          <div class="slider-item"><label>Sensitivity <span id="sensVal">1.4</span></label><input type="range" id="sensitivity" min="0.5" max="4" step="0.05" value="1.4"></div>
+          <div class="slider-item"><label>Trail Decay <span id="trailVal">0.12</span></label><input type="range" id="trailDecay" min="0.01" max="0.4" step="0.01" value="0.12"></div>
+          <div class="slider-item"><label>Bar Count <span id="barVal">128</span></label><input type="range" id="barCount" min="32" max="256" step="8" value="128"></div>
+        </div>
+      </div>
+      <div>
+        <div class="panel-label">Color Theme</div>
+        <div class="color-row" id="colorRow"></div>
+      </div>
+    </div>
+  </div><!-- end viz-col -->
+
+</div><!-- end app-body -->
+
+<script>
+// ════════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════════
+const pipelineState = {
+  step1Done:false, step2Done:false, step2Skipped:false, step3Active:false,
+  selectedPath:null, sourceFile:null, rawAudioBuffer:null, masteredBlob:null,
+  selectedExport:null, ffmpegAvailable:false,
+};
+
+const config = {
+  showBars:true, showWave:true, showParticles:true, useTrails:true,
+  TransWave:false, CosmicNAS:false, RadialOscill:false,
+  InterstellarNebula:false, MercuryRibbon:false, PolarAxisRing:false,
+  sensitivity:1.4, trailDecay:0.12, barCount:128, theme:0,
+};
+
+const THEMES = [
+  {bars:'#00e5ff',wave:'#ffffff',particles:'#00e5ff',bg:'rgba(5,5,5,'},
+  {bars:'#ff3d71',wave:'#ffb347',particles:'#ff3d71',bg:'rgba(8,3,5,'},
+  {bars:'#7fff7f',wave:'#aaffaa',particles:'#00ff88',bg:'rgba(3,8,3,'},
+  {bars:'#bf80ff',wave:'#e0b0ff',particles:'#cc66ff',bg:'rgba(5,3,8,'},
+  {bars:'#ffdd00',wave:'#ffffff',particles:'#ffaa00',bg:'rgba(6,5,3,'},
+];
+const SWATCHES = ['#00e5ff','#ff3d71','#7fff7f','#bf80ff','#ffdd00'];
+
+const FILTER_CHAIN = [
+  {key:'highpass', label:'Highpass',   desc:'Sub-rumble cut 30Hz',       enabled:true,  flag:'highpass=f=30'},
+  {key:'agate',    label:'Noise Gate', desc:'Floor gate -60dB',          enabled:true,  flag:'agate=threshold=-60dB:ratio=2:attack=10:release=200'},
+  {key:'equalizer',label:'EQ Shelf',   desc:'Air +1dB @ 10kHz',          enabled:true,  flag:'equalizer=f=10000:width_type=o:width=2:g=1.0'},
+  {key:'compand',  label:'Compand',    desc:'Dynamic range (off on 2nd)', enabled:true,  flag:'compand=attacks=0.01:decays=0.3:points=-80/-80|-45/-38|-20/-15|0/-3'},
+  {key:'alimiter', label:'Limiter',    desc:'True peak -1dBTP',          enabled:true,  flag:'alimiter=level_in=1:level_out=1:limit=0.891:attack=5:release=100'},
+  {key:'loudnorm', label:'Loudnorm',   desc:'Two-pass EBU R128',         enabled:true,  flag:null},
+];
+let filterStates = {};
+FILTER_CHAIN.forEach(f => { filterStates[f.key] = f.enabled; });
+
+function buildFilterGrid() {
+  const grid = document.getElementById('filter-grid');
+  grid.innerHTML = '';
+  FILTER_CHAIN.forEach(f => {
+    const el = document.createElement('div');
+    el.className = 'filter-toggle' + (f.enabled ? ' on' : '');
+    el.innerHTML = `<div class="pip"></div><div><div class="filter-name">${f.label}</div><div class="filter-desc">${f.desc}</div></div>`;
+    el.onclick = () => { filterStates[f.key] = !filterStates[f.key]; el.classList.toggle('on', filterStates[f.key]); };
+    grid.appendChild(el);
+  });
+}
+buildFilterGrid();
+
+// ════════════════════════════════════════════════════════════
+// AUDIO ENGINE — suspend/resume pause (no offset math)
+// ════════════════════════════════════════════════════════════
+let audioCtx, analyserNode, sourceNode, audioBuffer;
+let isPlaying = false, startTime = 0, isExporting = false;
+const FFT_SIZE = 2048;
+
+let _uiTickId = null;
+function startUITick() {
+  if (_uiTickId) return;
+  _uiTickId = setInterval(updatePlaybackUI, 66);
+}
+function stopUITick() { if (_uiTickId) { clearInterval(_uiTickId); _uiTickId = null; } }
+
+function fmtTime(s) {
+  const m = Math.floor(s / 60);
+  return `${m}:${String(Math.floor(s % 60)).padStart(2,'0')}`;
+}
+
+function updatePlaybackUI() {
+  const pb  = document.getElementById('playBtn');
+  const bar = document.getElementById('progress-bar');
+  const handle = document.getElementById('progress-handle');
+  const td  = document.getElementById('time-display');
+  pb.textContent = isPlaying ? '⏸ PAUSE' : '▶ PLAY';
+  if (audioBuffer && audioCtx) {
+    const elapsed = Math.max(0, audioCtx.currentTime - startTime);
+    const pct = Math.min(elapsed / audioBuffer.duration, 1);
+    bar.style.width = (pct * 100) + '%';
+    handle.style.left = (pct * 100) + '%';
+    td.textContent = fmtTime(elapsed) + ' / ' + fmtTime(audioBuffer.duration);
+  }
+}
+
+async function initAudioFromBuffer(decoded, label) {
+  if (audioCtx) { try { await audioCtx.close(); } catch(e){} }
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  analyserNode = audioCtx.createAnalyser();
+  analyserNode.fftSize = FFT_SIZE;
+  analyserNode.smoothingTimeConstant = 0.75;
+  analyserNode.connect(audioCtx.destination);
+  audioBuffer = decoded;
+  pipelineState.rawAudioBuffer = decoded;
+  isPlaying = false; startTime = 0;
+  document.getElementById('progress-bar').style.width = '0%';
+  document.getElementById('progress-handle').style.left = '0%';
+  document.getElementById('audio-file-info-s3').textContent = label;
+  document.getElementById('time-display').textContent = '0:00 / ' + fmtTime(decoded.duration);
+  updatePlaybackButtons(true);
+  setStatus(3,'READY','ok');
+  pipelineState.step3Active = true;
+  updateExportOptions();
+  startUITick();
+}
+
+async function initAudioFromFile(file) {
+  const ab = await file.arrayBuffer();
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const decoded = await audioCtx.decodeAudioData(ab);
+  await initAudioFromBuffer(decoded, file.name.toUpperCase());
+}
+
+function _spawnSourceNode(offset) {
+  if (sourceNode) { try { sourceNode.disconnect(); } catch(e){} }
+  sourceNode = audioCtx.createBufferSource();
+  sourceNode.buffer = audioBuffer;
+  sourceNode.connect(analyserNode);
+  sourceNode.start(0, offset);
+  startTime = audioCtx.currentTime - offset;
+  sourceNode.onended = () => {
+    if (!isPlaying) return;
+    isPlaying = false; startTime = 0;
+    document.getElementById('progress-bar').style.width = '0%';
+    document.getElementById('progress-handle').style.left = '0%';
+    updatePlaybackButtons(true);
+  };
+}
+
+async function playAudio(offset = 0) {
+  if (!audioBuffer) return;
+  if (audioCtx.state === 'suspended') await audioCtx.resume();
+  _spawnSourceNode(offset);
+  isPlaying = true;
+  updatePlaybackButtons(true);
+}
+
+async function pauseAudio() {
+  if (!isPlaying) return;
+  await audioCtx.suspend();
+  isPlaying = false;
+  updatePlaybackButtons(true);
+}
+
+async function resumeAudio() {
+  if (isPlaying) return;
+  await audioCtx.resume();
+  isPlaying = true;
+  updatePlaybackButtons(true);
+}
+
+function stopAudio() {
+  if (sourceNode) { try { sourceNode.stop(); sourceNode.disconnect(); } catch(e){} }
+  sourceNode = null;
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  isPlaying = false; startTime = 0;
+  document.getElementById('progress-bar').style.width = '0%';
+  document.getElementById('progress-handle').style.left = '0%';
+  updatePlaybackButtons(true);
+}
+
+function updatePlaybackButtons(loaded) {
+  document.getElementById('playBtn').disabled = !loaded;
+  document.getElementById('stopBtn').disabled = !loaded;
+  const eb = document.getElementById('autoExportBtn');
+  if (eb) eb.disabled = !loaded || !pipelineState.selectedExport;
+  document.getElementById('playBtn').textContent = isPlaying ? '⏸ PAUSE' : '▶ PLAY';
+}
+
+// ── Seek: click on progress bar ───────────────────────────────────────────────
+document.getElementById('progress-wrap').addEventListener('click', async e => {
+  if (!audioBuffer) return;
+  const rect   = e.currentTarget.getBoundingClientRect();
+  const pct    = Math.max(0, Math.min((e.clientX - rect.left) / rect.width, 1));
+  const seekTo = pct * audioBuffer.duration;
+
+  // Snap handle and bar immediately on click
+  document.getElementById('progress-bar').style.width   = (pct * 100) + '%';
+  document.getElementById('progress-handle').style.left = (pct * 100) + '%';
+
+  const wasPaused = !isPlaying && audioCtx && audioCtx.state === 'suspended';
+  if (audioCtx) {
+    if (audioCtx.state === 'suspended') await audioCtx.resume();
+    if (sourceNode) { try { sourceNode.stop(); sourceNode.disconnect(); } catch(e2){} }
+    _spawnSourceNode(seekTo);
+    // startTime set inside _spawnSourceNode — do not touch it here
+    if (wasPaused) {
+      await audioCtx.suspend();
+      isPlaying = false;
+    } else {
+      isPlaying = !!sourceNode;
+    }
+    updatePlaybackButtons(true);
+  }
+});
+
+document.getElementById('playBtn').onclick = async () => {
+  if (!audioBuffer) return;
+  if (isPlaying) {
+    await pauseAudio();
+  } else if (audioCtx && audioCtx.state === 'suspended') {
+    await resumeAudio();
+  } else {
+    await playAudio(0);
+  }
+};
+document.getElementById('stopBtn').onclick = () => stopAudio();
+
+// ════════════════════════════════════════════════════════════
+// STEP 1
+// ════════════════════════════════════════════════════════════
+const videoInput    = document.getElementById('videoUpload');
+const videoDropZone = document.getElementById('video-drop-zone');
+videoInput.onchange = e => handleVideoFile(e.target.files[0]);
+videoDropZone.ondragover  = e => { e.preventDefault(); videoDropZone.classList.add('drag-over'); };
+videoDropZone.ondragleave = () => videoDropZone.classList.remove('drag-over');
+videoDropZone.ondrop = e => {
+  e.preventDefault(); videoDropZone.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f) handleVideoFile(f);
+};
+
+async function handleVideoFile(file) {
+  if (!file) return;
+  pipelineState.sourceFile = file;
+  document.getElementById('video-file-info').textContent = 'PARSING…';
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const ab = await file.arrayBuffer();
+    audioCtx.decodeAudioData(ab, decoded => {
+      pipelineState.rawAudioBuffer = decoded;
+      document.getElementById('video-file-info').textContent = '✓ ' + file.name.toUpperCase();
+      document.getElementById('audio-file-info-s1').textContent = 'Audio from MP4 ready';
+      setStatus(1,'SOURCE LOADED','ok');
+      checkStep1Proceed();
+    }, () => {
+      document.getElementById('video-file-info').textContent = 'ERROR: unsupported codec';
+    });
+  } catch(err) {
+    document.getElementById('video-file-info').textContent = 'ERROR: ' + err.message;
+  }
+}
+
+const audioInputS1  = document.getElementById('audioUploadS1');
+const audioDzS1     = document.getElementById('audio-drop-zone-s1');
+audioInputS1.onchange = e => handleDirectAudioS1(e.target.files[0]);
+audioDzS1.ondragover  = e => { e.preventDefault(); audioDzS1.classList.add('drag-over'); };
+audioDzS1.ondragleave = () => audioDzS1.classList.remove('drag-over');
+audioDzS1.ondrop = e => {
+  e.preventDefault(); audioDzS1.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0]; if (f) handleDirectAudioS1(f);
+};
+
+async function handleDirectAudioS1(file) {
+  if (!file) return;
+  document.getElementById('audio-file-info-s1').textContent = 'LOADING…';
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const ab = await file.arrayBuffer();
+    const decoded = await audioCtx.decodeAudioData(ab);
+    pipelineState.rawAudioBuffer = decoded;
+    document.getElementById('audio-file-info-s1').textContent = '✓ ' + file.name.toUpperCase();
+    setStatus(1,'SOURCE LOADED','ok');
+    checkStep1Proceed();
+  } catch(err) {
+    document.getElementById('audio-file-info-s1').textContent = 'ERROR: ' + err.message;
+  }
+}
+
+function selectPath(p) {
+  pipelineState.selectedPath = p;
+  document.getElementById('pathA').classList.toggle('selected', p==='A');
+  document.getElementById('pathB').classList.toggle('selected', p==='B');
+  checkStep1Proceed();
+}
+function checkStep1Proceed() {
+  document.getElementById('step1-proceed').disabled = !(pipelineState.rawAudioBuffer && pipelineState.selectedPath);
+}
+function proceedFromStep1() {
+  pipelineState.step1Done = true;
+  setNodeComplete(1); setStatus(1,'COMPLETE','ok');
+  if (pipelineState.selectedPath === 'A') {
+    openPanel(2);
+    document.getElementById('panel-step2').classList.add('active-step');
+    setStatus(2,'READY','ok');
+    document.getElementById('runRemasterBtn').disabled = !pipelineState.ffmpegAvailable;
+    setNodeActive(2);
+    addRemasterLog('Audio linked. Configure and run.','ok');
+  } else { skipToStep3(); }
+}
+
+// ════════════════════════════════════════════════════════════
+// STEP 2 — REMASTER
+// ════════════════════════════════════════════════════════════
+function checkFFmpegAvailability() {
+  if (typeof SharedArrayBuffer !== 'undefined') {
+    pipelineState.ffmpegAvailable = true;
+  } else {
+    pipelineState.ffmpegAvailable = false;
+    document.getElementById('cors-banner').classList.add('show');
+  }
+}
+checkFFmpegAvailability();
+
+['lufsI','lufsTp','lufsLra'].forEach(id => {
+  const el = document.getElementById(id);
+  const vId = {lufsI:'iVal',lufsTp:'tpVal',lufsLra:'lraVal'}[id];
+  el.oninput = () => document.getElementById(vId).textContent = el.value;
+});
+
+function addRemasterLog(msg, cls='') {
+  const log = document.getElementById('remaster-log');
+  const line = document.createElement('div');
+  line.className = 'log-line' + (cls ? ' '+cls : '');
+  line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  log.appendChild(line);
+  log.scrollTop = log.scrollHeight;
+}
+
+async function runRemaster() {
+  if (!pipelineState.ffmpegAvailable) { addRemasterLog('FFmpeg unavailable.','err'); return; }
+  const I = document.getElementById('lufsI').value;
+  const TP = document.getElementById('lufsTp').value;
+  const LRA = document.getElementById('lufsLra').value;
+  addRemasterLog('Importing FFmpeg wrapper…','warn');
+  document.getElementById('remaster-progress-block').style.display = 'block';
+  document.getElementById('runRemasterBtn').disabled = true;
+  setReasterPct(5,'Loading modules');
+  try {
+    const { FFmpeg }    = await import('./ffmpeg-main.js');
+    const { fetchFile } = await import('./ffmpeg-util.js');
+    addRemasterLog('ESM wrappers imported.','ok');
+    setReasterPct(15,'Starting worker');
+    const base    = window.location.href.substring(0, window.location.href.lastIndexOf('/')+1);
+    const coreURL = base + 'ffmpeg-core.js';
+    const wasmURL = base + 'ffmpeg-core.wasm';
+    addRemasterLog('Core: '+coreURL,'warn');
+    const ffmpeg = new FFmpeg();
+    let _lnBuffer = '', _lnCapturing = false;
+    window._loudnormData = null;
+    ffmpeg.on('log', ({type, message}) => {
+      addRemasterLog(message, type==='fferr'?'warn':'');
+      if (message.includes('"input_i"') || message.trim()==='{') { _lnCapturing=true; _lnBuffer=''; }
+      if (_lnCapturing) {
+        _lnBuffer += message + '\n';
+        if (message.trim()==='}' || message.includes('}')) {
+          try {
+            const js = _lnBuffer.indexOf('{'), je = _lnBuffer.lastIndexOf('}')+1;
+            window._loudnormData = JSON.parse(_lnBuffer.substring(js,je));
+            addRemasterLog('Loudnorm data captured.','ok');
+          } catch(e){}
+          _lnCapturing=false; _lnBuffer='';
+        }
+      }
+    });
+    ffmpeg.on('progress', ({progress}) => setReasterPct(Math.min(Math.round(progress*100),99),'Processing'));
+    addRemasterLog('Calling ffmpeg.load()…','warn');
+    await ffmpeg.load({coreURL, wasmURL});
+    addRemasterLog('✓ Worker ready.','ok');
+    setReasterPct(30,'Writing input');
+    const wavBlob = audioBufferToWavBlob(pipelineState.rawAudioBuffer);
+    await ffmpeg.writeFile('input.wav', await fetchFile(wavBlob));
+    setReasterPct(35,'Pass 1: Analysis');
+    addRemasterLog('Pass 1: loudness analysis…','warn');
+    const activeFilters = FILTER_CHAIN.filter(f=>f.key!=='loudnorm'&&filterStates[f.key]&&f.flag).map(f=>f.flag);
+    const pass1Filters = [...activeFilters,`loudnorm=I=${I}:TP=${TP}:LRA=${LRA}:print_format=json`].join(',');
+    window._loudnormData = null;
+    await ffmpeg.exec(['-i','input.wav','-af',pass1Filters,'-f','null','-']);
+    setReasterPct(60,'Pass 2: Apply');
+    addRemasterLog('Pass 2: applying master…','warn');
+    const ln = window._loudnormData;
+    const pass2Loudnorm = ln
+      ? `loudnorm=I=${I}:TP=${TP}:LRA=${LRA}:measured_I=${ln.input_i}:measured_TP=${ln.input_tp}:measured_LRA=${ln.input_lra}:measured_thresh=${ln.input_thresh}:linear=true`
+      : `loudnorm=I=${I}:TP=${TP}:LRA=${LRA}`;
+    const pass2Filters = [...activeFilters, pass2Loudnorm].join(',');
+    await ffmpeg.exec(['-i','input.wav','-af',pass2Filters,'-ar','48000','mastered.wav']);
+    setReasterPct(85,'Reading output');
+    const data = await ffmpeg.readFile('mastered.wav');
+    pipelineState.masteredBlob = new Blob([data.buffer], {type:'audio/wav'});
+    await ffmpeg.deleteFile('input.wav');
+    await ffmpeg.deleteFile('mastered.wav');
+    setReasterPct(100,'Done');
+    addRemasterLog('✓ Mastering complete.','ok');
+    pipelineState.step2Done = true;
+    setNodeComplete(2); setStatus(2,'COMPLETE','ok');
+    const mAb = await pipelineState.masteredBlob.arrayBuffer();
+    if (!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    const decoded = await audioCtx.decodeAudioData(mAb);
+    await initAudioFromBuffer(decoded,'MASTERED.WAV');
+    openPanel(3); setNodeActive(3);
+  } catch(err) {
+    const msg = err?.message||String(err);
+    addRemasterLog('ERROR: '+msg,'err');
+    if (msg.toLowerCase().includes('sharedarraybuffer')) addRemasterLog('→ coi-serviceworker may not be active.','err');
+    setReasterPct(0,'Failed');
+    document.getElementById('runRemasterBtn').disabled = false;
+  }
+}
+function setReasterPct(pct,label) {
+  document.getElementById('remaster-fill').style.width = pct+'%';
+  document.getElementById('remaster-pct').textContent = pct+'%';
+  document.getElementById('remaster-stage').textContent = label;
+}
+function skipRemaster() {
+  pipelineState.step2Skipped = true;
+  setStatus(2,'SKIPPED',''); setNodeComplete(2); skipToStep3();
+}
+async function skipToStep3() {
+  if (pipelineState.rawAudioBuffer) await initAudioFromBuffer(pipelineState.rawAudioBuffer,'RAW AUDIO');
+  openPanel(3); setNodeActive(3);
+  document.getElementById('panel-step3').classList.add('active-step');
+}
+
+function audioBufferToWavBlob(buffer) {
+  const nc=buffer.numberOfChannels,sr=buffer.sampleRate,len=buffer.length,bps=16;
+  const dataSize=len*nc*bps/8;
+  const ab=new ArrayBuffer(44+dataSize); const view=new DataView(ab);
+  const ws=(o,s)=>{ for(let i=0;i<s.length;i++) view.setUint8(o+i,s.charCodeAt(i)); };
+  ws(0,'RIFF'); view.setUint32(4,36+dataSize,true); ws(8,'WAVE'); ws(12,'fmt ');
+  view.setUint32(16,16,true); view.setUint16(20,1,true); view.setUint16(22,nc,true);
+  view.setUint32(24,sr,true); view.setUint32(28,sr*nc*bps/8,true);
+  view.setUint16(32,nc*bps/8,true); view.setUint16(34,bps,true);
+  ws(36,'data'); view.setUint32(40,dataSize,true);
+  let off=44;
+  for(let i=0;i<len;i++) for(let c=0;c<nc;c++) {
+    const s=Math.max(-1,Math.min(1,buffer.getChannelData(c)[i]));
+    view.setInt16(off,s<0?s*32768:s*32767,true); off+=2;
+  }
+  return new Blob([ab],{type:'audio/wav'});
+}
+
+// ════════════════════════════════════════════════════════════
+// STEP 3
+// ════════════════════════════════════════════════════════════
+function proceedToExport() {
+  openPanel(4); setNodeActive(4);
+  document.getElementById('panel-step4').classList.add('active-step');
+  setStatus(4,'READY','ok'); updateExportOptions();
+}
+
+// ════════════════════════════════════════════════════════════
+// STEP 4 — OFFLINE RENDER EXPORT
+// ════════════════════════════════════════════════════════════
+function updateExportOptions() {
+  const s2=pipelineState.step2Done, s3=pipelineState.step3Active, ff=pipelineState.ffmpegAvailable;
+  setExportOption(1, s2);
+  setExportOption(2, s3 && ff);
+  setExportOption(3, s2 && s3 && ff);
+}
+function setExportOption(n,available) {
+  const el=document.getElementById('exp-opt-'+n);
+  el.classList.remove('available','unavailable','selected');
+  el.classList.add(available?'available':'unavailable');
+}
+function selectExport(n) {
+  const el=document.getElementById('exp-opt-'+n);
+  if (el.classList.contains('unavailable')) return;
+  document.querySelectorAll('.export-option').forEach(e=>e.classList.remove('selected'));
+  el.classList.add('selected');
+  pipelineState.selectedExport=n;
+  document.getElementById('autoExportBtn').disabled=false;
+}
+
+let _abortExport = false;
+
+async function startExport() {
+  const mode = pipelineState.selectedExport;
+  if (!mode) return;
+
+  // Mode 1: audio only — just download the mastered WAV
+  if (mode === 1) {
+    if (!pipelineState.masteredBlob) { document.getElementById('export-status').textContent='No mastered audio available.'; return; }
+    const url = URL.createObjectURL(pipelineState.masteredBlob);
+    const a = document.createElement('a'); a.href=url; a.download='vizr_mastered.wav'; a.click();
+    URL.revokeObjectURL(url);
+    document.getElementById('export-status').textContent='✓ vizr_mastered.wav downloaded.';
+    setStatus(4,'COMPLETE','ok'); setNodeComplete(4);
+    return;
+  }
+
+  // Mode 2 & 3: offline video render
+  _abortExport = false;
+  document.getElementById('autoExportBtn').disabled = true;
+  document.getElementById('stopExportBtn').disabled = false;
+  document.getElementById('render-pill').classList.add('visible');
+  document.getElementById('render-overlay').classList.add('visible');
+
+  const FPS = 30;
+  const audioSrc = (mode===3 && pipelineState.masteredBlob) ? pipelineState.masteredBlob
+                 : audioBufferToWavBlob(audioBuffer);
+  const duration = audioBuffer.duration;
+  const totalFrames = Math.ceil(duration * FPS);
+
+  document.getElementById('export-status').textContent = `Rendering ${totalFrames} frames @ ${FPS}fps…`;
+
+  try {
+    // ── Pre-render all audio analysis frames via OfflineAudioContext ──────────
+    setRenderProgress(0, `Analyzing audio…`, `0 / ${totalFrames} frames`);
+    const offlineCtx = new OfflineAudioContext(
+      audioBuffer.numberOfChannels, audioBuffer.length, audioBuffer.sampleRate
+    );
+    const offlineSrc = offlineCtx.createBufferSource();
+    offlineSrc.buffer = audioBuffer;
+    offlineSrc.connect(offlineCtx.destination);
+    offlineSrc.start(0);
+    const renderedBuffer = await offlineCtx.startRendering();
+
+    // Extract per-frame freq+time data using ScriptProcessor simulation
+    const frameSamples = Math.round(audioBuffer.sampleRate / FPS);
+    const fftSize = FFT_SIZE;
+    const freqFrames = [];
+    const timeFrames = [];
+
+    // Build a temporary AnalyserNode fed from the offline buffer channel data
+    const tempCtx = new OfflineAudioContext(1, audioBuffer.length, audioBuffer.sampleRate);
+    for (let frame = 0; frame < totalFrames; frame++) {
+      const startSample = frame * frameSamples;
+      // Slice one frame worth of samples for analysis
+      const frameData = new Float32Array(fftSize);
+      const ch = renderedBuffer.getChannelData(0);
+      for (let i = 0; i < fftSize; i++) {
+        frameData[i] = ch[startSample + i] || 0;
+      }
+      // Manual DFT magnitude for freq data (fast enough for 128 bins)
+      const bins = 256;
+      const freqData = new Uint8Array(bins);
+      const timeData = new Uint8Array(fftSize);
+      for (let k = 0; k < bins; k++) {
+        let re=0, im=0;
+        for (let n=0; n<fftSize; n++) {
+          const angle = (2*Math.PI*k*n)/fftSize;
+          re += frameData[n]*Math.cos(angle);
+          im -= frameData[n]*Math.sin(angle);
+        }
+        freqData[k] = Math.min(255, Math.round(Math.sqrt(re*re+im*im)/fftSize*2*255));
+      }
+      for (let i=0; i<fftSize; i++) timeData[i] = Math.round((frameData[i]+1)*127.5);
+      freqFrames.push(freqData);
+      timeFrames.push(timeData);
+
+      if (frame % 30 === 0) {
+        setRenderProgress(frame/totalFrames*0.3, `Analyzing audio…`, `${frame} / ${totalFrames} frames`);
+        await yieldFrame();
+        if (_abortExport) throw new Error('Aborted');
+      }
+    }
+
+    // ── Render each canvas frame and collect as PNG blobs ─────────────────────
+    setRenderProgress(0.3, `Rendering frames…`, `0 / ${totalFrames}`);
+    const { FFmpeg }    = await import('./ffmpeg-main.js');
+    const { fetchFile } = await import('./ffmpeg-util.js');
+    const base = window.location.href.substring(0, window.location.href.lastIndexOf('/')+1);
+    const ffmpeg = new FFmpeg();
+    ffmpeg.on('log', ({message}) => document.getElementById('export-status').textContent = message.substring(0,80));
+    ffmpeg.on('progress', ({progress}) => setRenderProgress(0.7+progress*0.28,'Encoding video…',Math.round(progress*100)+'%'));
+    await ffmpeg.load({coreURL: base+'ffmpeg-core.js', wasmURL: base+'ffmpeg-core.wasm'});
+
+    // Render frames directly to ffmpeg virtual FS as PNG sequence
+    const W = canvas.width, H = canvas.height;
+    // Save live analyserNode state and swap to pre-rendered data
+    const origAnalyser = analyserNode;
+
+    for (let frame = 0; frame < totalFrames; frame++) {
+      if (_abortExport) throw new Error('Aborted');
+      // Draw the frame using offline analysis data
+      drawOfflineFrame({freqData: freqFrames[frame], timeData: timeFrames[frame]});
+      // Capture canvas as PNG
+      const blob = await new Promise(res => canvas.toBlob(res, 'image/png'));
+      const uint8 = await fetchFile(blob);
+      const fname = 'frame' + String(frame).padStart(6,'0') + '.png';
+      await ffmpeg.writeFile(fname, uint8);
+      if (frame % 10 === 0) {
+        const pct = 0.3 + (frame/totalFrames)*0.4;
+        setRenderProgress(pct, `Rendering frames…`, `${frame} / ${totalFrames}`);
+        await yieldFrame();
+      }
+    }
+
+    // Restore live canvas
+    analyserNode = origAnalyser;
+
+    // ── Write audio ────────────────────────────────────────────────────────────
+    setRenderProgress(0.72,'Writing audio…','');
+    await ffmpeg.writeFile('audio.wav', await fetchFile(audioSrc));
+
+    // ── Encode PNG sequence → video ────────────────────────────────────────────
+    setRenderProgress(0.74,'Encoding video…','');
+    await ffmpeg.exec([
+      '-framerate', String(FPS),
+      '-i', 'frame%06d.png',
+      '-i', 'audio.wav',
+      '-c:v', 'libx264', '-crf', '18', '-preset', 'fast', '-pix_fmt', 'yuv420p',
+      '-c:a', 'aac', '-b:a', '320k',
+      '-shortest',
+      'output.mp4'
+    ]);
+
+    setRenderProgress(0.98,'Downloading…','');
+    const outData = await ffmpeg.readFile('output.mp4');
+    const outBlob = new Blob([outData.buffer], {type:'video/mp4'});
+    const url = URL.createObjectURL(outBlob);
+    const a = document.createElement('a');
+    a.href=url; a.download='vizr_master.mp4'; a.click();
+    URL.revokeObjectURL(url);
+
+    setRenderProgress(1,'Complete','');
+    document.getElementById('export-status').textContent = '✓ vizr_master.mp4 downloaded — true MP4, 320kbps AAC.';
+    setStatus(4,'COMPLETE','ok'); setNodeComplete(4);
+
+  } catch(err) {
+    if (err.message !== 'Aborted')
+      document.getElementById('export-status').textContent = 'Export error: ' + err.message;
+    else
+      document.getElementById('export-status').textContent = 'Export aborted.';
+  } finally {
+    document.getElementById('render-pill').classList.remove('visible');
+    document.getElementById('render-overlay').classList.remove('visible');
+    document.getElementById('autoExportBtn').disabled = false;
+    document.getElementById('stopExportBtn').disabled = true;
+    isExporting = false;
+  }
+}
+
+function abortExport() { _abortExport = true; }
+
+function setRenderProgress(pct, label, sub) {
+  document.getElementById('render-overlay-bar').style.width = (pct*100)+'%';
+  document.getElementById('render-overlay-label').textContent = label;
+  document.getElementById('render-overlay-sub').textContent = sub;
+}
+function yieldFrame() { return new Promise(r => requestAnimationFrame(r)); }
+
+// ════════════════════════════════════════════════════════════
+// CANVAS + RENDER ENGINE
+// ════════════════════════════════════════════════════════════
+const canvas = document.getElementById('viz');
+const ctx    = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+
+const sparkCanvas = document.createElement('canvas');
+const sparkCtx    = sparkCanvas.getContext('2d');
+sparkCanvas.width = 64; sparkCanvas.height = 64;
+function updateSparkColor(color) {
+  sparkCtx.clearRect(0,0,64,64);
+  const g = sparkCtx.createRadialGradient(32,32,0,32,32,32);
+  g.addColorStop(0,color); g.addColorStop(1,'rgba(0,0,0,0)');
+  sparkCtx.fillStyle=g; sparkCtx.fillRect(0,0,64,64);
+}
+updateSparkColor(THEMES[0].particles);
+
+const MAX_PARTICLES = 350;
+let particles = [];
+function spawnParticle(energy) {
+  const angle = Math.random()*Math.PI*2;
+  const speed = (2+energy*8.5)*(0.4+Math.random()*0.6);
+  particles.push({x:W/2,y:H/2,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,angle,speed,life:1,decay:0.005+Math.random()*0.012,size:1+Math.random()*4.5*energy});
+}
+let lastBeatEnergy = 0;
+
+// Offline render draws a frame using pre-computed data (no live analyser)
+function drawOfflineFrame(audioPack) {
+  const savedAnalyser = analyserNode;
+  // Temporarily null the analyser so draw() uses audioPack data directly
+  _offlineAudioPack = audioPack;
+  _offlineMode = true;
+  drawFrame();
+  _offlineMode = false;
+  _offlineAudioPack = null;
+  analyserNode = savedAnalyser;
+}
+let _offlineMode = false;
+let _offlineAudioPack = null;
+
+function draw() {
+  requestAnimationFrame(draw);
+  drawFrame();
+}
+
+function drawFrame() {
+  const theme = THEMES[config.theme];
+  let freqData, timeData;
+
+  if (_offlineMode && _offlineAudioPack) {
+    freqData = _offlineAudioPack.freqData;
+    timeData = _offlineAudioPack.timeData;
+  } else {
+    freqData = new Uint8Array(analyserNode ? analyserNode.frequencyBinCount : 128);
+    timeData = new Uint8Array(analyserNode ? analyserNode.fftSize : FFT_SIZE);
+    if (analyserNode) {
+      analyserNode.getByteFrequencyData(freqData);
+      analyserNode.getByteTimeDomainData(timeData);
+    }
+  }
+
+  const audioPack = {freqData, timeData};
+  let energy=0;
+  const bassEnd = Math.floor(freqData.length*0.10);
+  for(let i=0;i<bassEnd;i++) energy+=freqData[i];
+  energy = bassEnd>0 ? (energy/bassEnd)/255 : 0;
+  const safeEnergy = Math.min(energy,1);
+  const isBeat = energy>0.52 && energy>lastBeatEnergy*1.12;
+  lastBeatEnergy = lastBeatEnergy*0.88 + energy*0.12;
+
+  // Layer 1: Feedback
+  if (config.useTrails) {
+    ctx.save();
+    const lb = Math.min((freqData[2]/255)*config.sensitivity,1.2);
+    const zf = 0.998+(safeEnergy*0.012);
+    const ra = (0.001+lb*0.003)*Math.sin(Date.now()*0.0004);
+    ctx.translate(W/2,H/2); ctx.rotate(ra); ctx.scale(zf,zf); ctx.translate(-W/2,-H/2);
+    ctx.globalAlpha=Math.min(0.94,1-config.trailDecay);
+    ctx.drawImage(canvas,0,0);
+    ctx.restore();
+    ctx.fillStyle=`rgba(5,5,5,${config.trailDecay*0.45})`; ctx.fillRect(0,0,W,H);
+  } else {
+    ctx.fillStyle='#050505'; ctx.fillRect(0,0,W,H);
+  }
+
+  // Layer 2: Ambience
+  if (config.CosmicNAS)          drawCosmicNAS(audioPack);
+  if (config.InterstellarNebula) drawInterstellarNebula(audioPack);
+
+  if (isBeat && (isPlaying||_offlineMode)) {
+    ctx.save();
+    const gg=ctx.createRadialGradient(W/2,H/2,H*0.3,W/2,H/2,W*0.6);
+    gg.addColorStop(0,'rgba(0,0,0,0)');
+    gg.addColorStop(1,theme.bars+(0.03+safeEnergy*0.05)+')');
+    ctx.fillStyle=gg; ctx.fillRect(0,0,W,H); ctx.restore();
+  }
+
+  // Layer 3: Particles
+  const needsPart = config.showParticles||config.CosmicNAS||config.InterstellarNebula||config.MercuryRibbon;
+  if (needsPart) {
+    if (isBeat && particles.length<MAX_PARTICLES) {
+      const burst=Math.floor(12+safeEnergy*20);
+      for(let i=0;i<burst;i++) spawnParticle(safeEnergy);
+    } else if ((isPlaying||_offlineMode) && Math.random()<0.35 && particles.length<MAX_PARTICLES) {
+      spawnParticle(safeEnergy*0.3);
+    }
+  }
+  if (config.MercuryRibbon) drawMercuryRibbon(audioPack);
+  if (config.showParticles) {
+    const pc=theme.particles;
+    for(let i=particles.length-1;i>=0;i--) {
+      const p=particles[i];
+      p.x+=p.vx; p.y+=p.vy; p.vx*=0.98; p.vy*=0.98; p.life-=p.decay;
+      if(p.life<=0||p.x<0||p.x>W||p.y<0||p.y>H){particles.splice(i,1);continue;}
+      ctx.save(); ctx.globalAlpha=p.life*0.9; ctx.fillStyle=pc;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.size*(0.3+p.life*0.7),0,Math.PI*2); ctx.fill(); ctx.restore();
+    }
+  }
+
+  // Layer 4: Spectra
+  if (config.TransWave)    drawTransWave(audioPack);
+  if (config.RadialOscill) drawRadialOscill(audioPack);
+  if (config.PolarAxisRing) drawPolarAxisRing(audioPack);
+
+  if (config.showBars && (analyserNode||_offlineMode)) {
+    ctx.save();
+    const totalBars=config.barCount, halfBars=Math.floor(totalBars/2);
+    const allocW=W*0.90, barW=(allocW/totalBars)*0.85, center=W/2;
+    for(let i=0;i<halfBars;i++) {
+      const di=Math.floor(mapRange(i,0,halfBars,0,freqData.length*0.55));
+      const amp=(freqData[di]/255)*config.sensitivity;
+      const bell=Math.exp(-Math.pow((i/halfBars)*1.8,2));
+      const bh=amp*H*0.40*(0.3+bell*0.7);
+      const rx=center+i*(allocW/totalBars), lx=center-i*(allocW/totalBars)-barW;
+      drawLinearGradientBar(lx,H,barW,bh,theme.bars,true);
+      drawLinearGradientBar(rx,H,barW,bh,theme.bars,true);
+      drawLinearGradientBar(lx,0,barW,bh,theme.bars,false);
+      drawLinearGradientBar(rx,0,barW,bh,theme.bars,false);
+    }
+    ctx.restore();
+  }
+
+  if (config.showWave && (analyserNode||_offlineMode)) {
+    ctx.save();
+    ctx.beginPath(); ctx.strokeStyle=theme.wave; ctx.lineWidth=4;
+    ctx.lineCap='round'; ctx.lineJoin='round';
+    ctx.shadowBlur=16; ctx.shadowColor=theme.bars;
+    const waveStep=Math.floor(timeData.length/64), sliceW=W/64;
+    let cx=0;
+    for(let i=0;i<timeData.length;i+=waveStep) {
+      const v=(timeData[i]/128)-1;
+      const cy=H/2+v*H*0.24*config.sensitivity;
+      i===0?ctx.moveTo(cx,cy):ctx.lineTo(cx,cy); cx+=sliceW;
+    }
+    ctx.stroke(); ctx.restore();
+  }
+
+  // Layer 5: Idle grid
+  if (!analyserNode && !_offlineMode) {
+    ctx.save();
+    ctx.strokeStyle='#111'; ctx.lineWidth=1;
+    for(let x=0;x<W;x+=120){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+    for(let y=0;y<H;y+=120){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+    ctx.fillStyle='#2a2a2a'; ctx.font="700 14px 'Space Mono',monospace"; ctx.textAlign='center';
+    ctx.fillText('AWAITING DATA VECTOR INGESTION',W/2,H/2); ctx.restore();
+  }
+}
+
+// ── Visual modules (same as before) ──────────────────────────────────────────
+function drawTransWave(audio) {
+  ctx.save();
+  const len=audio.timeData.length;
+  const vol=audio.timeData.reduce((a,b)=>a+Math.abs(b-128),0);
+  const shift=(vol/len)*1.5*config.sensitivity;
+  [{color:'rgba(255,0,128,.35)',offset:-shift},{color:'rgba(0,255,255,.35)',offset:shift},{color:'rgba(255,255,255,.65)',offset:0}].forEach(ch=>{
+    ctx.strokeStyle=ch.color; ctx.lineWidth=3; ctx.beginPath();
+    for(let i=0;i<len;i++){const v=audio.timeData[i]/128;const x=(i/len)*W+ch.offset;const y=(v*H)/2;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}
+    ctx.stroke();
+  });
+  ctx.restore();
+}
+function drawRadialOscill(audio) {
+  ctx.save();
+  const cx=W/2,cy=H/2,baseR=130,sectors=8;
+  ctx.strokeStyle=THEMES[config.theme].wave; ctx.lineWidth=2;
+  for(let s=0;s<sectors;s++){
+    ctx.beginPath();
+    for(let i=0;i<audio.freqData.length;i++){
+      const angle=(i/audio.freqData.length)*(Math.PI*2/sectors)+s*(Math.PI*2/sectors);
+      const r=baseR+(audio.freqData[i]/255)*100*config.sensitivity;
+      const x=cx+Math.cos(angle)*r,y=cy+Math.sin(angle)*r;
+      i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+function drawPolarAxisRing(audio) {
+  ctx.save();
+  const cx=W/2,cy=H/2,baseR=180,pts=audio.timeData.length;
+  ctx.strokeStyle=THEMES[config.theme].bars; ctx.lineWidth=2.5;
+  ctx.shadowBlur=15; ctx.shadowColor=THEMES[config.theme].bars;
+  ctx.beginPath();
+  for(let i=0;i<pts;i++){
+    const angle=(i/pts)*Math.PI*2;
+    const tv=(audio.timeData[i]-128)/128;
+    const r=baseR+tv*80*config.sensitivity;
+    const x=cx+Math.cos(angle)*r,y=cy+Math.sin(angle)*r;
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  }
+  ctx.closePath(); ctx.stroke(); ctx.restore();
+}
+function drawCosmicNAS(audio) {
+  ctx.save();
+  const hfi=audio.freqData[Math.floor(audio.freqData.length*0.85)]/255;
+  ctx.globalCompositeOperation='screen';
+  particles.forEach(p=>{
+    p.angle+=Math.sin(Date.now()*0.0005)*0.01;
+    p.x+=Math.cos(p.angle)*p.speed+hfi*1.2;
+    p.y+=Math.sin(p.angle)*p.speed;
+    ctx.globalAlpha=p.life*0.25;
+    const g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.size*3);
+    g.addColorStop(0,THEMES[config.theme].particles); g.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(p.x,p.y,p.size*3,0,Math.PI*2); ctx.fill();
+  });
+  ctx.restore();
+}
+function drawInterstellarNebula(audio) {
+  ctx.save();
+  const center={x:W/2,y:H/2};
+  const mids=audio.freqData[Math.floor(audio.freqData.length*0.4)]/255;
+  ctx.globalCompositeOperation='lighter';
+  particles.forEach((p,idx)=>{
+    const ao=Date.now()*0.0001*(idx%2===0?1:-1);
+    p.angle+=0.003+mids*0.01;
+    const radius=Math.hypot(p.x-center.x,p.y-center.y)+Math.sin(Date.now()*0.001+idx)*0.3;
+    p.x=center.x+Math.cos(p.angle+ao)*radius;
+    p.y=center.y+Math.sin(p.angle+ao)*radius;
+    const size=p.size*(4+mids*4);
+    ctx.globalAlpha=p.life*0.35;
+    ctx.drawImage(sparkCanvas,p.x-size/2,p.y-size/2,size,size);
+  });
+  ctx.restore();
+}
+function drawMercuryRibbon(audio) {
+  ctx.save();
+  const bass=audio.freqData[2]/255;
+  ctx.fillStyle=THEMES[config.theme].particles;
+  particles.forEach(p=>{
+    p.y-=p.speed*(0.5+bass*3);
+    p.x+=Math.sin(p.y*0.02+Date.now()*0.002)*1.2;
+    const ds=p.size*(0.8+bass*1.5);
+    ctx.globalAlpha=p.life*0.85;
+    ctx.beginPath(); ctx.arc(p.x,p.y,ds,0,Math.PI*2); ctx.fill();
+    if(p.y<0){p.y=H+10;p.x=Math.random()*W;}
+  });
+  ctx.restore();
+}
+function drawLinearGradientBar(x,y,w,h,baseColor,isBottom) {
+  const ty=isBottom?y-h:y+h;
+  const g=ctx.createLinearGradient(x,y,x,ty);
+  g.addColorStop(0,baseColor+'e6'); g.addColorStop(1,baseColor+'00');
+  ctx.fillStyle=g; ctx.fillRect(x,isBottom?y-h:y,w,h);
+}
+function mapRange(v,i0,i1,o0,o1){return((v-i0)*(o1-o0))/(i1-i0)+o0;}
+
+// ════════════════════════════════════════════════════════════
+// UI WIRING
+// ════════════════════════════════════════════════════════════
+document.querySelectorAll('.toggle-item').forEach(item=>{
+  item.onclick=()=>{
+    const k=item.dataset.key; config[k]=!config[k];
+    item.classList.toggle('on',config[k]);
+  };
+});
+document.getElementById('sensitivity').oninput=function(){config.sensitivity=parseFloat(this.value);document.getElementById('sensVal').textContent=config.sensitivity.toFixed(2);};
+document.getElementById('trailDecay').oninput=function(){config.trailDecay=parseFloat(this.value);document.getElementById('trailVal').textContent=config.trailDecay.toFixed(2);};
+document.getElementById('barCount').oninput=function(){config.barCount=parseInt(this.value);document.getElementById('barVal').textContent=config.barCount;};
+
+const colorRow=document.getElementById('colorRow');
+SWATCHES.forEach((hex,i)=>{
+  const sw=document.createElement('div');
+  sw.className='color-swatch'+(i===0?' selected':'');
+  sw.style.background=hex;
+  sw.onclick=()=>{
+    document.querySelectorAll('.color-swatch').forEach(s=>s.classList.remove('selected'));
+    sw.classList.add('selected'); config.theme=i;
+    updateSparkColor(THEMES[i].particles);
+  };
+  colorRow.appendChild(sw);
+});
+
+function togglePanel(n){document.getElementById('body-step'+n).classList.toggle('collapsed');}
+function openPanel(n){document.getElementById('body-step'+n).classList.remove('collapsed');}
+function setStatus(n,text,cls){const el=document.getElementById('status-'+n);el.textContent=text;el.className='step-status'+(cls?' '+cls:'');}
+function setNodeActive(n){for(let i=1;i<=4;i++)document.getElementById('node-'+i).classList.remove('active');document.getElementById('node-'+n).classList.add('active');}
+function setNodeComplete(n){const node=document.getElementById('node-'+n);node.classList.remove('active');node.classList.add('complete');node.querySelector('.step-circle').textContent='✓';if(n<4)document.getElementById('conn-'+n).classList.add('lit');}
+
+draw();
+</script>
+</body>
+</html>
