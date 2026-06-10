@@ -1266,6 +1266,13 @@ let _offlineAudioPack = null;
 
 function draw() {
   requestAnimationFrame(draw);
+  
+  // ADD THIS GATE
+  // If we are currently exporting, skip the live animation to save CPU/RAM
+  if (document.getElementById('render-pill').classList.contains('visible')) {
+    return; 
+  }
+
   drawFrame();
 }
 
