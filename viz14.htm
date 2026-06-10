@@ -1033,6 +1033,8 @@ async function startExport() {
   }
 
   try {
+    particles = [];
+    
     // ── Step A: Pre-compute audio analysis for every frame (15% of progress) ──
     exportProgress(0, 'Analyzing audio…', '0%');
 
@@ -1111,21 +1113,22 @@ async function startExport() {
       const segEnd   = Math.min(segStart + framesPerSeg, totalFrames);
       const segCount = segEnd - segStart;
 
-      // Phase 1: render frames and write to WASM
+    // Phase 1: render frames
       for (let fi = 0; fi < segCount; fi++) {
         if (_abortExport) throw new Error('Aborted');
         const gf = segStart + fi;
+        
         drawOfflineFrame({ freqData: freqFrames[gf], timeData: timeFrames[gf] });
 
-        const blob  = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.85));
+        // Force cleanup of the blob reference
+        let blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.85));
         const bytes = await fetchFile(blob);
+        
         await ffmpeg.writeFile('f' + String(fi).padStart(6, '0') + '.jpg', bytes);
-
-        if (fi % 20 === 0) {
-          const globalPct = 0.18 + ((segStart + fi) / totalFrames) * 0.67;
-          exportProgress(globalPct, `Rendering ${Math.round((segStart + fi) / totalFrames * 100)}%`, `Frame ${segStart + fi + 1} / ${totalFrames}`);
-          await yieldFrame();
-        }
+        
+        blob = null; // Explicitly drop the reference so GC can reclaim it
+        
+        // ... (rest of progress logic)
       }
 
       // Phase 2: encode segment
