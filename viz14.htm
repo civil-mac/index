@@ -934,30 +934,20 @@ function selectExport(n) {
   // Show the relevant local assembly command
   const cmdBox  = document.getElementById('ffmpeg-cmd-box');
   const cmdText = document.getElementById('ffmpeg-cmd-text');
+  
   if (n === 1) {
     // Original audio alone — suggest pairing with video later
-    cmdText.textContent = ':: After exporting the visualizer video (Mode 03):
-' + FFMPEG_COMMANDS.withOrigAudio;
+    cmdText.textContent = `:: After exporting the visualizer video (Mode 03):\n` + FFMPEG_COMMANDS.withOrigAudio;
     cmdBox.style.display = 'block';
   } else if (n === 2) {
     // Remastered audio — two useful commands
-    cmdText.textContent =
-      ':: Pair with visualizer video:
-' + FFMPEG_COMMANDS.withMasteredAudio +
-      '
-
-:: Or replace audio on your original MP4:
-' + FFMPEG_COMMANDS.replaceAudioOnly;
+    cmdText.textContent = `:: Pair with visualizer video:\n` + FFMPEG_COMMANDS.withMasteredAudio +
+                          `\n\n:: Or replace audio on your original MP4:\n` + FFMPEG_COMMANDS.replaceAudioOnly;
     cmdBox.style.display = 'block';
   } else if (n === 3) {
     // Video only — suggest pairing with either audio
-    cmdText.textContent =
-      ':: Pair with original audio:
-' + FFMPEG_COMMANDS.withOrigAudio +
-      '
-
-:: Or pair with remastered audio:
-' + FFMPEG_COMMANDS.withMasteredAudio;
+    cmdText.textContent = `:: Pair with original audio:\n` + FFMPEG_COMMANDS.withOrigAudio +
+                          `\n\n:: Or pair with remastered audio:\n` + FFMPEG_COMMANDS.withMasteredAudio;
     cmdBox.style.display = 'block';
   }
 }
