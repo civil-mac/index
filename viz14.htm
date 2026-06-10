@@ -1261,10 +1261,10 @@ let _offlineAudioPack = null;
 function draw() {
   requestAnimationFrame(draw);
 
-  // Use the overlay because it signifies that the export process is 
-  // currently actively locking the UI and handling the FFmpeg pass.
+  // THE CPU GATE: This is mandatory. 
+  // It pauses the expensive visualizer engine while the export overlay is active.
   if (document.getElementById('render-overlay').classList.contains('visible')) {
-    return; // CPU remains idle during export
+    return; 
   }
 
   drawFrame();
