@@ -1058,18 +1058,12 @@ async function startExport() {
       }
     }
 
-    // ── Step B: Load FFmpeg ──
-    exportProgress(0.15, 'Loading FFmpeg…', '');
+    // ── Step B: Import Libraries (NO INITIALIZATION YET) ──
+    exportProgress(0.15, 'Importing libraries…', '');
     const { FFmpeg }    = await import('./ffmpeg-main.js');
     const { fetchFile } = await import('./ffmpeg-util.js');
     const base = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
-    ffmpeg = new FFmpeg();
-    ffmpeg.on('log', ({ message }) => {
-      if (message && message.length > 4 && !message.startsWith('  ') && !message.startsWith('['))
-        document.getElementById('export-status').textContent = message.substring(0, 90);
-    });
-    await ffmpeg.load({ coreURL: base + 'ffmpeg-core.js', wasmURL: base + 'ffmpeg-core.wasm' });
-    exportProgress(0.18, 'FFmpeg ready', '');
+    exportProgress(0.18, 'Ready to render', '');
 
     // ── Step C: Render chunks ──
     console.log("Entering export loop. Total segments:", numSegments); 
@@ -1078,8 +1072,13 @@ async function startExport() {
       console.log("Starting segment:", seg); 
       if (_abortExport) throw new Error('Aborted');
 
-      // RE-INITIALIZE FFmpeg
-      if (ffmpeg) { await ffmpeg.terminate(); }
+      // 1. Terminate ONLY if we have a previous chunk to clean up
+      if (ffmpeg) { 
+        await ffmpeg.terminate(); 
+        ffmpeg = null;
+      }
+
+      // 2. Initialize FRESH for this specific segment
       ffmpeg = new FFmpeg();
       ffmpeg.on('log', ({ message }) => {
         if (message && message.length > 4 && !message.startsWith('  ') && !message.startsWith('['))
@@ -1099,13 +1098,16 @@ async function startExport() {
         drawOfflineFrame({ freqData: freqFrames[gf], timeData: timeFrames[gf] });
 
         let blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.85));
-        const bytes = await fetchFile(blob);
+        let bytes = await fetchFile(blob);
         await ffmpeg.writeFile('f' + String(fi).padStart(6, '0') + '.jpg', bytes);
         
-        blob = null; // HARD PURGE
+        // HARD PURGE to assist Garbage Collection
+        blob = null; 
+        bytes = null;
         
         if (fi % 5 === 0) {
-          await yieldFrame(); 
+          // Force a true 5ms CPU breath instead of waiting for an animation frame
+          await new Promise(r => setTimeout(r, 5)); 
         }
       }
 
@@ -1141,6 +1143,7 @@ async function startExport() {
     const finalBlob = new Blob([finalData.buffer], { type: 'video/webm' });
 
     await ffmpeg.terminate();
+    ffmpeg = null;
 
     exportProgress(1, '100% — Complete', '');
     showDownloadLink(finalBlob, 'vizr_video.webm', 'video/webm');
