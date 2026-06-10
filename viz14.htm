@@ -961,99 +961,68 @@ async function startExport() {
   const mode = pipelineState.selectedExport;
   if (!mode) return;
 
-  // ── ADD THIS: Tell the draw() loop to stop rendering ──
+  // ── THE CPU GATE: Tell the draw() loop to stop rendering ──
   isExporting = true; 
   
   try {
     // ── Mode 1: Original audio WAV ─────────────────────────────────────────────
     if (mode === 1) {
-      // ... (your existing code for Mode 1)
-      return; 
+      if (!pipelineState.rawAudioBuffer) {
+        document.getElementById('export-status').textContent = 'No source audio available — complete Step 1 first.';
+        return;
+      }
+      document.getElementById('export-status').textContent = 'Encoding WAV…';
+      const blob = audioBufferToWavBlob(pipelineState.rawAudioBuffer);
+      showDownloadLink(blob, 'vizr_original.wav', 'audio/wav');
+      setStatus(4,'COMPLETE','ok'); setNodeComplete(4);
+      return;
     }
 
     // ── Mode 2: Remastered audio WAV ───────────────────────────────────────────
     if (mode === 2) {
-      // ... (your existing code for Mode 2)
+      if (!pipelineState.masteredBlob) {
+        document.getElementById('export-status').textContent = 'No mastered audio available — run Step 2 first.';
+        return;
+      }
+      showDownloadLink(pipelineState.masteredBlob, 'vizr_mastered.wav', 'audio/wav');
+      setStatus(4,'COMPLETE','ok'); setNodeComplete(4);
       return;
     }
 
     // ── Mode 3: Visualizer video WebM ──────────────────────────────────────────
-    // ... (your chunked rendering logic)
-  } catch(err) {
-    // ... (your error handling)
-  } finally {
-    // ── ADD THIS: Tell the draw() loop to resume ──
-    isExporting = false; 
-    
-    // ... (your existing finally cleanup)
-  }
-}
+    _abortExport = false;
+    document.getElementById('autoExportBtn').disabled = true;
+    document.getElementById('stopExportBtn').disabled = false;
+    document.getElementById('render-pill').classList.add('visible');
+    document.getElementById('render-overlay').classList.add('visible');
 
-  // ── Mode 2: Remastered audio WAV ───────────────────────────────────────────
-  // Also instant — the mastered blob was already created by Step 2.
-  if (mode === 2) {
-    if (!pipelineState.masteredBlob) {
-      document.getElementById('export-status').textContent = 'No mastered audio available — run Step 2 first.';
-      return;
+    const FPS          = 30;
+    const SEGMENT_SECS = 20;
+    const RENDER_W     = 1920;
+    const RENDER_H     = 1080;
+    const duration     = audioBuffer.duration;
+    const totalFrames  = Math.ceil(duration * FPS);
+    const framesPerSeg = SEGMENT_SECS * FPS;
+    const numSegments  = Math.ceil(totalFrames / framesPerSeg);
+
+    // Resize canvas to render resolution
+    const origW = canvas.width, origH = canvas.height;
+    canvas.width  = RENDER_W;
+    canvas.height = RENDER_H;
+
+    const segmentBlobs = [];
+    let ffmpeg = null;
+
+    function exportProgress(globalPct, line1, line2) {
+      setRenderProgress(globalPct, line1, line2);
+      document.getElementById('export-status').textContent = Math.round(globalPct * 100) + '% — ' + line1;
     }
-    showDownloadLink(pipelineState.masteredBlob, 'vizr_mastered.wav', 'audio/wav');
-    setStatus(4,'COMPLETE','ok'); setNodeComplete(4);
-    return;
-  }
 
-  // ── Mode 3: Visualizer video WebM (no audio) — chunked offline render ──────
-  // Memory budget per segment:
-  //   SEGMENT_SECS=20, FPS=30 → 600 frames
-  //   1080p JPEG q=0.85 ≈ 150KB avg → 600 × 150KB = ~90MB per segment in WASM
-  //   Well inside 2GB limit. Each frame is written then immediately deleted
-  //   so only ONE frame lives in WASM at a time during the encode pass.
-  //
-  // Frame input method: -f image2 numbered sequence (f000000.jpg … f000NNN.jpg)
-  // This is FFmpeg's native still-image input — no concat demuxer needed,
-  // no duration metadata required. Far more reliable than concat for images.
-  //
-  // Segment WebMs are held in JS heap (not WASM) between segments.
-  // Final step: concat demuxer on the small set of WebM segments + audio mux.
-
-  _abortExport = false;
-  document.getElementById('autoExportBtn').disabled = true;
-  document.getElementById('stopExportBtn').disabled = false;
-  document.getElementById('render-pill').classList.add('visible');
-  document.getElementById('render-overlay').classList.add('visible');
-
-  const FPS          = 30;
-  const SEGMENT_SECS = 20;
-  const RENDER_W     = 1920;
-  const RENDER_H     = 1080;
-  const duration     = audioBuffer.duration;
-  const totalFrames  = Math.ceil(duration * FPS);
-  const framesPerSeg = SEGMENT_SECS * FPS;
-  const numSegments  = Math.ceil(totalFrames / framesPerSeg);
-
-  // Mode 3 is video-only — no audio track in the WebM output.
-  // Audio is exported separately (Modes 1 or 2) and combined locally.
-
-  // Resize canvas to render resolution (restored in finally)
-  const origW = canvas.width, origH = canvas.height;
-  canvas.width  = RENDER_W;
-  canvas.height = RENDER_H;
-
-  const segmentBlobs = [];
-  let ffmpeg = null;
-
-  // Helper: update overlay with a clean global percentage
-  function exportProgress(globalPct, line1, line2) {
-    setRenderProgress(globalPct, line1, line2);
-    document.getElementById('export-status').textContent =
-      Math.round(globalPct * 100) + '% — ' + line1;
-  }
-
-  try {
-    particles = [];
+    // WIPE LIVE MEMORY BEFORE RENDERING
+    particles = []; 
     
-    // ── Step A: Pre-compute audio analysis for every frame (15% of progress) ──
+    // ── Step A: Pre-compute audio analysis ──
     exportProgress(0, 'Analyzing audio…', '0%');
-
     const frameSamples  = Math.round(audioBuffer.sampleRate / FPS);
     const ch0           = audioBuffer.getChannelData(0);
     const ANALYSIS_FFT  = 512;
@@ -1067,8 +1036,7 @@ async function startExport() {
       const freqData = new Uint8Array(FREQ_BINS);
       const timeData = new Uint8Array(ANALYSIS_FFT);
 
-      for (let i = 0; i < ANALYSIS_FFT; i++)
-        timeData[i] = Math.round(((ch0[s0 + i] || 0) + 1) * 127.5);
+      for (let i = 0; i < ANALYSIS_FFT; i++) timeData[i] = Math.round(((ch0[s0 + i] || 0) + 1) * 127.5);
 
       for (let k = 0; k < FREQ_BINS; k++) {
         let re = 0, im = 0;
@@ -1078,22 +1046,19 @@ async function startExport() {
           re += s * Math.cos(angle);
           im -= s * Math.sin(angle);
         }
-        freqData[k] = Math.min(255,
-          Math.round(Math.sqrt(re*re + im*im) / (ANALYSIS_FFT / stride) * 2 * 255));
+        freqData[k] = Math.min(255, Math.round(Math.sqrt(re*re + im*im) / (ANALYSIS_FFT / stride) * 2 * 255));
       }
-
       freqFrames[frame] = freqData;
       timeFrames[frame] = timeData;
 
       if (frame % 60 === 0) {
-        exportProgress((frame / totalFrames) * 0.15, 'Analyzing audio…',
-          Math.round(frame / totalFrames * 100) + '%');
+        exportProgress((frame / totalFrames) * 0.15, 'Analyzing audio…', Math.round(frame / totalFrames * 100) + '%');
         await yieldFrame();
         if (_abortExport) throw new Error('Aborted');
       }
     }
 
-    // ── Step B: Load FFmpeg once ────────────────────────────────────────────
+    // ── Step B: Load FFmpeg ──
     exportProgress(0.15, 'Loading FFmpeg…', '');
     const { FFmpeg }    = await import('./ffmpeg-main.js');
     const { fetchFile } = await import('./ffmpeg-util.js');
@@ -1104,61 +1069,47 @@ async function startExport() {
         document.getElementById('export-status').textContent = message.substring(0, 90);
     });
     await ffmpeg.load({ coreURL: base + 'ffmpeg-core.js', wasmURL: base + 'ffmpeg-core.wasm' });
-    // No audio written — video export is video-only
     exportProgress(0.18, 'FFmpeg ready', '');
 
-// ── Step C: Render + encode each segment ────────────────────────────────
+    // ── Step C: Render chunks ──
     console.log("Entering export loop. Total segments:", numSegments); 
 
     for (let seg = 0; seg < numSegments; seg++) {
       console.log("Starting segment:", seg); 
-      
       if (_abortExport) throw new Error('Aborted');
 
-      // 1. RE-INITIALIZE FFmpeg
+      // RE-INITIALIZE FFmpeg
       if (ffmpeg) { await ffmpeg.terminate(); }
       ffmpeg = new FFmpeg();
-      
       ffmpeg.on('log', ({ message }) => {
         if (message && message.length > 4 && !message.startsWith('  ') && !message.startsWith('['))
           document.getElementById('export-status').textContent = message.substring(0, 90);
       });
-
       await ffmpeg.load({ coreURL: base + 'ffmpeg-core.js', wasmURL: base + 'ffmpeg-core.wasm' });
 
       const segStart = seg * framesPerSeg;
       const segEnd   = Math.min(segStart + framesPerSeg, totalFrames);
       const segCount = segEnd - segStart;
 
-// Phase 1: render frames
-for (let fi = 0; fi < segCount; fi++) {
-  if (_abortExport) throw new Error('Aborted');
-  const gf = segStart + fi;
-  
-  drawOfflineFrame({ freqData: freqFrames[gf], timeData: timeFrames[gf] });
+      // Phase 1: Render frames
+      for (let fi = 0; fi < segCount; fi++) {
+        if (_abortExport) throw new Error('Aborted');
+        const gf = segStart + fi;
+        
+        drawOfflineFrame({ freqData: freqFrames[gf], timeData: timeFrames[gf] });
 
-  // 1. Create the JPEG blob
-  let blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.85));
-  
-  // 2. Fetch as bytes for WASM
-  const bytes = await fetchFile(blob);
-  
-  // 3. Write to the virtual file system
-  await ffmpeg.writeFile('f' + String(fi).padStart(6, '0') + '.jpg', bytes);
-  
-  // 4. THE HARD PURGE (Crucial for RAM stability)
-  blob = null; 
-  // bytes remains as a reference until loop scope exit, 
-  // but we minimize variable lifetime.
+        let blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.85));
+        const bytes = await fetchFile(blob);
+        await ffmpeg.writeFile('f' + String(fi).padStart(6, '0') + '.jpg', bytes);
+        
+        blob = null; // HARD PURGE
+        
+        if (fi % 5 === 0) {
+          await yieldFrame(); 
+        }
+      }
 
-  // 5. Throttling (The "Memory Breath")
-  // Pause every 5 frames to let the browser GC clean up the nullified blobs
-  if (fi % 5 === 0) {
-    await yieldFrame(); 
-  }
-}
-
-      // Phase 2: encode segment
+      // Phase 2: Encode segment
       await ffmpeg.exec([
         '-framerate', String(FPS), '-f', 'image2', '-start_number', '0', '-i', 'f%06d.jpg',
         '-frames:v', String(segCount), '-c:v', 'libvpx-vp9', '-crf', '28', '-b:v', '0',
@@ -1169,11 +1120,8 @@ for (let fi = 0; fi < segCount; fi++) {
       segmentBlobs.push(new Blob([segData.buffer], { type: 'video/webm' }));
     }
 
-    // ── Step D: Concat all segment WebMs + mux audio ─────────────────────────
+    // ── Step D: Concat ──
     exportProgress(0.87, 'Muxing final output…', `${numSegments} segments`);
-
-    // Write all segment blobs back into WASM for final concat
-    // These are small encoded WebMs (not raw frames) — total size is manageable
     let concatList = '';
     for (let seg = 0; seg < numSegments; seg++) {
       const fname = `seg${seg}.webm`;
@@ -1182,8 +1130,6 @@ for (let fi = 0; fi < segCount; fi++) {
     }
     await ffmpeg.writeFile('concat.txt', new TextEncoder().encode(concatList));
 
-    // Concat video-only segments — no audio track.
-    // Audio exported separately; user combines locally with FFmpeg.
     await ffmpeg.exec([
       '-f', 'concat', '-safe', '0', '-i', 'concat.txt',
       '-c:v', 'copy',
@@ -1203,12 +1149,14 @@ for (let fi = 0; fi < segCount; fi++) {
 
   } catch(err) {
     const msg = err?.message || String(err);
-    document.getElementById('export-status').textContent =
-      msg === 'Aborted' ? 'Export aborted.' : 'Export error: ' + msg;
+    document.getElementById('export-status').textContent = msg === 'Aborted' ? 'Export aborted.' : 'Export error: ' + msg;
     if (msg !== 'Aborted') console.error('VIZR export error:', err);
   } finally {
-    canvas.width  = origW;
-    canvas.height = origH;
+    // ── Resume UI and restore canvas ──
+    if (typeof origW !== 'undefined') {
+      canvas.width  = origW;
+      canvas.height = origH;
+    }
     document.getElementById('render-pill').classList.remove('visible');
     document.getElementById('render-overlay').classList.remove('visible');
     document.getElementById('autoExportBtn').disabled = false;
