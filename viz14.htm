@@ -1165,13 +1165,7 @@ async function startExport() {
     const finalData = await ffmpeg.readFile('final.webm');
     const finalBlob = new Blob([finalData.buffer], { type: 'video/webm' });
 
-    // Final WASM cleanup
-    for (let seg = 0; seg < numSegments; seg++) {
-      try { await ffmpeg.deleteFile(`seg${seg}.webm`); } catch(e){}
-    }
-    try { await ffmpeg.deleteFile('concat.txt'); } catch(e){}
-    // No audio.wav to clean up — video-only export
-    try { await ffmpeg.deleteFile('final.webm'); } catch(e){}
+    await ffmpeg.terminate();
 
     exportProgress(1, '100% — Complete', '');
     showDownloadLink(finalBlob, 'vizr_video.webm', 'video/webm');
