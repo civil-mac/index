@@ -1283,8 +1283,7 @@ document.getElementById('progress-wrap').onclick = async e => {
   const wasPaused = !isPlaying && audioCtx.state === 'suspended';
   if (audioCtx.state === 'suspended') await audioCtx.resume();
   if (sourceNode) { try { sourceNode.stop(); sourceNode.disconnect(); } catch(e){} }
-  _spawnSourceNode(seekTo);
-  startTime = audioCtx.currentTime - seekTo;
+  _spawnSourceNode(seekTo); // sets startTime internally — do not recalculate after
   if (wasPaused) {
     await audioCtx.suspend();
     isPlaying = false;
