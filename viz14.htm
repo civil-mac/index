@@ -423,9 +423,9 @@ const pipelineState = {
 };
 
 const config = {
-  showBars:true, showWave:true, showParticles:true, useTrails:true,
+  showBars:true, showWave:true, showParticles:false, useTrails:true,
   TransWave:false, CosmicNAS:false, RadialOscill:false,
-  InterstellarNebula:false, MercuryRibbon:false, PolarAxisRing:false,
+  InterstellarNebula:false, MercuryRibbon:true, PolarAxisRing:false,
   sensitivity:1.4, trailDecay:0.12, barCount:128, theme:0,
 };
 
@@ -958,20 +958,33 @@ async function startExport() {
   const mode = pipelineState.selectedExport;
   if (!mode) return;
 
-  // ── Mode 1: Original audio WAV ─────────────────────────────────────────────
-  // Instant — just serialise the decoded AudioBuffer to WAV and offer download.
-  // No FFmpeg needed, no WASM, just JS.
-  if (mode === 1) {
-    if (!pipelineState.rawAudioBuffer) {
-      document.getElementById('export-status').textContent = 'No source audio available — complete Step 1 first.';
+  // ── ADD THIS: Tell the draw() loop to stop rendering ──
+  isExporting = true; 
+  
+  try {
+    // ── Mode 1: Original audio WAV ─────────────────────────────────────────────
+    if (mode === 1) {
+      // ... (your existing code for Mode 1)
+      return; 
+    }
+
+    // ── Mode 2: Remastered audio WAV ───────────────────────────────────────────
+    if (mode === 2) {
+      // ... (your existing code for Mode 2)
       return;
     }
-    document.getElementById('export-status').textContent = 'Encoding WAV…';
-    const blob = audioBufferToWavBlob(pipelineState.rawAudioBuffer);
-    showDownloadLink(blob, 'vizr_original.wav', 'audio/wav');
-    setStatus(4,'COMPLETE','ok'); setNodeComplete(4);
-    return;
+
+    // ── Mode 3: Visualizer video WebM ──────────────────────────────────────────
+    // ... (your chunked rendering logic)
+  } catch(err) {
+    // ... (your error handling)
+  } finally {
+    // ── ADD THIS: Tell the draw() loop to resume ──
+    isExporting = false; 
+    
+    // ... (your existing finally cleanup)
   }
+}
 
   // ── Mode 2: Remastered audio WAV ───────────────────────────────────────────
   // Also instant — the mastered blob was already created by Step 2.
@@ -1114,27 +1127,33 @@ async function startExport() {
       const segEnd   = Math.min(segStart + framesPerSeg, totalFrames);
       const segCount = segEnd - segStart;
 
-      // Phase 1: render frames
-      for (let fi = 0; fi < segCount; fi++) {
-        if (_abortExport) throw new Error('Aborted');
-        const gf = segStart + fi;
-        
-        drawOfflineFrame({ freqData: freqFrames[gf], timeData: timeFrames[gf] });
+// Phase 1: render frames
+for (let fi = 0; fi < segCount; fi++) {
+  if (_abortExport) throw new Error('Aborted');
+  const gf = segStart + fi;
+  
+  drawOfflineFrame({ freqData: freqFrames[gf], timeData: timeFrames[gf] });
 
-        let blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.85));
-        const bytes = await fetchFile(blob);
-        await ffmpeg.writeFile('f' + String(fi).padStart(6, '0') + '.jpg', bytes);
-        
-        blob = null; // Help GC
+  // 1. Create the JPEG blob
+  let blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.85));
+  
+  // 2. Fetch as bytes for WASM
+  const bytes = await fetchFile(blob);
+  
+  // 3. Write to the virtual file system
+  await ffmpeg.writeFile('f' + String(fi).padStart(6, '0') + '.jpg', bytes);
+  
+  // 4. THE HARD PURGE (Crucial for RAM stability)
+  blob = null; 
+  // bytes remains as a reference until loop scope exit, 
+  // but we minimize variable lifetime.
 
-        // CRITICAL: Throttling to prevent Memory Explosion
-        // We pause every 5 frames instead of 20 to keep memory flat
-        if (fi % 5 === 0) {
-          const globalPct = 0.18 + ((segStart + fi) / totalFrames) * 0.67;
-          exportProgress(globalPct, `Rendering ${Math.round((segStart + fi) / totalFrames * 100)}%`, `Frame ${segStart + fi + 1} / ${totalFrames}`);
-          await yieldFrame(); 
-        }
-      }
+  // 5. Throttling (The "Memory Breath")
+  // Pause every 5 frames to let the browser GC clean up the nullified blobs
+  if (fi % 5 === 0) {
+    await yieldFrame(); 
+  }
+}
 
       // Phase 2: encode segment
       await ffmpeg.exec([
@@ -1268,10 +1287,11 @@ let _offlineAudioPack = null;
 function draw() {
   requestAnimationFrame(draw);
 
-  // The 'isExporting' variable is explicitly set to true 
-  // when the export starts and false when it ends. This is 100% reliable.
+  // The Hard CPU Gate
+  // If isExporting is set, we return immediately.
+  // This stops ALL particle physics, canvas calculations, and memory allocation.
   if (typeof isExporting !== 'undefined' && isExporting) {
-    return; 
+    return;
   }
 
   drawFrame();
