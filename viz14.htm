@@ -961,7 +961,7 @@ async function startExport() {
   const mode = pipelineState.selectedExport;
   if (!mode) return;
 
-  // ── THE CPU GATE: Tell the draw() loop to stop rendering ──
+  // ── THE CPU GATE: Stop live rendering ──
   isExporting = true; 
   
   try {
@@ -997,7 +997,7 @@ async function startExport() {
     document.getElementById('render-overlay').classList.add('visible');
 
     const FPS          = 30;
-    const SEGMENT_SECS = 20;
+    const SEGMENT_SECS = 10; // Reduced to 10s to guarantee MEMFS safety
     const RENDER_W     = 1920;
     const RENDER_H     = 1080;
     const duration     = audioBuffer.duration;
@@ -1005,7 +1005,6 @@ async function startExport() {
     const framesPerSeg = SEGMENT_SECS * FPS;
     const numSegments  = Math.ceil(totalFrames / framesPerSeg);
 
-    // Resize canvas to render resolution
     const origW = canvas.width, origH = canvas.height;
     canvas.width  = RENDER_W;
     canvas.height = RENDER_H;
@@ -1053,38 +1052,29 @@ async function startExport() {
 
       if (frame % 60 === 0) {
         exportProgress((frame / totalFrames) * 0.15, 'Analyzing audio…', Math.round(frame / totalFrames * 100) + '%');
-        await yieldFrame();
+        // Let the UI breathe
+        await new Promise(r => setTimeout(r, 5));
         if (_abortExport) throw new Error('Aborted');
       }
     }
 
-    // ── Step B: Import Libraries (NO INITIALIZATION YET) ──
-    exportProgress(0.15, 'Importing libraries…', '');
+    // ── Step B: Import Libraries & Initialize ONCE ──
+    exportProgress(0.15, 'Loading FFmpeg Engine…', '');
     const { FFmpeg }    = await import('./ffmpeg-main.js');
     const { fetchFile } = await import('./ffmpeg-util.js');
     const base = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
-    exportProgress(0.18, 'Ready to render', '');
+    
+    ffmpeg = new FFmpeg();
+    ffmpeg.on('log', ({ message }) => {
+      if (message && message.length > 4 && !message.startsWith('  ') && !message.startsWith('['))
+        document.getElementById('export-status').textContent = message.substring(0, 90);
+    });
+    
+    await ffmpeg.load({ coreURL: base + 'ffmpeg-core.js', wasmURL: base + 'ffmpeg-core.wasm' });
 
     // ── Step C: Render chunks ──
-    console.log("Entering export loop. Total segments:", numSegments); 
-
     for (let seg = 0; seg < numSegments; seg++) {
-      console.log("Starting segment:", seg); 
       if (_abortExport) throw new Error('Aborted');
-
-      // 1. Terminate ONLY if we have a previous chunk to clean up
-      if (ffmpeg) { 
-        await ffmpeg.terminate(); 
-        ffmpeg = null;
-      }
-
-      // 2. Initialize FRESH for this specific segment
-      ffmpeg = new FFmpeg();
-      ffmpeg.on('log', ({ message }) => {
-        if (message && message.length > 4 && !message.startsWith('  ') && !message.startsWith('['))
-          document.getElementById('export-status').textContent = message.substring(0, 90);
-      });
-      await ffmpeg.load({ coreURL: base + 'ffmpeg-core.js', wasmURL: base + 'ffmpeg-core.wasm' });
 
       const segStart = seg * framesPerSeg;
       const segEnd   = Math.min(segStart + framesPerSeg, totalFrames);
@@ -1106,20 +1096,30 @@ async function startExport() {
         bytes = null;
         
         if (fi % 5 === 0) {
-          // Force a true 5ms CPU breath instead of waiting for an animation frame
+          const globalPct = 0.15 + ((segStart + fi) / totalFrames) * 0.70;
+          exportProgress(globalPct, `Rendering frames…`, `Chunk ${seg+1}/${numSegments} — Frame ${fi}/${segCount}`);
+          // Force a true 5ms CPU breath to allow GC to clean the null blobs
           await new Promise(r => setTimeout(r, 5)); 
         }
       }
 
       // Phase 2: Encode segment
+      exportProgress(0.15 + ((segEnd) / totalFrames) * 0.70, 'Encoding chunk…', `Chunk ${seg+1}/${numSegments}`);
+      
       await ffmpeg.exec([
         '-framerate', String(FPS), '-f', 'image2', '-start_number', '0', '-i', 'f%06d.jpg',
-        '-frames:v', String(segCount), '-c:v', 'libvpx-vp9', '-crf', '28', '-b:v', '0',
+        '-frames:v', String(segCount), '-c:v', 'libvpx-vp9', '-crf', '30', '-b:v', '0',
         '-deadline', 'good', '-cpu-used', '4', '-pix_fmt', 'yuv420p', 'seg_out.webm'
       ]);
 
       const segData = await ffmpeg.readFile('seg_out.webm');
       segmentBlobs.push(new Blob([segData.buffer], { type: 'video/webm' }));
+      
+      // Phase 3: METICULOUS CLEANUP (Instead of terminating)
+      for (let fi = 0; fi < segCount; fi++) {
+        try { await ffmpeg.deleteFile('f' + String(fi).padStart(6, '0') + '.jpg'); } catch(e){}
+      }
+      try { await ffmpeg.deleteFile('seg_out.webm'); } catch(e){}
     }
 
     // ── Step D: Concat ──
