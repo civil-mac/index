@@ -1089,71 +1089,56 @@ async function startExport() {
     // No audio written — video export is video-only
     exportProgress(0.18, 'FFmpeg ready', '');
 
-    // ── Step C: Render + encode each segment ────────────────────────────────
+// ── Step C: Render + encode each segment ────────────────────────────────
     for (let seg = 0; seg < numSegments; seg++) {
       if (_abortExport) throw new Error('Aborted');
+
+      // 1. RE-INITIALIZE FFmpeg for EVERY segment to purge the 4GB heap
+      if (ffmpeg) {
+          await ffmpeg.terminate(); 
+      }
+      ffmpeg = new FFmpeg();
+      
+      // Re-attach the log listener so your UI updates work for every chunk
+      ffmpeg.on('log', ({ message }) => {
+        if (message && message.length > 4 && !message.startsWith('  ') && !message.startsWith('['))
+          document.getElementById('export-status').textContent = message.substring(0, 90);
+      });
+
+      await ffmpeg.load({ coreURL: base + 'ffmpeg-core.js', wasmURL: base + 'ffmpeg-core.wasm' });
 
       const segStart = seg * framesPerSeg;
       const segEnd   = Math.min(segStart + framesPerSeg, totalFrames);
       const segCount = segEnd - segStart;
 
-      // Phase 1: render frames, write to WASM as numbered JPEGs, delete immediately
-      // after writing so only the current file occupies WASM at any moment.
-      // We use f000000.jpg, f000001.jpg … pattern for -f image2.
+      // Phase 1: render frames and write to WASM
       for (let fi = 0; fi < segCount; fi++) {
         if (_abortExport) throw new Error('Aborted');
-
         const gf = segStart + fi;
         drawOfflineFrame({ freqData: freqFrames[gf], timeData: timeFrames[gf] });
 
         const blob  = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.85));
         const bytes = await fetchFile(blob);
-        // Zero-padded filename for -f image2 sequential input
         await ffmpeg.writeFile('f' + String(fi).padStart(6, '0') + '.jpg', bytes);
-        // Delete immediately — keeps WASM footprint at ~1 frame at a time
-        // Note: we can't delete before ffmpeg reads it, so we batch-delete
-        // after encode. But we DON'T accumulate across segments — only this
-        // segment's files exist at encode time.
 
         if (fi % 20 === 0) {
           const globalPct = 0.18 + ((segStart + fi) / totalFrames) * 0.67;
-          exportProgress(globalPct,
-            `Rendering ${Math.round((segStart + fi) / totalFrames * 100)}%`,
-            `Frame ${segStart + fi + 1} / ${totalFrames}`);
+          exportProgress(globalPct, `Rendering ${Math.round((segStart + fi) / totalFrames * 100)}%`, `Frame ${segStart + fi + 1} / ${totalFrames}`);
           await yieldFrame();
         }
       }
 
-      // Phase 2: encode this segment's JPEG sequence → WebM
-      // -f image2: FFmpeg's native image sequence input, reads f000000.jpg…f000NNN.jpg
-      // -start_number 0: start at f000000
-      // No concat demuxer needed — image2 handles numbered files natively
-      const encPct = 0.18 + ((segStart + segCount * 0.5) / totalFrames) * 0.67;
-      exportProgress(encPct, `Encoding ${Math.round(encPct * 100)}%`, `Segment ${seg + 1} / ${numSegments}`);
-
+      // Phase 2: encode segment
       await ffmpeg.exec([
-        '-framerate', String(FPS),
-        '-f', 'image2',
-        '-start_number', '0',
-        '-i', 'f%06d.jpg',
-        '-frames:v', String(segCount),
-        '-c:v', 'libvpx-vp9',
-        '-crf', '28', '-b:v', '0',
-        '-deadline', 'good', '-cpu-used', '4',
-        '-pix_fmt', 'yuv420p',
-        'seg_out.webm'
+        '-framerate', String(FPS), '-f', 'image2', '-start_number', '0', '-i', 'f%06d.jpg',
+        '-frames:v', String(segCount), '-c:v', 'libvpx-vp9', '-crf', '28', '-b:v', '0',
+        '-deadline', 'good', '-cpu-used', '4', '-pix_fmt', 'yuv420p', 'seg_out.webm'
       ]);
 
-      // Read encoded segment into JS heap
       const segData = await ffmpeg.readFile('seg_out.webm');
       segmentBlobs.push(new Blob([segData.buffer], { type: 'video/webm' }));
-
-      // Clean up ALL this segment's files from WASM before next segment
-      await ffmpeg.deleteFile('seg_out.webm');
-      for (let fi = 0; fi < segCount; fi++) {
-        try { await ffmpeg.deleteFile('f' + String(fi).padStart(6, '0') + '.jpg'); } catch(e){}
-      }
     }
+    // Cleanup/Finalize logic follows...
 
     // ── Step D: Concat all segment WebMs + mux audio ─────────────────────────
     exportProgress(0.87, 'Muxing final output…', `${numSegments} segments`);
