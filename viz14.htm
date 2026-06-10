@@ -940,7 +940,7 @@ function selectExport(n) {
   
   if (n === 1) {
     // Original audio alone — suggest pairing with video later
-    cmdText.textContent = `:: After exporting the visualizer video (Mode 03):\n` + FFMPEG_COMMANDS.withOrigAudio;
+  cmdText.textContent = `:: After exporting the visualizer video (Mode 03):\n` + FFMPEG_COMMANDS.withOrigAudio;
     cmdBox.style.display = 'block';
   } else if (n === 2) {
     // Remastered audio — two useful commands
