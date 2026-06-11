@@ -384,9 +384,9 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;heigh
         <div class="panel-label">Display Layers</div>
         <div class="toggle-grid">
           <div class="toggle-item on" data-key="showBars"><span class="toggle-name">Spectrum</span><div class="toggle-pip"></div></div>
-          <div class="toggle-item on" data-key="showWave"><span class="toggle-name">Waveform</span><div class="toggle-pip"></div></div>
-          <div class="toggle-item on" data-key="showParticles"><span class="toggle-name">Particles</span><div class="toggle-pip"></div></div>
-          <div class="toggle-item on" data-key="useTrails"><span class="toggle-name">Phosphor Decay</span><div class="toggle-pip"></div></div>
+          <div class="toggle-item" data-key="showWave"><span class="toggle-name">Waveform</span><div class="toggle-pip"></div></div>
+          <div class="toggle-item" data-key="showParticles"><span class="toggle-name">Particles</span><div class="toggle-pip"></div></div>
+          <div class="toggle-item" data-key="useTrails"><span class="toggle-name">Phosphor Decay</span><div class="toggle-pip"></div></div>
           <div class="toggle-item" data-key="TransWave"><span class="toggle-name">Trans Wave</span><div class="toggle-pip"></div></div>
           <div class="toggle-item" data-key="CosmicNAS"><span class="toggle-name">Cosmic Swirl</span><div class="toggle-pip"></div></div>
           <div class="toggle-item" data-key="RadialOscill"><span class="toggle-name">Radial Osc.</span><div class="toggle-pip"></div></div>
@@ -423,7 +423,7 @@ const pipelineState = {
 };
 
 const config = {
-  showBars:true, showWave:true, showParticles:false, useTrails:true,
+  showBars:true, showWave:false, showParticles:false, useTrails:false,
   TransWave:false, CosmicNAS:false, RadialOscill:false,
   InterstellarNebula:false, MercuryRibbon:true, PolarAxisRing:false,
   sensitivity:1.4, trailDecay:0.12, barCount:128, theme:0,
@@ -1005,7 +1005,7 @@ async function startExport() {
     document.getElementById('render-overlay').classList.add('visible');
 
     const FPS          = 30;
-    const SEGMENT_SECS = 10; // Reduced to 10s to guarantee MEMFS safety
+    const SEGMENT_SECS = 30; // 30s segments — H.264 is proven working
     // 720p: VP9 encoder internal buffers scale with resolution.
     // At 1920x1080 the encoder's reference frame allocations alone exceed
     // what this WASM build can safely handle, crashing at the first encode call.
@@ -1122,7 +1122,7 @@ async function startExport() {
         drawOfflineFrame({ freqData: freqFrames[gf], timeData: timeFrames[gf] });
 
         // JPEG q=0.75: ~150-200KB per 1080p frame — VP9 re-compresses anyway
-        let blob  = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.75));
+        let blob  = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.92));
         let bytes = await fetchFile(blob);
         blob  = null; // release Blob before WASM write
         await ffmpeg.writeFile('f' + String(fi).padStart(6, '0') + '.jpg', bytes);
@@ -1271,7 +1271,12 @@ function yieldFrame() { return new Promise(r => requestAnimationFrame(r)); }
 // ════════════════════════════════════════════════════════════
 const canvas = document.getElementById('viz');
 const ctx    = canvas.getContext('2d');
-const W = canvas.width, H = canvas.height;
+// W and H are functions so the draw code always reads the current canvas
+// dimensions — critical for offline render where canvas is resized to 720p.
+// Using const W/H would lock in the initial 1920x1080 and cause the
+// "zoomed in" rendering bug during export.
+const W = () => canvas.width;
+const H = () => canvas.height;
 
 const sparkCanvas = document.createElement('canvas');
 const sparkCtx    = sparkCanvas.getContext('2d');
@@ -1351,13 +1356,13 @@ function drawFrame() {
     const lb = Math.min((freqData[2]/255)*config.sensitivity,1.2);
     const zf = 0.998+(safeEnergy*0.012);
     const ra = (0.001+lb*0.003)*Math.sin(Date.now()*0.0004);
-    ctx.translate(W/2,H/2); ctx.rotate(ra); ctx.scale(zf,zf); ctx.translate(-W/2,-H/2);
+    ctx.translate(W()/2,H()/2); ctx.rotate(ra); ctx.scale(zf,zf); ctx.translate(-W()/2,-H()/2);
     ctx.globalAlpha=Math.min(0.94,1-config.trailDecay);
     ctx.drawImage(canvas,0,0);
     ctx.restore();
-    ctx.fillStyle=`rgba(5,5,5,${config.trailDecay*0.45})`; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle=`rgba(5,5,5,${config.trailDecay*0.45})`; ctx.fillRect(0,0,W(),H());
   } else {
-    ctx.fillStyle='#050505'; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#050505'; ctx.fillRect(0,0,W(),H());
   }
 
   // Layer 2: Ambience
@@ -1366,10 +1371,10 @@ function drawFrame() {
 
   if (isBeat && (isPlaying||_offlineMode)) {
     ctx.save();
-    const gg=ctx.createRadialGradient(W/2,H/2,H*0.3,W/2,H/2,W*0.6);
+    const gg=ctx.createRadialGradient(W()/2,H()/2,H()*0.3,W()/2,H()/2,W()*0.6);
     gg.addColorStop(0,'rgba(0,0,0,0)');
     gg.addColorStop(1,theme.bars+(0.03+safeEnergy*0.05)+')');
-    ctx.fillStyle=gg; ctx.fillRect(0,0,W,H); ctx.restore();
+    ctx.fillStyle=gg; ctx.fillRect(0,0,W(),H()); ctx.restore();
   }
 
   // Layer 3: Particles
@@ -1388,7 +1393,7 @@ function drawFrame() {
     for(let i=particles.length-1;i>=0;i--) {
       const p=particles[i];
       p.x+=p.vx; p.y+=p.vy; p.vx*=0.98; p.vy*=0.98; p.life-=p.decay;
-      if(p.life<=0||p.x<0||p.x>W||p.y<0||p.y>H){particles.splice(i,1);continue;}
+      if(p.life<=0||p.x<0||p.x>W()||p.y<0||p.y>H()){particles.splice(i,1);continue;}
       ctx.save(); ctx.globalAlpha=p.life*0.9; ctx.fillStyle=pc;
       ctx.beginPath(); ctx.arc(p.x,p.y,p.size*(0.3+p.life*0.7),0,Math.PI*2); ctx.fill(); ctx.restore();
     }
@@ -1402,15 +1407,15 @@ function drawFrame() {
   if (config.showBars && (analyserNode||_offlineMode)) {
     ctx.save();
     const totalBars=config.barCount, halfBars=Math.floor(totalBars/2);
-    const allocW=W*0.90, barW=(allocW/totalBars)*0.85, center=W/2;
+    const allocW=W()*0.90, barW=(allocW/totalBars)*0.85, center=W()/2;
     for(let i=0;i<halfBars;i++) {
       const di=Math.floor(mapRange(i,0,halfBars,0,freqData.length*0.55));
       const amp=(freqData[di]/255)*config.sensitivity;
       const bell=Math.exp(-Math.pow((i/halfBars)*1.8,2));
-      const bh=amp*H*0.40*(0.3+bell*0.7);
+      const bh=amp*H()*0.40*(0.3+bell*0.7);
       const rx=center+i*(allocW/totalBars), lx=center-i*(allocW/totalBars)-barW;
-      drawLinearGradientBar(lx,H,barW,bh,theme.bars,true);
-      drawLinearGradientBar(rx,H,barW,bh,theme.bars,true);
+      drawLinearGradientBar(lx,H(),barW,bh,theme.bars,true);
+      drawLinearGradientBar(rx,H(),barW,bh,theme.bars,true);
       drawLinearGradientBar(lx,0,barW,bh,theme.bars,false);
       drawLinearGradientBar(rx,0,barW,bh,theme.bars,false);
     }
@@ -1422,11 +1427,11 @@ function drawFrame() {
     ctx.beginPath(); ctx.strokeStyle=theme.wave; ctx.lineWidth=4;
     ctx.lineCap='round'; ctx.lineJoin='round';
     ctx.shadowBlur=16; ctx.shadowColor=theme.bars;
-    const waveStep=Math.floor(timeData.length/64), sliceW=W/64;
+    const waveStep=Math.floor(timeData.length/64), sliceW=W()/64;
     let cx=0;
     for(let i=0;i<timeData.length;i+=waveStep) {
       const v=(timeData[i]/128)-1;
-      const cy=H/2+v*H*0.24*config.sensitivity;
+      const cy=H()/2+v*H()*0.24*config.sensitivity;
       i===0?ctx.moveTo(cx,cy):ctx.lineTo(cx,cy); cx+=sliceW;
     }
     ctx.stroke(); ctx.restore();
@@ -1436,10 +1441,10 @@ function drawFrame() {
   if (!analyserNode && !_offlineMode) {
     ctx.save();
     ctx.strokeStyle='#111'; ctx.lineWidth=1;
-    for(let x=0;x<W;x+=120){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
-    for(let y=0;y<H;y+=120){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+    for(let x=0;x<W();x+=120){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H());ctx.stroke();}
+    for(let y=0;y<H();y+=120){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W(),y);ctx.stroke();}
     ctx.fillStyle='#2a2a2a'; ctx.font="700 14px 'Space Mono',monospace"; ctx.textAlign='center';
-    ctx.fillText('AWAITING DATA VECTOR INGESTION',W/2,H/2); ctx.restore();
+    ctx.fillText('AWAITING DATA VECTOR INGESTION',W()/2,H()/2); ctx.restore();
   }
 }
 
@@ -1451,14 +1456,14 @@ function drawTransWave(audio) {
   const shift=(vol/len)*1.5*config.sensitivity;
   [{color:'rgba(255,0,128,.35)',offset:-shift},{color:'rgba(0,255,255,.35)',offset:shift},{color:'rgba(255,255,255,.65)',offset:0}].forEach(ch=>{
     ctx.strokeStyle=ch.color; ctx.lineWidth=3; ctx.beginPath();
-    for(let i=0;i<len;i++){const v=audio.timeData[i]/128;const x=(i/len)*W+ch.offset;const y=(v*H)/2;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}
+    for(let i=0;i<len;i++){const v=audio.timeData[i]/128;const x=(i/len)*W()+ch.offset;const y=(v*H())/2;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}
     ctx.stroke();
   });
   ctx.restore();
 }
 function drawRadialOscill(audio) {
   ctx.save();
-  const cx=W/2,cy=H/2,baseR=130,sectors=8;
+  const cx=W()/2,cy=H()/2,baseR=130,sectors=8;
   ctx.strokeStyle=THEMES[config.theme].wave; ctx.lineWidth=2;
   for(let s=0;s<sectors;s++){
     ctx.beginPath();
@@ -1474,7 +1479,7 @@ function drawRadialOscill(audio) {
 }
 function drawPolarAxisRing(audio) {
   ctx.save();
-  const cx=W/2,cy=H/2,baseR=180,pts=audio.timeData.length;
+  const cx=W()/2,cy=H()/2,baseR=180,pts=audio.timeData.length;
   ctx.strokeStyle=THEMES[config.theme].bars; ctx.lineWidth=2.5;
   ctx.shadowBlur=15; ctx.shadowColor=THEMES[config.theme].bars;
   ctx.beginPath();
@@ -1504,7 +1509,7 @@ function drawCosmicNAS(audio) {
 }
 function drawInterstellarNebula(audio) {
   ctx.save();
-  const center={x:W/2,y:H/2};
+  const center={x:W()/2,y:H()/2};
   const mids=audio.freqData[Math.floor(audio.freqData.length*0.4)]/255;
   ctx.globalCompositeOperation='lighter';
   particles.forEach((p,idx)=>{
@@ -1529,7 +1534,7 @@ function drawMercuryRibbon(audio) {
     const ds=p.size*(0.8+bass*1.5);
     ctx.globalAlpha=p.life*0.85;
     ctx.beginPath(); ctx.arc(p.x,p.y,ds,0,Math.PI*2); ctx.fill();
-    if(p.y<0){p.y=H+10;p.x=Math.random()*W;}
+    if(p.y<0){p.y=H()+10;p.x=Math.random()*W();}
   });
   ctx.restore();
 }
