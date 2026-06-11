@@ -908,9 +908,8 @@ function proceedToExport() {
 // ════════════════════════════════════════════════════════════
 
 const FFMPEG_COMMANDS = {
-  // Shown after each export so the user knows how to assemble locally
-  withOrigAudio:    'ffmpeg -i vizr_video.webm -i vizr_original.wav -c:v copy -c:a aac -b:a 320k -shortest vizr_final.mp4',
-  withMasteredAudio:'ffmpeg -i vizr_video.webm -i vizr_mastered.wav -c:v copy -c:a aac -b:a 320k -shortest vizr_final.mp4',
+  withOrigAudio:    'ffmpeg -i vizr_video.mp4 -i vizr_original.wav -c:v copy -c:a aac -b:a 320k -shortest vizr_final.mp4',
+  withMasteredAudio:'ffmpeg -i vizr_video.mp4 -i vizr_mastered.wav -c:v copy -c:a aac -b:a 320k -shortest vizr_final.mp4',
   replaceAudioOnly: 'ffmpeg -i original.mp4 -i vizr_mastered.wav -c:v copy -c:a aac -b:a 320k -map 0:v:0 -map 1:a:0 -shortest vizr_remastered.mp4',
 };
 
@@ -1006,12 +1005,11 @@ async function startExport() {
 
     const FPS          = 30;
     const SEGMENT_SECS = 30; // 30s segments — H.264 is proven working
-    // 720p: VP9 encoder internal buffers scale with resolution.
-    // At 1920x1080 the encoder's reference frame allocations alone exceed
-    // what this WASM build can safely handle, crashing at the first encode call.
-    // 1280x720 cuts encoder memory ~56% while still producing excellent quality.
-    const RENDER_W     = 1280;
-    const RENDER_H     = 720;
+    // 1080p render — H.264 ultrafast is memory-efficient enough to handle this.
+    // The previous 720p restriction was a workaround for the VP9 codec crash,
+    // not an actual memory limitation of this encoder.
+    const RENDER_W     = 1920;
+    const RENDER_H     = 1080;
     const duration     = audioBuffer.duration;
     const totalFrames  = Math.ceil(duration * FPS);
     const framesPerSeg = SEGMENT_SECS * FPS;
@@ -1021,7 +1019,7 @@ async function startExport() {
     origH = canvas.height;
     canvas.width  = RENDER_W;
     canvas.height = RENDER_H;
-    canvas.style.display = 'none'; // headless mode — frees GPU from compositing during render
+    canvas.style.visibility = 'hidden'; // headless: hides pixels but keeps layout space intact
 
     const segmentBlobs = [];
 
@@ -1226,7 +1224,7 @@ async function startExport() {
       canvas.width  = origW;
       canvas.height = origH;
     }
-    canvas.style.display = 'block';
+    canvas.style.visibility = 'visible'; // restore canvas
 
     // Re-enable UI
     document.getElementById('render-pill').classList.remove('visible');
