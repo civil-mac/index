@@ -516,6 +516,8 @@ async function initAudioFromBuffer(decoded, label) {
   audioBuffer = decoded;
   pipelineState.rawAudioBuffer = decoded;
   isPlaying = false; startTime = 0;
+  particles = [];
+  mercuryParticles = []; // reset so Mercury re-initialises at correct canvas size
   document.getElementById('progress-bar').style.width = '0%';
   document.getElementById('progress-handle').style.left = '0%';
   document.getElementById('audio-file-info-s3').textContent = label;
@@ -1292,7 +1294,29 @@ let particles = [];
 function spawnParticle(energy) {
   const angle = Math.random()*Math.PI*2;
   const speed = (2+energy*8.5)*(0.4+Math.random()*0.6);
-  particles.push({x:W/2,y:H/2,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,angle,speed,life:1,decay:0.005+Math.random()*0.012,size:1+Math.random()*4.5*energy});
+  particles.push({
+    x:W()/2, y:H()/2,
+    vx:Math.cos(angle)*speed, vy:Math.sin(angle)*speed,
+    angle, speed,
+    life:1, decay:0.005+Math.random()*0.012,
+    size:1+Math.random()*4.5*energy,
+    type:'kinetic' // tag so Mercury can have its own pool
+  });
+}
+
+// Mercury Ribbon uses its own particle pool so it doesn't fight Kinetic Nodes
+let mercuryParticles = [];
+function initMercuryParticles() {
+  mercuryParticles = [];
+  for (let i = 0; i < 120; i++) {
+    mercuryParticles.push({
+      x: Math.random() * W(),
+      y: Math.random() * H(),
+      speed: 0.5 + Math.random() * 2,
+      size: 1 + Math.random() * 3,
+      life: Math.random(), // stagger initial life so they don't all fade at once
+    });
+  }
 }
 let lastBeatEnergy = 0;
 
@@ -1492,17 +1516,28 @@ function drawPolarAxisRing(audio) {
 }
 function drawCosmicNAS(audio) {
   ctx.save();
-  const hfi=audio.freqData[Math.floor(audio.freqData.length*0.85)]/255;
-  ctx.globalCompositeOperation='screen';
-  particles.forEach(p=>{
-    p.angle+=Math.sin(Date.now()*0.0005)*0.01;
-    p.x+=Math.cos(p.angle)*p.speed+hfi*1.2;
-    p.y+=Math.sin(p.angle)*p.speed;
-    ctx.globalAlpha=p.life*0.25;
-    const g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.size*3);
-    g.addColorStop(0,THEMES[config.theme].particles); g.addColorStop(1,'rgba(0,0,0,0)');
-    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(p.x,p.y,p.size*3,0,Math.PI*2); ctx.fill();
-  });
+  const hfi = audio.freqData[Math.floor(audio.freqData.length*0.85)] / 255;
+  // Use 'source-over' instead of 'screen' to prevent white-out accumulation.
+  // 'screen' adds colors toward white wherever particles overlap — with 350
+  // particles drawing gradients every frame the canvas saturates instantly.
+  ctx.globalCompositeOperation = 'source-over';
+  // Only draw the first 60 particles for this mode to keep it subtle
+  const limit = Math.min(particles.length, 60);
+  for (let i = 0; i < limit; i++) {
+    const p = particles[i];
+    p.angle += Math.sin(Date.now()*0.0005) * 0.01;
+    p.x += Math.cos(p.angle)*p.speed + hfi*1.2;
+    p.y += Math.sin(p.angle)*p.speed;
+    // Hard alpha cap at 0.12 — subtle glow, never saturates
+    ctx.globalAlpha = p.life * 0.12;
+    const g = ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.size*4);
+    g.addColorStop(0, THEMES[config.theme].particles);
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size*4, 0, Math.PI*2);
+    ctx.fill();
+  }
   ctx.restore();
 }
 function drawInterstellarNebula(audio) {
@@ -1523,16 +1558,26 @@ function drawInterstellarNebula(audio) {
   ctx.restore();
 }
 function drawMercuryRibbon(audio) {
+  // Uses its own dedicated pool so it doesn't interfere with Kinetic Nodes
+  if (mercuryParticles.length === 0) initMercuryParticles();
   ctx.save();
-  const bass=audio.freqData[2]/255;
-  ctx.fillStyle=THEMES[config.theme].particles;
-  particles.forEach(p=>{
-    p.y-=p.speed*(0.5+bass*3);
-    p.x+=Math.sin(p.y*0.02+Date.now()*0.002)*1.2;
-    const ds=p.size*(0.8+bass*1.5);
-    ctx.globalAlpha=p.life*0.85;
-    ctx.beginPath(); ctx.arc(p.x,p.y,ds,0,Math.PI*2); ctx.fill();
-    if(p.y<0){p.y=H()+10;p.x=Math.random()*W();}
+  const bass = audio.freqData[2] / 255;
+  ctx.fillStyle = THEMES[config.theme].particles;
+  mercuryParticles.forEach(p => {
+    p.y -= p.speed * (0.5 + bass * 3);
+    p.x += Math.sin(p.y * 0.02 + Date.now() * 0.002) * 1.2;
+    const ds = p.size * (0.8 + bass * 1.5);
+    ctx.globalAlpha = 0.7 + bass * 0.2; // steady glow, bass-reactive brightness
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, ds, 0, Math.PI*2);
+    ctx.fill();
+    // Wrap to bottom when particle exits top
+    if (p.y < 0) {
+      p.y = H() + 10;
+      p.x = Math.random() * W();
+      p.speed = 0.5 + Math.random() * 2;
+      p.size  = 1 + Math.random() * 3;
+    }
   });
   ctx.restore();
 }
