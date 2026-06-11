@@ -1149,20 +1149,23 @@ async function startExport() {
         `Encoding ${Math.round((segStart + segCount * 0.5) / totalFrames * 100)}%`,
         `Segment ${seg+1}/${numSegments}`
       );
+      // libx264 is the video encoder compiled into ffmpeg-core.wasm.
+      // libvpx-vp9 is NOT compiled in — calling it causes memory access out of bounds.
+      // Output is .mp4 (H.264 in MP4 container) — no conversion needed locally.
       await ffmpeg.exec([
         '-framerate', String(FPS),
         '-f', 'image2', '-start_number', '0', '-i', 'f%06d.jpg',
         '-frames:v', String(segCount),
-        '-c:v', 'libvpx-vp9',
-        '-crf', '33', '-b:v', '0',
-        '-deadline', 'realtime', '-cpu-used', '8',
+        '-c:v', 'libx264',
+        '-crf', '23',
+        '-preset', 'ultrafast',
         '-pix_fmt', 'yuv420p',
-        'seg_out.webm'
+        'seg_out.mp4'
       ]);
 
       // Phase 4: Read output into JS heap, then fully terminate WASM instance
-      const segData = await ffmpeg.readFile('seg_out.webm');
-      segmentBlobs.push(new Blob([segData.buffer], { type: 'video/webm' }));
+      const segData = await ffmpeg.readFile('seg_out.mp4');
+      segmentBlobs.push(new Blob([segData.buffer], { type: 'video/mp4' }));
       ffmpeg.terminate();
       ffmpeg = null;
       // At this point: WASM heap = 0, JS has one small encoded WebM blob per segment
@@ -1182,7 +1185,7 @@ async function startExport() {
 
     let concatList = '';
     for (let seg = 0; seg < numSegments; seg++) {
-      const fname = `seg${seg}.webm`;
+      const fname = `seg${seg}.mp4`;
       await ffmpeg.writeFile(fname, await fetchFile(segmentBlobs[seg]));
       concatList += `file '${fname}'\n`;
       segmentBlobs[seg] = null; // release JS heap after writing to WASM
@@ -1192,18 +1195,18 @@ async function startExport() {
     await ffmpeg.exec([
       '-f', 'concat', '-safe', '0', '-i', 'concat.txt',
       '-c:v', 'copy',
-      'final.webm'
+      'final.mp4'
     ]);
 
     exportProgress(0.97, 'Reading output file…', '');
-    const finalData = await ffmpeg.readFile('final.webm');
-    const finalBlob = new Blob([finalData.buffer], { type: 'video/webm' });
+    const finalData = await ffmpeg.readFile('final.mp4');
+    const finalBlob = new Blob([finalData.buffer], { type: 'video/mp4' });
 
     ffmpeg.terminate();
     ffmpeg = null;
 
     exportProgress(1, '100% — Complete', '');
-    showDownloadLink(finalBlob, 'vizr_video.webm', 'video/webm');
+    showDownloadLink(finalBlob, 'vizr_video.mp4', 'video/mp4');
     setStatus(4, 'COMPLETE', 'ok');
     setNodeComplete(4);
 
