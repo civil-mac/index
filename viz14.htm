@@ -1092,55 +1092,88 @@ async function startExport() {
       const segEnd   = Math.min(segStart + framesPerSeg, totalFrames);
       const segCount = segEnd - segStart;
 
-      // Phase 1: Render frames
+      // Phase 1: Render frames into JS array first — keep out of WASM until encode
+      // This avoids WASM heap pressure during the canvas draw loop itself.
+      const frameBytes = [];
       for (let fi = 0; fi < segCount; fi++) {
         if (_abortExport) throw new Error('Aborted');
         const gf = segStart + fi;
-        
         drawOfflineFrame({ freqData: freqFrames[gf], timeData: timeFrames[gf] });
-
-        let blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.85));
-        let bytes = await fetchFile(blob);
-        await ffmpeg.writeFile('f' + String(fi).padStart(6, '0') + '.jpg', bytes);
-        
-        // HARD PURGE to assist Garbage Collection
-        blob = null; 
-        bytes = null;
-        
-        if (fi % 5 === 0) {
-          const globalPct = 0.15 + ((segStart + fi) / totalFrames) * 0.70;
-          exportProgress(globalPct, `Rendering frames…`, `Chunk ${seg+1}/${numSegments} — Frame ${fi}/${segCount}`);
-          // Force a true 5ms CPU breath to allow GC to clean the null blobs
-          await new Promise(r => setTimeout(r, 5)); 
+        // JPEG q=0.75 — lower quality, significantly smaller files (~150-200KB vs 400KB)
+        // VP9 encoder re-compresses anyway so source JPEG quality above 0.75 is wasted
+        const blob  = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.75));
+        frameBytes.push(await fetchFile(blob));
+        if (fi % 10 === 0) {
+          const globalPct = 0.15 + ((segStart + fi) / totalFrames) * 0.60;
+          exportProgress(globalPct,
+            `Rendering ${Math.round((segStart + fi) / totalFrames * 100)}%`,
+            `Segment ${seg+1}/${numSegments} — frame ${fi+1}/${segCount}`);
+          await yieldFrame();
         }
       }
 
-      // Phase 2: Encode segment
-      exportProgress(0.15 + ((segEnd) / totalFrames) * 0.70, 'Encoding chunk…', `Chunk ${seg+1}/${numSegments}`);
-      
+      // Phase 2: Spin up a FRESH FFmpeg instance for this segment.
+      // Reusing the same instance across segments causes heap fragmentation
+      // that accumulates into a memory access out of bounds crash.
+      // A fresh instance starts with a clean WASM heap every time.
+      if (ffmpeg) { try { ffmpeg.terminate(); } catch(e){} }
+      ffmpeg = new FFmpeg();
+      ffmpeg.on('log', (e) => {
+        const message = (typeof e === 'string') ? e : (e?.message ?? e?.data?.message ?? '');
+        if (message && message.length > 4 && !message.startsWith('  ') && !message.startsWith('['))
+          document.getElementById('export-status').textContent = message.substring(0, 90);
+      });
+      await ffmpeg.load({ coreURL: base + 'ffmpeg-core.js', wasmURL: base + 'ffmpeg-core.wasm' });
+
+      // Write frames into fresh WASM heap
+      exportProgress(0.15 + ((segStart + segCount * 0.5) / totalFrames) * 0.60,
+        `Encoding ${Math.round((segStart + segCount * 0.5) / totalFrames * 100)}%`,
+        `Segment ${seg+1}/${numSegments} — writing frames`);
+      for (let fi = 0; fi < frameBytes.length; fi++) {
+        await ffmpeg.writeFile('f' + String(fi).padStart(6, '0') + '.jpg', frameBytes[fi]);
+      }
+      frameBytes.length = 0; // release JS heap immediately after WASM write
+
+      // Phase 3: Encode — cpu-used 8 (realtime) uses dramatically less VP9 encoder
+      // memory than 'good'/'best' modes which buffer multiple lookahead frames.
+      // Quality difference is imperceptible for visualization content.
       await ffmpeg.exec([
-        '-framerate', String(FPS), '-f', 'image2', '-start_number', '0', '-i', 'f%06d.jpg',
-        '-frames:v', String(segCount), '-c:v', 'libvpx-vp9', '-crf', '30', '-b:v', '0',
-        '-deadline', 'good', '-cpu-used', '4', '-pix_fmt', 'yuv420p', 'seg_out.webm'
+        '-framerate', String(FPS),
+        '-f', 'image2', '-start_number', '0', '-i', 'f%06d.jpg',
+        '-frames:v', String(segCount),
+        '-c:v', 'libvpx-vp9',
+        '-crf', '33', '-b:v', '0',
+        '-deadline', 'realtime', '-cpu-used', '8',
+        '-pix_fmt', 'yuv420p',
+        'seg_out.webm'
       ]);
 
       const segData = await ffmpeg.readFile('seg_out.webm');
       segmentBlobs.push(new Blob([segData.buffer], { type: 'video/webm' }));
-      
-      // Phase 3: METICULOUS CLEANUP (Instead of terminating)
-      for (let fi = 0; fi < segCount; fi++) {
-        try { await ffmpeg.deleteFile('f' + String(fi).padStart(6, '0') + '.jpg'); } catch(e){}
-      }
-      try { await ffmpeg.deleteFile('seg_out.webm'); } catch(e){}
+
+      // Terminate this instance — fully releases WASM heap before next segment
+      ffmpeg.terminate();
+      ffmpeg = null;
     }
 
-    // ── Step D: Concat ──
-    exportProgress(0.87, 'Muxing final output…', `${numSegments} segments`);
+      // ── Step D: Concat — fresh FFmpeg instance, clean heap ──────────────────
+    // All segment instances were terminated. Spawn one final fresh instance
+    // just for concat. Segment WebMs are small encoded files so WASM stays safe.
+    exportProgress(0.87, 'Assembling final file…', `${numSegments} segments`);
+    ffmpeg = new FFmpeg();
+    ffmpeg.on('log', (e) => {
+      const message = (typeof e === 'string') ? e : (e?.message ?? e?.data?.message ?? '');
+      if (message && message.length > 4 && !message.startsWith('  ') && !message.startsWith('['))
+        document.getElementById('export-status').textContent = message.substring(0, 90);
+    });
+    await ffmpeg.load({ coreURL: base + 'ffmpeg-core.js', wasmURL: base + 'ffmpeg-core.wasm' });
+
     let concatList = '';
     for (let seg = 0; seg < numSegments; seg++) {
       const fname = `seg${seg}.webm`;
       await ffmpeg.writeFile(fname, await fetchFile(segmentBlobs[seg]));
       concatList += `file '${fname}'\n`;
+      segmentBlobs[seg] = null; // release JS heap after writing to WASM
     }
     await ffmpeg.writeFile('concat.txt', new TextEncoder().encode(concatList));
 
@@ -1154,7 +1187,7 @@ async function startExport() {
     const finalData = await ffmpeg.readFile('final.webm');
     const finalBlob = new Blob([finalData.buffer], { type: 'video/webm' });
 
-    await ffmpeg.terminate();
+    ffmpeg.terminate();
     ffmpeg = null;
 
     exportProgress(1, '100% — Complete', '');
