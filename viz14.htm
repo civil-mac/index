@@ -1008,6 +1008,7 @@ async function startExport() {
     const origW = canvas.width, origH = canvas.height;
     canvas.width  = RENDER_W;
     canvas.height = RENDER_H;
+    canvas.style.display = 'none'; // headless mode — frees GPU from compositing during render
 
     const segmentBlobs = [];
     let ffmpeg = null;
@@ -1160,6 +1161,7 @@ async function startExport() {
       canvas.width  = origW;
       canvas.height = origH;
     }
+    canvas.style.display = 'block'; // restore canvas to visible
     document.getElementById('render-pill').classList.remove('visible');
     document.getElementById('render-overlay').classList.remove('visible');
     document.getElementById('autoExportBtn').disabled = false;
