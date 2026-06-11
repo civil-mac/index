@@ -793,7 +793,11 @@ async function runRemaster() {
     const ffmpeg = new FFmpeg();
     let _lnBuffer = '', _lnCapturing = false;
     window._loudnormData = null;
-    ffmpeg.on('log', ({type, message}) => {
+    ffmpeg.on('log', (e) => {
+      const type    = e?.type ?? e?.data?.type ?? '';
+      const message = (typeof e === 'string') ? e
+                    : (e?.message ?? e?.data?.message ?? '');
+      if (!message) return;
       addRemasterLog(message, type==='fferr'?'warn':'');
       if (message.includes('"input_i"') || message.trim()==='{') { _lnCapturing=true; _lnBuffer=''; }
       if (_lnCapturing) {
@@ -1066,8 +1070,15 @@ async function startExport() {
     const base = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
     
     ffmpeg = new FFmpeg();
-    ffmpeg.on('log', ({ message }) => {
-      if (message && message.length > 4 && !message.startsWith('  ') && !message.startsWith('['))
+    ffmpeg.on('log', (e) => {
+      // ffmpeg-main.js emits either { message } or { type, message } depending
+      // on whether the event came from print/printErr or setLogger.
+      // Normalise both shapes safely before touching the string.
+      const message = (typeof e === 'string') ? e
+                    : (e?.message ?? e?.data?.message ?? '');
+      if (message && message.length > 4
+          && !message.startsWith('  ')
+          && !message.startsWith('['))
         document.getElementById('export-status').textContent = message.substring(0, 90);
     });
     
