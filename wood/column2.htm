@@ -301,13 +301,14 @@ function updateProperties() {
 }
 
 function addLoadRow() {
+    // Captures current column height to place the default load at the top
     const lxVal = parseFloat(document.getElementById('input-lx').value) || 10;
     const id = Date.now();
     activeLoads.push({ 
         id: id, 
         type: 'axial', 
         d: 2000, l: 2000, s: 0, w: 0, e: 0,
-        loc: lxVal 
+        loc: lxVal // Defaults to the top of the column
     });
     renderLoadTable();
     run();
@@ -596,24 +597,39 @@ function renderInputVerification(L) {
     ctx.clearRect(0,0,W,H);
     
     const bw = canvas.offsetWidth, bh = canvas.offsetHeight;
-    const pad = 30;
+    const padTop = 50, padBot = 30;
+    
+    // 1. PULL ACTUAL USER INPUTS
+    const d_in = parseFloat(document.getElementById('input-d').value) || 3.5;
+
+    // 2. CONVERT ENGINEERING INCHES TO SCREEN PIXELS
+    // Scale factor: 1 inch = 6 pixels (e.g., a 5.5" post becomes 33px wide)
+    const visualWidth = d_in * 6; 
+    const halfWidth = visualWidth / 2;
+
     const colX = bw / 2;
-    const colTop = pad;
-    const colBot = bh - pad;
+    const colTop = padTop;
+    const colBot = bh - padBot;
     const colH = colBot - colTop;
 
     ctx.fillStyle = "#111827"; ctx.fillRect(0,0,bw,bh);
     
-    ctx.fillStyle = "#475569"; ctx.fillRect(colX - 10, colTop, 20, colH);
+    // 3. DRAW DYNAMIC COLUMN (Replacing hardcoded 10 and 20)
+    ctx.fillStyle = "#475569"; 
+    ctx.fillRect(colX - halfWidth, colTop, visualWidth, colH);
     
+    // Base/Ground Support Line (Scales slightly wider than the column)
     ctx.strokeStyle = "#94a3b8"; ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.moveTo(colX - 20, colBot); ctx.lineTo(colX + 20, colBot); ctx.stroke();
+    ctx.beginPath(); 
+    ctx.moveTo(colX - halfWidth - 10, colBot); 
+    ctx.lineTo(colX + halfWidth + 10, colBot); 
+    ctx.stroke();
     
     activeLoads.forEach(ld => {
         const mag = ld.d + ld.l + ld.s + ld.w + ld.e;
         if (mag === 0) return;
 
-        const py = colTop + (ld.loc / L) * colH;
+        const py = colBot - (ld.loc / L) * colH;
 
         if (ld.type === 'axial') {
             ctx.strokeStyle = "#f87171"; ctx.lineWidth = 2;
@@ -624,8 +640,12 @@ function renderInputVerification(L) {
         } else if (ld.type === 'lateral') {
             ctx.strokeStyle = "#38bdf8"; ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.moveTo(colX - 40, py); ctx.lineTo(colX - 15, py);
-            ctx.moveTo(colX - 22, py - 5); ctx.lineTo(colX - 15, py); ctx.lineTo(colX - 22, py + 5);
+            // Arrow starts left and touches the left face of the dynamic column
+            ctx.moveTo(colX - halfWidth - 30, py); 
+            ctx.lineTo(colX - halfWidth, py);
+            ctx.moveTo(colX - halfWidth - 7, py - 5); 
+            ctx.lineTo(colX - halfWidth, py); 
+            ctx.lineTo(colX - halfWidth - 7, py + 5);
             ctx.stroke();
         }
     });
