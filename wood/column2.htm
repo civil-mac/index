@@ -8,7 +8,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.2/math.min.js"
             onerror="window.__mathFallback=true"></script>
     <style>
-        /* Exact CSS retained from wood_beam.htm with layout enhancements */
         :root {
             --bg-color: #0f172a;
             --card-bg: #1e293b;
@@ -33,17 +32,18 @@
         header h1 { font-size: 1.6rem; font-weight: 700; color: var(--text-main); }
         header p { color: var(--text-muted); font-size: 0.9rem; margin-top: 0.15rem; }
 
-        .bento-layout { display: grid; grid-template-columns: 2.1fr 1.1fr; gap: 1.5rem; align-items: start; }
+        /* Modified to maintain a locked, robust layout chain */
+        .bento-layout { display: grid; grid-template-columns: 1.8fr 1.2fr; gap: 1.5rem; align-items: stretch; }
         @media (max-width: 1100px) { .bento-layout { grid-template-columns: 1fr; } }
 
-        .panel { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 1.5rem; }
-        .panel-tall { display: flex; flex-direction: column; gap: 1.25rem; min-height: 100%; }
+        .panel { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 1.5rem; display: flex; flex-direction: column; }
+        .panel-tall { display: flex; flex-direction: column; gap: 1rem; height: 100%; justify-content: flex-start; }
         
         .panel-title { font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 1.25rem; font-weight: 600; }
         .panel-subtitle { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin: 1.5rem 0 0.75rem 0; font-weight: 600; border-top: 1px solid var(--border-color); padding-top: 1.25rem; }
 
         .form-group { margin-bottom: 1.25rem; position: relative; }
-        .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 1rem; }
+        .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 1rem; }
         label { display: block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.4rem; font-weight: 500; }
         .label-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem; }
         .label-row label { margin-bottom: 0; }
@@ -55,9 +55,7 @@
         select:focus, input:focus { outline: none; border-color: var(--accent-wood); }
 
         input[type="number"]::-webkit-outer-spin-button,
-        input[type="number"]::-webkit-inner-spin-button {
-            -webkit-appearance: none; margin: 0;
-        }
+        input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         input[type="number"] { -moz-appearance: textfield; }
 
         .unit-container { position: relative; }
@@ -69,7 +67,7 @@
 
         .quick-guide { margin-top: 1rem; padding: 0.75rem; background: rgba(30, 41, 59, 0.5); border-left: 3px solid var(--accent-blue); font-size: 0.8rem; color: #cbd5e1; line-height: 1.5; border-radius: 0 8px 8px 0; }
 
-        .loads-section { margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1.25rem; }
+        .loads-section { margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1.25rem; flex-grow: 1; }
         .loads-section-title { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600; margin-bottom: 0.75rem; }
 
         .load-table-wrapper { overflow-x: auto; margin-bottom: 0.5rem; }
@@ -79,48 +77,35 @@
             display: grid; gap: 0.5rem; align-items: center; padding: 0 0.5rem 0.5rem 0.5rem;
             border-bottom: 1px solid var(--border-color); margin-bottom: 0.5rem;
             font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); font-weight: 700;
-            grid-template-columns: 140px repeat(6, 1fr) 32px;
-            text-align: center;
+            grid-template-columns: 140px repeat(6, 1fr) 32px; text-align: center;
         }
 
         .load-card { background: #111827; border: 1px solid var(--border-color); border-radius: 10px; padding: 0.5rem; margin-bottom: 0.5rem; }
         .load-card-row { display: grid; gap: 0.5rem; align-items: center; grid-template-columns: 140px repeat(6, 1fr) 32px; text-align: center; }
 
-        .lc-input {
-            width: 100%; background: var(--input-bg); border: 1px solid var(--border-color);
-            border-radius: 6px; color: var(--text-main); padding: 0.5rem 0.25rem;
-            font-size: 0.82rem; text-align: center; transition: border 0.2s;
-        }
-        .lc-input:focus { outline: none; border-color: var(--accent-wood); }
+        .lc-input { width: 100%; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-main); padding: 0.5rem 0.25rem; font-size: 0.82rem; text-align: center; }
 
-        .lc-select {
-            width: 100%; background: var(--input-bg); border: 1px solid var(--border-color);
-            border-radius: 6px; color: var(--text-main); padding: 0.5rem 0.25rem;
-            font-size: 0.82rem; cursor: pointer; transition: border 0.2s;
-        }
-
-        .lc-col { display: flex; flex-direction: column; justify-content: center; height: 100%; }
-        .lc-delete-btn { background: none; border: none; color: #475569; cursor: pointer; font-size: 1.2rem; line-height: 1; padding: 0.2rem; border-radius: 4px; transition: color 0.2s; align-self: center; }
+        .lc-select { width: 100%; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-main); padding: 0.5rem 0.25rem; font-size: 0.82rem; cursor: pointer; }
+        .lc-delete-btn { background: none; border: none; color: #475569; cursor: pointer; font-size: 1.2rem; line-height: 1; transition: color 0.2s; align-self: center; }
         .lc-delete-btn:hover { color: var(--accent-red); }
 
-        .add-load-btn { width: 100%; margin-top: 0.5rem; background: transparent; border: 1px dashed var(--border-color); padding: 0.5rem; border-radius: 8px; color: var(--text-muted); cursor: pointer; font-size: 0.85rem; transition: all 0.2s; font-weight: 600; }
+        .add-load-btn { width: 100%; margin-top: 0.5rem; background: transparent; border: 1px dashed var(--border-color); padding: 0.5rem; border-radius: 8px; color: var(--text-muted); cursor: pointer; font-size: 0.85rem; font-weight: 600; }
         .add-load-btn:hover { border-color: var(--accent-wood); color: var(--accent-wood); }
 
         .envelope-status-bar { font-size: 0.85rem; font-weight: 600; color: var(--text-main); background: #111827; border: 1px solid var(--border-color); text-align: center; padding: 0.75rem; border-radius: 8px; margin-top: 1rem; }
         
-        .report-row { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; border-bottom: 1px solid var(--border-color); font-size: 0.95rem; }
-        .report-row:last-child { border-bottom: none; }
+        .report-row { display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 1rem; border-bottom: 1px solid var(--border-color); font-size: 0.95rem; }
         .report-values { font-weight: 600; font-size: 1.1rem; margin-right: 0.5rem; font-family: monospace; }
         .status-pill { padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; width: 65px; text-align: center; display: inline-block; }
         .status-pill.pass { background: #064e3b; color: var(--accent-green); }
         .status-pill.fail { background: #7f1d1d; color: var(--accent-red); }
         .sub-math { font-size: 0.75rem; color: var(--text-muted); display: block; margin-top: 0.2rem; font-family: monospace; }
 
-        .canvas-container { background: #111827; border-radius: 8px; border: 1px solid var(--border-color); padding: 0.75rem; }
-        .canvas-title { font-size: 0.7rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; margin-bottom: 0.5rem; display: flex; justify-content: space-between; }
-        canvas { width: 100%; display: block; background: #111827; }
+        /* Dynamic Canvas Layout Adjustments */
+        .canvas-container { background: #111827; border-radius: 8px; border: 1px solid var(--border-color); padding: 0.75rem; display: flex; flex-direction: column; flex: 1; min-height: 260px; }
+        .canvas-title { font-size: 0.7rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; margin-bottom: 0.5rem; }
+        canvas { width: 100%; height: 100%; display: block; background: #111827; min-height: 0; }
         .cf-toggle { display: flex; align-items: center; gap: 0.25rem; font-size: 0.75rem; color: var(--text-muted); }
-        .cf-toggle input { width: auto; margin: 0; }
     </style>
 </head>
 <body>
@@ -150,9 +135,8 @@
                         <option value="1.0" selected>K = 1.0 (Pinned - Pinned)</option>
                         <option value="0.65">K = 0.65 (Fixed - Fixed)</option>
                         <option value="0.80">K = 0.80 (Fixed - Pinned)</option>
-                        <option value="1.20">K = 1.20 (Fixed - Free Translation Fixed)</option>
-                        <option value="2.10">K = 2.10 (Fixed - Free Translation Free)</option>
-                        <option value="2.40">K = 2.40 (Pinned - Rotation Fixed Free)</option>
+                        <option value="1.20">K = 1.20 (Fixed - Fixed translation allowed)</option>
+                        <option value="2.10">K = 2.10 (Fixed - Free cantilever)</option>
                     </select>
                 </div>
             </div>
@@ -204,16 +188,23 @@
                     </div>
                 </div>
                 <div class="form-group">
-                    <label>Unbraced Lx (Strong)</label>
+                    <label style="color:var(--accent-wood); font-weight:700;">Column Height (L)</label>
                     <div class="unit-container">
-                        <input type="number" class="has-unit" id="input-lx" value="10" min="1" step="0.5" oninput="run()">
+                        <input type="number" class="has-unit" id="input-L" value="10.0" min="0.5" step="0.5" oninput="validateAndRun()">
+                        <span class="unit-label" style="color:var(--accent-wood);">ft</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Unbraced Lx</label>
+                    <div class="unit-container">
+                        <input type="number" class="has-unit" id="input-lx" value="10.0" min="0.5" step="0.5" oninput="validateAndRun()">
                         <span class="unit-label">ft</span>
                     </div>
                 </div>
                 <div class="form-group">
-                    <label>Unbraced Ly (Weak)</label>
+                    <label>Unbraced Ly</label>
                     <div class="unit-container">
-                        <input type="number" class="has-unit" id="input-ly" value="10" min="1" step="0.5" oninput="run()">
+                        <input type="number" class="has-unit" id="input-ly" value="10.0" min="0.5" step="0.5" oninput="validateAndRun()">
                         <span class="unit-label">ft</span>
                     </div>
                 </div>
@@ -254,14 +245,14 @@
                 <div><span class="report-values" id="ratio-interaction">—</span><span class="status-pill" id="pill-interaction">—</span></div>
             </div>
 
-            <div class="canvas-container" style="margin-top: 1rem;">
+            <div class="canvas-container">
                 <div class="canvas-title"><span style="color:var(--accent-blue);">NDS Interaction Plot</span></div>
-                <canvas id="interactionCanvas" height="420"></canvas>
+                <canvas id="interactionCanvas"></canvas>
             </div>
 
             <div class="canvas-container">
                 <div class="canvas-title"><span>Input Verification Load Profile</span></div>
-                <canvas id="columnCanvas" height="280"></canvas>
+                <canvas id="columnCanvas"></canvas>
             </div>
         </div>
     </div>
@@ -300,15 +291,33 @@ function updateProperties() {
     run();
 }
 
+// REAL-TIME VALIDATION GATE: Caps unbraced bounds and load boundaries to physical height
+function validateAndRun() {
+    const L = parseFloat(document.getElementById('input-L').value) || 10;
+    const lxInput = document.getElementById('input-lx');
+    const lyInput = document.getElementById('input-ly');
+
+    if (parseFloat(lxInput.value) > L) lxInput.value = L;
+    if (parseFloat(lyInput.value) > L) lyInput.value = L;
+
+    activeLoads.forEach(ld => {
+        if (ld.loc > L) {
+            ld.loc = L;
+            const inputEl = document.getElementById(`loc-input-${ld.id}`);
+            if (inputEl) inputEl.value = L;
+        }
+    });
+
+    run();
+}
+
 function addLoadRow() {
-    // Captures current column height to place the default load at the top
-    const lxVal = parseFloat(document.getElementById('input-lx').value) || 10;
+    const L = parseFloat(document.getElementById('input-L').value) || 10;
     const id = Date.now();
     activeLoads.push({ 
-        id: id, 
-        type: 'axial', 
-        d: 2000, l: 2000, s: 0, w: 0, e: 0,
-        loc: lxVal // Defaults to the top of the column
+        id: id, type: 'axial', 
+        d: 2000, l: 3000, s: 0, w: 0, e: 0,
+        loc: L // Automatically defaults to the absolute top of the physical height
     });
     renderLoadTable();
     run();
@@ -331,7 +340,16 @@ function changeLoadType(id, type) {
 function updateLoadValue(id, field, value) {
     const ld = activeLoads.find(l => l.id === id);
     if(!ld) return;
-    ld[field] = parseFloat(value) || 0;
+    
+    if (field === 'loc') {
+        const L = parseFloat(document.getElementById('input-L').value) || 10;
+        let val = parseFloat(value) || 0;
+        if (val > L) val = L;
+        ld[field] = val;
+        document.getElementById(`loc-input-${id}`).value = val;
+    } else {
+        ld[field] = parseFloat(value) || 0;
+    }
     run();
 }
 
@@ -359,7 +377,7 @@ function renderLoadTable() {
              <div class="lc-col"><input type="number" class="lc-input" value="${ld.s}" oninput="updateLoadValue(${ld.id}, 's', this.value)"></div>
              <div class="lc-col"><input type="number" class="lc-input" value="${ld.w}" oninput="updateLoadValue(${ld.id}, 'w', this.value)"></div>
              <div class="lc-col"><input type="number" class="lc-input" value="${ld.e}" oninput="updateLoadValue(${ld.id}, 'e', this.value)"></div>
-             <div class="lc-col"><input type="number" class="lc-input" value="${ld.loc}" oninput="updateLoadValue(${ld.id}, 'loc', this.value)"></div>
+             <div class="lc-col"><input type="number" class="lc-input" id="loc-input-${ld.id}" value="${ld.loc}" oninput="updateLoadValue(${ld.id}, 'loc', this.value)"></div>
              <button class="lc-delete-btn" onclick="deleteLoadRow(${ld.id})">×</button>
          </div>`;
         container.appendChild(card);
@@ -369,6 +387,7 @@ function renderLoadTable() {
 function run() {
     const b = parseFloat(document.getElementById('input-b').value) || 3.5;
     const d = parseFloat(document.getElementById('input-d').value) || 3.5;
+    const L_ft = parseFloat(document.getElementById('input-L').value) || 10;
     const Lx_ft = parseFloat(document.getElementById('input-lx').value) || 10;
     const Ly_ft = parseFloat(document.getElementById('input-ly').value) || 10;
     const K = parseFloat(document.getElementById('input-k').value) || 1.0;
@@ -393,7 +412,6 @@ function run() {
             else if (nominalD === 10) CF = 1.1;
             else CF = 1.0;
         }
-        
         const cfInput = document.getElementById('factor-cf');
         if (document.activeElement !== cfInput) cfInput.value = CF.toFixed(2);
     }
@@ -408,7 +426,6 @@ function run() {
     const Ci = parseFloat(document.getElementById('factor-ci').value) || 1.0;
     const Cf = parseFloat(document.getElementById('factor-cf').value) || 1.0;
 
-    // Slenderness incorporating K factor
     const le_d_x = (K * Lx_ft * 12) / d;
     const le_d_y = (K * Ly_ft * 12) / b;
     const max_le_d = Math.max(le_d_x, le_d_y);
@@ -427,8 +444,8 @@ function run() {
             if (ld.type === 'axial') P_total += mag;
             else if (ld.type === 'lateral') {
                 const a = ld.loc;
-                const b_dist = Lx_ft - a;
-                if(b_dist >= 0) M_max += (mag * a * b_dist) / Lx_ft;
+                const b_dist = L_ft - a;
+                if(b_dist >= 0) M_max += (mag * a * b_dist) / L_ft; // Simple span moment profile relative to L
             }
         });
 
@@ -470,13 +487,12 @@ function run() {
                 P: P_total, M: M_max,
                 fc: fc_demand, Fc_p: Fc_prime,
                 fb: fb_demand, Fb_p: Fb_star, momentAmp: momentAmp,
-                slender: max_le_d,
-                Cp: Cp
+                slender: max_le_d, Cp: Cp
             };
         }
     });
 
-    updateUI(governingData, maxComboLabel, maxInteractionRatio, Lx_ft);
+    updateUI(governingData, maxComboLabel, maxInteractionRatio, L_ft);
 }
 
 function updateUI(gd, combo, interactionRatio, L) {
@@ -513,46 +529,42 @@ function updateUI(gd, combo, interactionRatio, L) {
     renderInputVerification(L);
 }
 
+// BENTO OPTIMIZATION: Canvases read client dimensions dynamically on recalculation loops
 function drawInteractionDiagram(axialTerm, bendingTerm) {
     const canvas = document.getElementById('interactionCanvas');
-    const ctx = canvas.getContext('2d');
-    const W = canvas.width = canvas.offsetWidth * 2;
-    const H = canvas.height = canvas.offsetHeight * 2;
-    ctx.scale(2,2);
-    ctx.clearRect(0,0,W,H);
+    const container = canvas.parentElement;
+    
+    // Read the parent box sizing in real-time
+    const rect = container.getBoundingClientRect();
+    const targetW = rect.width - 24; 
+    const targetH = rect.height - 32;
 
-    const bw = canvas.offsetWidth, bh = canvas.offsetHeight;
-    
-    // Increased padding to push labels completely outside the diagram boundaries
-    const padLeft = 55;
-    const padRight = 35;
-    const padTop = 45;
-    const padBottom = 45;
-    
-    const gw = bw - (padLeft + padRight);
-    const gh = bh - (padTop + padBottom);
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width = targetW * 2;
+    const H = canvas.height = targetH * 2;
+    ctx.scale(2,2);
+    ctx.clearRect(0,0,targetW,targetH);
+
+    const bw = targetW, bh = targetH;
+    const padLeft = 55, padRight = 35, padTop = 35, padBottom = 45;
+    const gw = bw - (padLeft + padRight), gh = bh - (padTop + padBottom);
 
     ctx.fillStyle = "#111827"; ctx.fillRect(0,0,bw,bh);
     
-    // Grid lines for reference
     ctx.strokeStyle = "#1e293b"; ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(padLeft + gw, padTop); ctx.lineTo(padLeft + gw, padTop + gh);
     ctx.moveTo(padLeft, padTop); ctx.lineTo(padLeft + gw, padTop);
     ctx.stroke();
 
-    // Core bounding axes
     ctx.strokeStyle = "#334155"; ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.moveTo(padLeft, padTop); 
-    ctx.lineTo(padLeft, padTop + gh); 
-    ctx.lineTo(padLeft + gw, padTop + gh);
+    ctx.moveTo(padLeft, padTop); ctx.lineTo(padLeft, padTop + gh); ctx.lineTo(padLeft + gw, padTop + gh);
     ctx.stroke();
 
-    // Refined label placements (Zero overlapping risk)
     ctx.fillStyle = "#94a3b8"; ctx.font = "bold 10px sans-serif";
-    ctx.fillText("Axial Utilization Ratio (fc/Fc')", padLeft - 45, padTop - 20);
-    ctx.fillText("Bending Utilization Ratio (fb / [Fb' * P-Delta])", padLeft, padTop + gh + 35);
+    ctx.fillText("Axial Utilization Ratio (fc/Fc')", padLeft - 45, padTop - 15);
+    ctx.fillText("Bending Utilization Ratio (fb / [Fb' * P-Delta])", padLeft, padTop + gh + 32);
     
     ctx.font = "10px monospace";
     ctx.fillText("1.0", padLeft - 24, padTop + 4);
@@ -560,51 +572,47 @@ function drawInteractionDiagram(axialTerm, bendingTerm) {
     ctx.fillText("0.0", padLeft, padTop + gh + 16);
     ctx.fillText("1.0", padLeft + gw - 8, padTop + gh + 16);
 
-    // NDS curve calculation loop
     ctx.strokeStyle = "#34d399"; ctx.lineWidth = 2.5;
     ctx.beginPath();
     for (let i = 0; i <= 100; i++) {
-        const x = i / 100; // axial term
-        const y = 1 - (x * x); // bending term limit
-        const px = padLeft + (y * gw); // visual placement map
-        const py = padTop + gh - (x * gh); 
+        const x = i / 100;
+        const y = 1 - (x * x);
+        const px = padLeft + (y * gw);
+        const py = padTop + gh - (x * gh);
         if (i === 0) ctx.moveTo(px, py);
         else ctx.lineTo(px, py);
     }
     ctx.stroke();
 
-    // Map and plot active utilization point
     const pX = padLeft + (bendingTerm * gw);
     const pY = padTop + gh - (axialTerm * gh);
 
-    // Clip rendering check boundary to keep point within window borders safely
     if (pX >= padLeft && pX <= (padLeft + gw + 20) && pY >= (padTop - 20) && pY <= (padTop + gh)) {
         ctx.fillStyle = (axialTerm*axialTerm + bendingTerm) > 1.0 ? "#f87171" : "#38bdf8";
-        ctx.beginPath(); 
-        ctx.arc(pX, pY, 6, 0, Math.PI * 2); 
-        ctx.fill();
-        ctx.strokeStyle = "#f8fafc"; ctx.lineWidth = 1.5;
-        ctx.stroke();
+        ctx.beginPath(); ctx.arc(pX, pY, 6, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = "#f8fafc"; ctx.lineWidth = 1.5; ctx.stroke();
     }
 }
     
 function renderInputVerification(L) {
     const canvas = document.getElementById('columnCanvas');
-    const ctx = canvas.getContext('2d');
-    const W = canvas.width = canvas.offsetWidth * 2;
-    const H = canvas.height = canvas.offsetHeight * 2;
-    ctx.scale(2,2);
-    ctx.clearRect(0,0,W,H);
+    const container = canvas.parentElement;
     
-    const bw = canvas.offsetWidth, bh = canvas.offsetHeight;
+    const rect = container.getBoundingClientRect();
+    const targetW = rect.width - 24;
+    const targetH = rect.height - 32;
+
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width = targetW * 2;
+    const H = canvas.height = targetH * 2;
+    ctx.scale(2,2);
+    ctx.clearRect(0,0,targetW,targetH);
+    
+    const bw = targetW, bh = targetH;
     const padTop = 50, padBot = 30;
     
-    // 1. PULL ACTUAL USER INPUTS
     const d_in = parseFloat(document.getElementById('input-d').value) || 3.5;
-
-    // 2. CONVERT ENGINEERING INCHES TO SCREEN PIXELS
-    // Scale factor: 1 inch = 6 pixels (e.g., a 5.5" post becomes 33px wide)
-    const visualWidth = d_in * 6; 
+    const visualWidth = Math.max(12, Math.min(60, d_in * 6)); 
     const halfWidth = visualWidth / 2;
 
     const colX = bw / 2;
@@ -613,16 +621,11 @@ function renderInputVerification(L) {
     const colH = colBot - colTop;
 
     ctx.fillStyle = "#111827"; ctx.fillRect(0,0,bw,bh);
+    ctx.fillStyle = "#475569"; ctx.fillRect(colX - halfWidth, colTop, visualWidth, colH);
     
-    // 3. DRAW DYNAMIC COLUMN (Replacing hardcoded 10 and 20)
-    ctx.fillStyle = "#475569"; 
-    ctx.fillRect(colX - halfWidth, colTop, visualWidth, colH);
-    
-    // Base/Ground Support Line (Scales slightly wider than the column)
     ctx.strokeStyle = "#94a3b8"; ctx.lineWidth = 1.5;
     ctx.beginPath(); 
-    ctx.moveTo(colX - halfWidth - 10, colBot); 
-    ctx.lineTo(colX + halfWidth + 10, colBot); 
+    ctx.moveTo(colX - halfWidth - 10, colBot); ctx.lineTo(colX + halfWidth + 10, colBot); 
     ctx.stroke();
     
     activeLoads.forEach(ld => {
@@ -640,16 +643,15 @@ function renderInputVerification(L) {
         } else if (ld.type === 'lateral') {
             ctx.strokeStyle = "#38bdf8"; ctx.lineWidth = 2;
             ctx.beginPath();
-            // Arrow starts left and touches the left face of the dynamic column
-            ctx.moveTo(colX - halfWidth - 30, py); 
-            ctx.lineTo(colX - halfWidth, py);
-            ctx.moveTo(colX - halfWidth - 7, py - 5); 
-            ctx.lineTo(colX - halfWidth, py); 
-            ctx.lineTo(colX - halfWidth - 7, py + 5);
+            ctx.moveTo(colX - halfWidth - 30, py); ctx.lineTo(colX - halfWidth, py);
+            ctx.moveTo(colX - halfWidth - 7, py - 5); ctx.lineTo(colX - halfWidth, py); ctx.lineTo(colX - halfWidth - 7, py + 5);
             ctx.stroke();
         }
     });
 }
+
+// Added window resize listener to naturally recalculate canvas dimensions instantly
+window.addEventListener('resize', run);
 
 window.onload = function() {
     updateProperties();
