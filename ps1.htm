@@ -5,23 +5,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Private Arcade Launcher - PS1</title>
   <style>
-    body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; font-family: sans-serif; color: #fff; }
+    body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; }
     #canvas-container { width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; position: relative; }
     canvas { width: 100vw !important; height: 100vh !important; object-fit: contain !important; image-rendering: pixelated; display: none; }
-    #loading-screen { text-align: center; max-width: 400px; width: 80%; z-index: 10; display: flex; flex-direction: column; align-items: center; }
-    .progress-container { width: 100%; background: #222; border: 2px solid #555; height: 20px; border-radius: 10px; overflow: hidden; margin-top: 15px; margin-bottom: 15px; }
-    .progress-bar { width: 0%; height: 100%; background: #00ff66; transition: width 0.1s linear; box-shadow: 0 0 10px #00ff66; }
-    #status-text { margin-top: 10px; font-size: 14px; color: #aaa; }
+    #loading-screen { text-align: center; max-width: 400px; width: 80%; color: #fff; font-family: sans-serif; }
+    .progress-container { width: 100%; background: #222; height: 20px; border-radius: 10px; overflow: hidden; margin: 15px 0; }
+    .progress-bar { width: 0%; height: 100%; background: #00ff66; transition: width 0.1s linear; }
+    #status-text { font-size: 14px; color: #aaa; }
   </style>
 </head>
 <body>
-
   <div id="canvas-container">
     <div id="loading-screen">
-      <h2 id="title-text" style="margin: 0; font-weight: 400; letter-spacing: 1px;">Loading Game Data</h2>
-      <div class="progress-container" id="bar-wrapper">
-        <div id="progress" class="progress-bar"></div>
-      </div>
+      <h2 style="font-weight: 400;">Loading Game Data</h2>
+      <div class="progress-container"><div id="progress" class="progress-bar"></div></div>
       <div id="status-text">Connecting to repository stream...</div>
     </div>
     <canvas id="player-canvas"></canvas>
@@ -37,34 +34,46 @@
     const ROM_URL = 'https://raw.githubusercontent.com/civil-mac/index/main/Tekken_3.bin';
     const BIOS_URL = './scph1001.bin';
 
-    let downloadedRomBlob = null;
-    let downloadedBiosBlob = null;
+    const progressBar = document.getElementById('progress');
+    const statusText = document.getElementById('status-text');
 
-    async function downloadAsset(url, isRom) {
+    async function downloadAsset(url, label) {
       const response = await fetch(url);
-      if (!response.ok) throw new Error(`Network error: ${response.status}`);
-      const blob = await response.blob();
-      return new Uint8Array(await blob.arrayBuffer());
+      if (!response.ok) throw new Error(`Fetch error: ${response.status}`);
+      const contentLength = response.headers.get('content-length');
+      const total = parseInt(contentLength, 10);
+      let loaded = 0;
+      const reader = response.body.getReader();
+      const chunks = [];
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+        loaded += value.length;
+        if (total) progressBar.style.width = `${Math.round((loaded / total) * 100)}%`;
+      }
+      return new Uint8Array(await new Blob(chunks).arrayBuffer());
     }
 
-    async function startEmulatorPipeline() {
+    async function init() {
       try {
-        const biosData = await downloadAsset(BIOS_URL, false);
-        const romData = await downloadAsset(ROM_URL, true);
+        const biosData = await downloadAsset(BIOS_URL, 'BIOS');
+        statusText.innerText = "Downloading ROM...";
+        const romData = await downloadAsset(ROM_URL, 'ROM');
 
         document.getElementById('loading-screen').style.display = 'none';
         document.getElementById('player-canvas').style.display = 'block';
 
         await Nostalgist.launch({
           element: document.getElementById('player-canvas'),
-          core: 'pcsx_rearmed', 
+          core: 'pcsx_rearmed',
           rom: 'game.bin',
           retroarchConfig: {
             system_directory: "/home/web_user/retroarch/userdata/system",
-            rgui_browser_directory: "/home/web_user/retroarch/userdata/content",
+            rgui_browser_directory: "/home/web_user/retroarch/userdata/content"
           },
-          beforeLaunch(nostalgist) {
-            const FS = nostalgist.getEmscriptenModule().FS;
+          beforeLaunch(instance) {
+            const FS = instance.getEmscriptenModule().FS;
             FS.mkdirTree('/home/web_user/retroarch/userdata/system');
             FS.mkdirTree('/home/web_user/retroarch/userdata/content');
             FS.writeFile('/home/web_user/retroarch/userdata/system/scph1001.bin', biosData);
@@ -77,7 +86,7 @@
       }
     }
 
-    window.addEventListener('DOMContentLoaded', startEmulatorPipeline);
+    window.addEventListener('DOMContentLoaded', init);
   </script>
 </body>
 </html>
