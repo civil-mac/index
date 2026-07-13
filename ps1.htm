@@ -55,7 +55,7 @@
     const barWrapper = document.getElementById('bar-wrapper');
     const titleText = document.getElementById('title-text');
 
-    let downloadedRomBlob = null;
+    let downloadedRomArrayBuffer = null;
     let downloadedBiosArrayBuffer = null;
 
     async function downloadAsset(url, isRom) {
@@ -63,7 +63,6 @@
       if (!response.ok) throw new Error(`Network error fetching asset: ${response.status}`);
 
       if (!isRom) {
-        // Cache the tiny BIOS directly as an ArrayBuffer for filesystem injection
         return await response.arrayBuffer();
       }
 
@@ -87,7 +86,15 @@
           statusText.innerText = `Downloading ROM: ${percent}% (${Math.round(loadedBytes / 1024 / 1024)}MB / ${Math.round(totalBytes / 1024 / 1024)}MB)`;
         }
       }
-      return new Blob(chunks);
+
+      // Flatten chunks into a continuous raw buffer array
+      const romBuffer = new Uint8Array(loadedBytes);
+      let position = 0;
+      for (let chunk of chunks) {
+        romBuffer.set(chunk, position);
+        position += chunk.length;
+      }
+      return romBuffer.buffer;
     }
 
     async function initDownloadPipeline() {
@@ -95,7 +102,7 @@
         statusText.innerText = "Loading system BIOS...";
         downloadedBiosArrayBuffer = await downloadAsset(BIOS_URL, false);
 
-        downloadedRomBlob = await downloadAsset(ROM_URL, true);
+        downloadedRomArrayBuffer = await downloadAsset(ROM_URL, true);
 
         titleText.innerText = "Tekken 3 Ready";
         barWrapper.style.display = 'none';
@@ -117,26 +124,36 @@
           element: document.getElementById('player-canvas'),
           core: 'pcsx_rearmed', 
           
-          rom: new File([downloadedRomBlob], 'Tekken_3.bin'),
-          
-          // Leave this blank so Nostalgist doesn't run its broken asset fetcher
+          // Provide empty placeholder strings so Nostalgist skips its faulty network loaders
+          rom: 'game.bin',
           bios: [],
-
-          // Inject the file directly into RetroArch's system directory before boot
+          
+          // Manually mount the absolute paths into the WebAssembly file tree directly
           beforeLaunch(nostalgist) {
             const FS = nostalgist.getModule().FS;
             
-            // Re-create the RetroArch system directory if it doesn't exist yet
+            // 1. Manually build the exact directory paths the RetroArch core scans
             try { FS.mkdirTree('/home/web_user/retroarch/userdata/system'); } catch(e){}
+            try { FS.mkdirTree('/home/web_user/retroarch/userdata/content'); } catch(e){}
             
-            // Force write our pre-downloaded BIOS data into the exact spot the core looks
+            // 2. Direct byte-to-file array injection for the system BIOS 
             FS.writeFile(
               '/home/web_user/retroarch/userdata/system/scph1001.bin', 
               new Uint8Array(downloadedBiosArrayBuffer)
             );
+
+            // 3. Direct byte-to-file array injection for the Game binary matching the placeholder name
+            FS.writeFile(
+              '/home/web_user/retroarch/userdata/content/game.bin', 
+              new Uint8Array(downloadedRomArrayBuffer)
+            );
           },
           
           retroarchConfig: {
+            // Point the initial startup sequence directly to our manually injected file path
+            main_menu_content_reload: "true",
+            rgui_browser_directory: "/home/web_user/retroarch/userdata/content",
+            
             input_player1_up: 'w',
             input_player1_down: 's',
             input_player1_left: 'a',
@@ -157,8 +174,8 @@
           }
         });
       } catch (err) {
-        console.error(err);
-        alert("Emulator initialization failed. Open F12 console to inspect details.");
+        console.error("Launch tracking crash details:", err);
+        alert(`Launch Failed: Check console to ensure files bound properly.`);
       }
     }
 
