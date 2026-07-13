@@ -117,9 +117,12 @@
           element: document.getElementById('player-canvas'),
           core: 'pcsx_rearmed', 
           
-          // Official format for passing custom in-memory blobs securely to Nostalgist
-          rom: { fileName: 'Tekken_3.bin', fileContent: downloadedRomBlob },
-          bios: [{ fileName: 'scph1001.bin', fileContent: downloadedBiosBlob }],
+          // Wrap the downloaded data in authentic browser File objects
+          rom: new File([downloadedRomBlob], 'Tekken_3.bin'),
+          
+          bios: [
+            new File([downloadedBiosBlob], 'scph1001.bin')
+          ],
           
           retroarchConfig: {
             input_player1_up: 'w',
@@ -146,7 +149,7 @@
         alert("Emulator initialization failed. Open F12 console to inspect details.");
       }
     }
-
+    
     // Bind initialization hooks
     window.addEventListener('DOMContentLoaded', initDownloadPipeline);
     launchBtn.addEventListener('click', startEmulator);
