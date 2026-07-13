@@ -32,12 +32,20 @@
 
     async function bootEmulator() {
       try {
-        await Nostalgist.launch({
-          element: document.getElementById('player-canvas'),
-          core: 'snes9x', 
+        
+await Nostalgist.launch({
+  element: document.getElementById('player-canvas'),
+  core: 'pcsx_rearmed', // The standard fast PS1 core
+  rom: './assets/roms/ps1/castlevania.chd',
+  
+  // You must supply the system file path
+  bios: [
+    './assets/bios/scph5501.bin'
+  ]
+})
           
           // Your exact game file location
-            rom: './A_Link_to_the_Past.smc',
+            rom: '',
           
           // RetroArch configurations for custom keyboard keys
           retroarchConfig: {
