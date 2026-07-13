@@ -14,10 +14,6 @@
     .progress-container { width: 100%; background: #222; border: 2px solid #555; height: 20px; border-radius: 10px; overflow: hidden; margin-top: 15px; margin-bottom: 15px; }
     .progress-bar { width: 0%; height: 100%; background: #00ff66; transition: width 0.1s linear; box-shadow: 0 0 10px #00ff66; }
     #status-text { margin-top: 10px; font-size: 14px; color: #aaa; }
-
-    /* Launch Button Style */
-    #launch-btn { display: none; background: #00ff66; color: #000; border: none; padding: 12px 30px; font-size: 18px; font-weight: bold; cursor: pointer; border-radius: 5px; box-shadow: 0 0 15px #00ff66; }
-    #launch-btn:hover { background: #00cc55; }
   </style>
 </head>
 <body>
@@ -28,7 +24,6 @@
       <div class="progress-container" id="bar-wrapper">
         <div id="progress" class="progress-bar"></div>
       </div>
-      <button id="launch-btn">LAUNCH GAME</button>
       <div id="status-text">Connecting to repository stream...</div>
     </div>
     
@@ -51,7 +46,6 @@
 
     const progressBar = document.getElementById('progress');
     const statusText = document.getElementById('status-text');
-    const launchBtn = document.getElementById('launch-btn');
     const barWrapper = document.getElementById('bar-wrapper');
     const titleText = document.getElementById('title-text');
 
@@ -89,40 +83,28 @@
       return new Blob(chunks);
     }
 
-    async function initDownloadPipeline() {
+    async function startEmulatorPipeline() {
       try {
+        // 1. Manually fetch the network data down into secure local cache files
         statusText.innerText = "Loading system BIOS...";
         downloadedBiosBlob = await downloadAsset(BIOS_URL, false);
 
         downloadedRomBlob = await downloadAsset(ROM_URL, true);
 
-        titleText.innerText = "Tekken 3 Ready";
-        barWrapper.style.display = 'none';
-        statusText.style.display = 'none';
-        launchBtn.style.display = 'block';
-      } catch (err) {
-        console.error(err);
-        statusText.style.color = '#ff3333';
-        statusText.innerText = `Error: ${err.message}`;
-      }
-    }
+        // 2. Clear out the loading indicators and swap over the viewport frame targets
+        document.getElementById('loading-screen').style.display = 'none';
+        document.getElementById('player-canvas').style.display = 'block';
 
-    async function startEmulator() {
-      document.getElementById('loading-screen').style.display = 'none';
-      document.getElementById('player-canvas').style.display = 'block';
-
-      try {
+        // 3. Fire the launcher immediately using the exact dictionary formatting shapes requested by Nostalgist
         await Nostalgist.launch({
           element: document.getElementById('player-canvas'),
           core: 'pcsx_rearmed', 
           
-          // Official explicit shape for passing custom local blobs to the engine 
+          // Official structural requirements for parsing local files to Nostalgist
           rom: { 
             fileName: 'Tekken_3.bin', 
             fileContent: downloadedRomBlob 
           },
-          
-          // Must match the exact array format containing the identical explicit file sub-object
           bios: [
             { 
               fileName: 'scph1001.bin', 
@@ -151,13 +133,19 @@
           }
         });
       } catch (err) {
-        console.error("Launch error:", err);
-        alert(`Launch Failed. Open F12 console to read raw engine crash details.`);
+        console.error("Launch sequence failure details:", err);
+        // Display clear feedback right over the layout if it drops out
+        document.getElementById('loading-screen').style.display = 'flex';
+        barWrapper.style.display = 'none';
+        titleText.innerText = "Initialization Failed";
+        statusText.style.color = '#ff3333';
+        statusText.style.display = 'block';
+        statusText.innerText = `Error: ${err.message || 'Inspect DevTools console panel.'}`;
       }
     }
 
-    window.addEventListener('DOMContentLoaded', initDownloadPipeline);
-    launchBtn.addEventListener('click', startEmulator);
+    // Execute the complete process automatically on page entry
+    window.addEventListener('DOMContentLoaded', startEmulatorPipeline);
   </script>
 </body>
 </html>
