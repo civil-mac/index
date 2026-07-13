@@ -7,68 +7,62 @@
   <style>
     body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; font-family: sans-serif; }
     #canvas-container { width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; }
-    canvas { max-width: 100%; max-height: 100%; object-fit: contain; image-rendering: pixelated; }
+    canvas { max-width: 100%; max-height: 100%; object-fit: contain; image-rendering: pixelated; display: none; }
+    
+    /* Menu Styles */
+    #menu-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; color: #fff; }
+    .game-btn { margin: 10px; padding: 15px 30px; font-size: 20px; cursor: pointer; background: #333; border: 2px solid #555; color: #fff; border-radius: 8px; }
+    .game-btn:hover { background: #555; }
   </style>
 </head>
 <body>
 
+  <div id="menu-screen">
+    <h1>Select a Game</h1>
+    <button class="game-btn" onclick="startEmulator('./A_Link_to_the_Past.smc')">The Legend of Zelda: A Link to the Past</button>
+    <button class="game-btn" onclick="startEmulator('./Killer_Instinct.smc')">Killer Instinct</button>
+  </div>
+
   <div id="canvas-container">
-    <!-- The emulator will render Link here -->
     <canvas id="player-canvas"></canvas>
   </div>
 
-  <!-- Imports Nostalgist from the global unpkg CDN network -->
   <script type="importmap">
-    {
-      "imports": {
-        "nostalgist": "https://cdn.jsdelivr.net/npm/nostalgist/+esm"
-      }
-    }
+    { "imports": { "nostalgist": "https://cdn.jsdelivr.net/npm/nostalgist/+esm" } }
   </script>
 
-  <!-- Only ONE single application script block is needed -->
   <script type="module">
     import { Nostalgist } from 'nostalgist';
 
-    async function bootEmulator() {
+    // Make startEmulator globally available for the onclick attributes
+    window.startEmulator = async function(romUrl) {
+      document.getElementById('menu-screen').style.display = 'none';
+      document.getElementById('player-canvas').style.display = 'block';
+
       try {
         await Nostalgist.launch({
           element: document.getElementById('player-canvas'),
-          core: 'snes9x', 
-          
-          // Your exact game file location
-            rom: './A_Link_to_the_Past.smc',
-          
-          // RetroArch configurations for custom keyboard keys
+          core: 'snes9x',
+          rom: romUrl,
           retroarchConfig: {
-            // Player 1 Movement mapped to WASD
             input_player1_up: 'w',
             input_player1_down: 's',
             input_player1_left: 'a',
             input_player1_right: 'd',
-            
-            // Action buttons mapped to keys that feel like an emulator app
-            input_player1_a: 'k',       // Link's sword swing
-            input_player1_b: 'j',       // Run / Cancel / Talk
-            input_player1_x: 'i',       // Use secondary item (Bow, Boomerang, etc.)
-            input_player1_y: 'u',       // Secondary button alternative
-            
-            // Menu buttons
-            input_player1_start: 'space',  // Opens Inventory/Map screen
-            input_player1_select: 'shift', // Save/Quit menu
-            
-            // Shoulder buttons (useful for swapping item sub-screens or fast mapping later)
+            input_player1_a: 'k',
+            input_player1_b: 'j',
+            input_player1_x: 'i',
+            input_player1_y: 'u',
+            input_player1_start: 'space',
+            input_player1_select: 'shift',
             input_player1_l: 'l',
             input_player1_r: 'o'
           }
         });
       } catch (err) {
-        console.error("The emulator engine failed to initialize:", err);
+        console.error("Initialization failed:", err);
       }
-    }
-
-    // Keep the listener down here so the game runs automatically as soon as the page loads
-    window.addEventListener('DOMContentLoaded', bootEmulator);
+    };
   </script>
 </body>
 </html>
