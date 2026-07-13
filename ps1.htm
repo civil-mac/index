@@ -5,18 +5,31 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Private Arcade Launcher - PS1</title>
   <style>
-    body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; font-family: sans-serif; }
-    #canvas-container { width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; }
-    canvas { width: 100vw !important; height: 100vh !important; object-fit: contain !important; image-rendering: pixelated; }
+    body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; font-family: sans-serif; color: #fff; }
+    #canvas-container { width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; position: relative; }
+    canvas { width: 100vw !important; height: 100vh !important; object-fit: contain !important; image-rendering: pixelated; display: none; }
+    
+    /* Loading Screen Styles */
+    #loading-screen { text-align: center; max-width: 400px; width: 80%; z-index: 10; display: flex; flex-direction: column; align-items: center; }
+    .progress-container { width: 100%; background: #222; border: 2px solid #555; height: 20px; border-radius: 10px; overflow: hidden; margin-top: 15px; }
+    .progress-bar { width: 0%; height: 100%; background: #00ff66; transition: width 0.1s linear; box-shadow: 0 0 10px #00ff66; }
+    #status-text { margin-top: 10px; font-size: 14px; color: #aaa; }
   </style>
 </head>
 <body>
 
   <div id="canvas-container">
+    <div id="loading-screen">
+      <h2 style="margin: 0; font-weight: 400; letter-spacing: 1px;">Loading Game Data</h2>
+      <div class="progress-container">
+        <div id="progress" class="progress-bar"></div>
+      </div>
+      <div id="status-text">Connecting to CDN...</div>
+    </div>
+    
     <canvas id="player-canvas"></canvas>
   </div>
 
-  <!-- Imports Nostalgist from the global unpkg CDN network -->
   <script type="importmap">
     {
       "imports": {
@@ -28,47 +41,86 @@
   <script type="module">
     import { Nostalgist } from 'nostalgist';
 
+    const ROM_URL = 'https://libs.statically.io/raw/civil-mac/index/v1.0.0/Tekken_3.bin';
+    const progressBar = document.getElementById('progress');
+    const statusText = document.getElementById('status-text');
+
+    async function downloadRomWithProgress(url) {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`Network response error: ${response.statusText}`);
+
+      const contentLength = response.headers.get('content-length');
+      if (!contentLength) {
+        statusText.innerText = "Streaming game (calculating size)...";
+      }
+
+      const totalBytes = parseInt(contentLength, 10);
+      let loadedBytes = 0;
+
+      const reader = response.body.getReader();
+      const chunks = [];
+
+      while(true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        chunks.push(value);
+        loadedBytes += value.length;
+
+        if (totalBytes) {
+          const percent = Math.round((loadedBytes / totalBytes) * 100);
+          progressBar.style.width = `${percent}%`;
+          statusText.innerText = `Downloading ROM: ${percent}% (${Math.round(loadedBytes / 1024 / 1024)}MB / ${Math.round(totalBytes / 1024 / 1024)}MB)`;
+        }
+      }
+
+      statusText.innerText = "Initializing emulation engine...";
+      
+      // Combine all chunks into a single raw data Blob for Nostalgist
+      return new Blob(chunks);
+    }
+
     async function bootEmulator() {
       try {
+        // 1. Download the game file first while tracking progress
+        const gameBlob = await downloadRomWithProgress(ROM_URL);
+
+        // 2. Hide loading UI and show the canvas
+        document.getElementById('loading-screen').style.display = 'none';
+        document.getElementById('player-canvas').style.display = 'block';
+
+        // 3. Launch the emulator immediately using the pre-downloaded Blob
         await Nostalgist.launch({
           element: document.getElementById('player-canvas'),
           core: 'pcsx_rearmed', 
-          
-          // Pulls the raw 656MB game from your GitHub Release asset via a CORS-friendly CDN proxy
-          rom: 'https://libs.statically.io/raw/civil-mac/index/v1.0.0/Tekken_3.bin',
-          
-          // Loads the raw local bios asset from your root repository folder
+          rom: gameBlob,
           bios: [
             './scph1001.bin'
           ],
-          
-          // RetroArch configurations mapped clean for 3D fighting layout
           retroarchConfig: {
-            // Player 1 Movement (D-Pad) mapped to WASD
             input_player1_up: 'w',
             input_player1_down: 's',
             input_player1_left: 'a',
             input_player1_right: 'd',
             
-            // PS1 Face Buttons
-            input_player1_b: 'j',       // X Button (Left Kick)
-            input_player1_a: 'k',       // Circle Button (Right Kick)
-            input_player1_y: 'u',       // Square Button (Left Punch)
-            input_player1_x: 'i',       // Triangle Button (Right Punch)
+            input_player1_b: 'j',       // X Button
+            input_player1_a: 'k',       // Circle Button
+            input_player1_y: 'u',       // Square Button
+            input_player1_x: 'i',       // Triangle Button
             
-            // Menu elements
-            input_player1_start: 'space',  // Start button
-            input_player1_select: 'shift', // Select button
+            input_player1_start: 'space',
+            input_player1_select: 'shift',
             
-            // Shoulder Triggers
-            input_player1_l: 'l',       // L1 Trigger
-            input_player1_r: 'o',       // R1 Trigger
-            input_player1_l2: 'q',      // L2 Trigger
-            input_player1_r2: 'e'       // R2 Trigger
+            input_player1_l: 'l',       // L1
+            input_player1_r: 'o',       // R1
+            input_player1_l2: 'q',      // L2
+            input_player1_r2: 'e'       // R2
           }
         });
       } catch (err) {
         console.error("The emulator engine failed to initialize:", err);
+        statusText.style.color = '#ff3333';
+        statusText.innerText = `Error: ${err.message || 'Check browser console (F12).'}`;
       }
     }
 
