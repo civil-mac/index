@@ -24,7 +24,7 @@
       <div class="progress-container">
         <div id="progress" class="progress-bar"></div>
       </div>
-      <div id="status-text">Connecting to CDN...</div>
+      <div id="status-text">Connecting to repository stream...</div>
     </div>
     
     <canvas id="player-canvas"></canvas>
@@ -41,20 +41,17 @@
   <script type="module">
     import { Nostalgist } from 'nostalgist';
 
-    const ROM_URL = 'https://libs.statically.io/raw/civil-mac/index/v1.0.0/Tekken_3.bin';
+    // The official raw delivery stream for public repositories that resolves Git LFS
+    const ROM_URL = 'https://raw.githubusercontent.com/civil-mac/index/main/Tekken_3.bin';
     const progressBar = document.getElementById('progress');
     const statusText = document.getElementById('status-text');
 
     async function downloadRomWithProgress(url) {
       const response = await fetch(url);
-      if (!response.ok) throw new Error(`Network response error: ${response.statusText}`);
+      if (!response.ok) throw new Error(`Network error: ${response.status} ${response.statusText}`);
 
       const contentLength = response.headers.get('content-length');
-      if (!contentLength) {
-        statusText.innerText = "Streaming game (calculating size)...";
-      }
-
-      const totalBytes = parseInt(contentLength, 10);
+      const totalBytes = contentLength ? parseInt(contentLength, 10) : 0;
       let loadedBytes = 0;
 
       const reader = response.body.getReader();
@@ -71,25 +68,25 @@
           const percent = Math.round((loadedBytes / totalBytes) * 100);
           progressBar.style.width = `${percent}%`;
           statusText.innerText = `Downloading ROM: ${percent}% (${Math.round(loadedBytes / 1024 / 1024)}MB / ${Math.round(totalBytes / 1024 / 1024)}MB)`;
+        } else {
+          statusText.innerText = `Downloading ROM: ${Math.round(loadedBytes / 1024 / 1024)}MB received...`;
         }
       }
 
       statusText.innerText = "Initializing emulation engine...";
-      
-      // Combine all chunks into a single raw data Blob for Nostalgist
       return new Blob(chunks);
     }
 
     async function bootEmulator() {
       try {
-        // 1. Download the game file first while tracking progress
+        // 1. Download directly from the raw usercontent pipeline
         const gameBlob = await downloadRomWithProgress(ROM_URL);
 
-        // 2. Hide loading UI and show the canvas
+        // 2. Hide loading UI and show canvas
         document.getElementById('loading-screen').style.display = 'none';
         document.getElementById('player-canvas').style.display = 'block';
 
-        // 3. Launch the emulator immediately using the pre-downloaded Blob
+        // 3. Launch the engine
         await Nostalgist.launch({
           element: document.getElementById('player-canvas'),
           core: 'pcsx_rearmed', 
