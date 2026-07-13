@@ -43,5 +43,37 @@
 
     window.addEventListener('DOMContentLoaded', bootEmulator);
   </script>
+
+  <script type="module">
+  import { Nostalgist } from 'nostalgist';
+
+  async function bootEmulator() {
+    try {
+      await Nostalgist.launch({
+        element: document.getElementById('player-canvas'),
+        core: 'snes9x', 
+        rom: './assets/roms/snes/A_Link_to_the_Past.smc',
+        
+        // Custom Control Mapping Example
+        retroarchConfig: {
+          // Player 1 D-Pad mapped to WASD
+          input_player1_up: 'w',
+          input_player1_down: 's',
+          input_player1_left: 'a',
+          input_player1_right: 'd',
+          
+          // Action buttons mapped to standard keys
+          input_player1_a: 'k', // Link's sword swing/actions
+          input_player1_b: 'j', // Cancel / Run
+          input_player1_start: 'space', // Inventory Menu
+        }
+      });
+    } catch (err) {
+      console.error("The emulator engine failed to initialize:", err);
+    }
+  }
+
+  window.addEventListener('DOMContentLoaded', bootEmulator);
+</script>
 </body>
 </html>
