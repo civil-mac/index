@@ -87,15 +87,16 @@
         document.getElementById('player-canvas').style.display = 'block';
 
 // 3. Launch the engine
-await Nostalgist.launch({
-  element: document.getElementById('player-canvas'),
-  core: 'pcsx_rearmed', 
-  
-  // Converts the data pool into a virtual file named Tekken_3.bin so Nostalgist auto-boots it!
-  rom: new File([gameBlob], 'Tekken_3.bin'),
-          bios: [
-            './scph1001.bin'
-          ],
+        await Nostalgist.launch({
+          element: document.getElementById('player-canvas'),
+          core: 'pcsx_rearmed', 
+          
+          // Converts the data pool into a virtual file named Tekken_3.bin so Nostalgist auto-boots it!
+          rom: new File([gameBlob], 'Tekken_3.bin'),
+          
+          // Explicitly supply the absolute URL to ensure Nostalgist pulls the BIOS perfectly
+          bios: 'https://civil-mac.github.io/index/scph1001.bin',
+          
           retroarchConfig: {
             input_player1_up: 'w',
             input_player1_down: 's',
