@@ -83,64 +83,52 @@
       return new Blob(chunks);
     }
 
-    async function startEmulatorPipeline() {
+   async function startEmulator() {
+      document.getElementById('loading-screen').style.display = 'none';
+      document.getElementById('player-canvas').style.display = 'block';
+
       try {
-        // 1. Manually fetch the network data down into secure local cache files
-        statusText.innerText = "Loading system BIOS...";
-        downloadedBiosBlob = await downloadAsset(BIOS_URL, false);
-
-        downloadedRomBlob = await downloadAsset(ROM_URL, true);
-
-        // 2. Clear out the loading indicators and swap over the viewport frame targets
-        document.getElementById('loading-screen').style.display = 'none';
-        document.getElementById('player-canvas').style.display = 'block';
-
-        // 3. Fire the launcher immediately using the exact dictionary formatting shapes requested by Nostalgist
         await Nostalgist.launch({
           element: document.getElementById('player-canvas'),
           core: 'pcsx_rearmed', 
           
-          // Official structural requirements for parsing local files to Nostalgist
-          rom: { 
-            fileName: 'Tekken_3.bin', 
-            fileContent: downloadedRomBlob 
-          },
-          bios: [
-            { 
-              fileName: 'scph1001.bin', 
-              fileContent: downloadedBiosBlob 
-            }
-          ],
+          // Use string-based paths so the emulator core initializes its own internal pathing
+          rom: 'game.bin',
           
+          // Force the core to look in a specific, non-default system folder
           retroarchConfig: {
+            system_directory: "/home/web_user/retroarch/userdata/system",
+            rgui_browser_directory: "/home/web_user/retroarch/userdata/content",
+            
             input_player1_up: 'w',
             input_player1_down: 's',
             input_player1_left: 'a',
             input_player1_right: 'd',
-            
-            input_player1_b: 'j',       // X Button
-            input_player1_a: 'k',       // Circle Button
-            input_player1_y: 'u',       // Square Button
-            input_player1_x: 'i',       // Triangle Button
-            
+            input_player1_b: 'j',
+            input_player1_a: 'k',
+            input_player1_y: 'u',
+            input_player1_x: 'i',
             input_player1_start: 'space',
             input_player1_select: 'shift',
+            input_player1_l: 'l',
+            input_player1_r: 'o',
+            input_player1_l2: 'q',
+            input_player1_r2: 'e'
+          },
+
+          // Inject the files into the exact paths defined above
+          beforeLaunch(nostalgist) {
+            const FS = nostalgist.getModule().FS;
+            FS.mkdirTree('/home/web_user/retroarch/userdata/system');
+            FS.mkdirTree('/home/web_user/retroarch/userdata/content');
             
-            input_player1_l: 'l',       // L1
-            input_player1_r: 'o',       // R1
-            input_player1_l2: 'q',      // L2
-            input_player1_r2: 'e'       // R2
+            FS.writeFile('/home/web_user/retroarch/userdata/system/scph1001.bin', new Uint8Array(downloadedBiosBlob));
+            FS.writeFile('/home/web_user/retroarch/userdata/content/game.bin', new Uint8Array(downloadedRomBlob));
           }
         });
       } catch (err) {
-        console.error("Launch sequence failure details:", err);
-        // Display clear feedback right over the layout if it drops out
-        document.getElementById('loading-screen').style.display = 'flex';
-        barWrapper.style.display = 'none';
-        titleText.innerText = "Initialization Failed";
-        statusText.style.color = '#ff3333';
-        statusText.style.display = 'block';
-        statusText.innerText = `Error: ${err.message || 'Inspect DevTools console panel.'}`;
+        console.error(err);
+        alert("Launch Failed.");
       }
     }
 
