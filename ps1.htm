@@ -47,6 +47,8 @@
     import { Nostalgist } from 'nostalgist';
 
     const ROM_URL = 'https://raw.githubusercontent.com/civil-mac/index/main/Tekken_3.bin';
+    const BIOS_URL = 'https://raw.githubusercontent.com/civil-mac/index/main/scph1001.bin';
+
     const progressBar = document.getElementById('progress');
     const statusText = document.getElementById('status-text');
     const launchBtn = document.getElementById('launch-btn');
@@ -54,10 +56,11 @@
     const titleText = document.getElementById('title-text');
 
     let downloadedRomBlob = null;
+    let downloadedBiosBlob = null;
 
-    async function downloadRom(url) {
+    async function downloadAsset(url, isRom) {
       const response = await fetch(url);
-      if (!response.ok) throw new Error(`Network error fetching ROM: ${response.status}`);
+      if (!response.ok) throw new Error(`Network error fetching asset: ${response.status}`);
 
       const contentLength = response.headers.get('content-length');
       const totalBytes = contentLength ? parseInt(contentLength, 10) : 0;
@@ -73,7 +76,7 @@
         chunks.push(value);
         loadedBytes += value.length;
 
-        if (totalBytes) {
+        if (isRom && totalBytes) {
           const percent = Math.round((loadedBytes / totalBytes) * 100);
           progressBar.style.width = `${percent}%`;
           statusText.innerText = `Downloading ROM: ${percent}% (${Math.round(loadedBytes / 1024 / 1024)}MB / ${Math.round(totalBytes / 1024 / 1024)}MB)`;
@@ -84,10 +87,12 @@
 
     async function initDownloadPipeline() {
       try {
-        // Grab massive Game asset
-        downloadedRomBlob = await downloadRom(ROM_URL);
+        statusText.innerText = "Downloading system BIOS...";
+        downloadedBiosBlob = await downloadAsset(BIOS_URL, false);
 
-        // Swap UI out from "Loading" to "Ready" once cache is filled
+        statusText.innerText = "Connecting to game stream...";
+        downloadedRomBlob = await downloadAsset(ROM_URL, true);
+
         titleText.innerText = "Tekken 3 Ready";
         barWrapper.style.display = 'none';
         statusText.style.display = 'none';
@@ -104,22 +109,22 @@
       document.getElementById('player-canvas').style.display = 'block';
 
       try {
+        // Create a perfect matching virtual .cue sheet mapping string
+        const cueContent = `FILE "Tekken_3.bin" BINARY\n  TRACK 01 MODE2/2352\n    INDEX 01 00:00:00`;
+        const cueBlob = new Blob([cueContent], { type: 'text/plain' });
+
+        // Turn all 3 elements into explicit File wrappers
+        const gameFile = new File([downloadedRomBlob], 'Tekken_3.bin');
+        const cueFile = new File([cueBlob], 'Tekken_3.cue');
+        const biosFile = new File([downloadedBiosBlob], 'scph1001.bin');
+
         await Nostalgist.launch({
           element: document.getElementById('player-canvas'),
           core: 'pcsx_rearmed', 
           
-          // 1. Pass the ROM as a clean, virtual File object
-          rom: new File([downloadedRomBlob], 'Tekken_3.bin'),
-          
-          // 2. Tell RetroArch the exact file string name it needs to expect
-          bios: [
-            'scph1001.bin'
-          ],
-
-          // 3. FORCE Nostalgist to intercept the core's BIOS request with a direct web URL download path
-          resolveBios(core, name) {
-            return `https://civil-mac.github.io/index/${name}`;
-          },
+          // Feed all files as a unified virtual directory cluster. 
+          // Nostalgist targets the .cue loader automatically to parse the heavy tracks.
+          rom: [cueFile, gameFile, biosFile],
           
           retroarchConfig: {
             input_player1_up: 'w',
