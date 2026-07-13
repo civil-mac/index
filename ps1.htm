@@ -5,24 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Private Arcade Launcher - PS1</title>
   <style>
-    body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; font-family: sans-serif; color: #fff; }
-    #canvas-container { width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; flex-direction: column; }
-    canvas { width: 100vw !important; height: 100vh !important; object-fit: contain !important; image-rendering: pixelated; display: none; }
-    #launcher { text-align: center; z-index: 10; }
-    button { background: #222; color: #fff; border: 2px solid #555; padding: 15px 30px; font-size: 18px; cursor: pointer; border-radius: 5px; }
-    button:hover { background: #444; border-color: #888; }
-    input[type="file"] { display: none; }
+    body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; font-family: sans-serif; }
+    #canvas-container { width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; }
+    canvas { width: 100vw !important; height: 100vh !important; object-fit: contain !important; image-rendering: pixelated; }
   </style>
 </head>
 <body>
 
   <div id="canvas-container">
-    <div id="launcher">
-      <h2>Private PS1 Arcade</h2>
-      <p>Select your Tekken_3.bin (or any PS1 .bin/.img) to launch instantly:</p>
-      <button onclick="document.getElementById('rom-picker').click()">Load Game File</button>
-      <input type="file" id="rom-picker" accept=".bin,.img,.cue">
-    </div>
     <canvas id="player-canvas"></canvas>
   </div>
 
@@ -37,20 +27,16 @@
   <script type="module">
     import { Nostalgist } from 'nostalgist';
 
-    async function bootEmulator(file) {
-      // Hide the launcher UI and display the game canvas
-      document.getElementById('launcher').style.display = 'none';
-      document.getElementById('player-canvas').style.display = 'block';
-
+    async function bootEmulator() {
       try {
         await Nostalgist.launch({
           element: document.getElementById('player-canvas'),
           core: 'pcsx_rearmed', 
           
-          // Nostalgist natively accepts the raw local file object directly!
-          rom: file,
+          // Streams your heavy game file via a CORS-friendly production CDN pipeline
+          rom: 'https://libs.statically.io/gh/civil-mac/index/main/Tekken_3.bin',
           
-          // Loads the authentic bios asset from your root repository folder
+          // Loads the raw local bios asset from your root repository folder
           bios: [
             './scph1001.bin'
           ],
@@ -77,16 +63,10 @@
         });
       } catch (err) {
         console.error("The emulator engine failed to initialize:", err);
-        alert("Emulator crash. Check your browser console (F12) for details.");
       }
     }
 
-    // Listen for when you select a file via the button
-    document.getElementById('rom-picker').addEventListener('change', function(e) {
-      if (e.target.files.length > 0) {
-        bootEmulator(e.target.files[0]);
-      }
-    });
+    window.addEventListener('DOMContentLoaded', bootEmulator);
   </script>
 </body>
 </html>
