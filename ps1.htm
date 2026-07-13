@@ -5,18 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Private Arcade Launcher - PS1</title>
   <style>
-    body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; font-family: sans-serif; }
-    #canvas-container { width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; }
-    canvas { width: 100vw !important; height: 100vh !important; object-fit: contain !important; image-rendering: pixelated; }
+    body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; font-family: sans-serif; color: #fff; }
+    #canvas-container { width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; flex-direction: column; }
+    canvas { width: 100vw !important; height: 100vh !important; object-fit: contain !important; image-rendering: pixelated; display: none; }
+    #launcher { text-align: center; z-index: 10; }
+    button { background: #222; color: #fff; border: 2px solid #555; padding: 15px 30px; font-size: 18px; cursor: pointer; border-radius: 5px; }
+    button:hover { background: #444; border-color: #888; }
+    input[type="file"] { display: none; }
   </style>
 </head>
 <body>
 
   <div id="canvas-container">
+    <div id="launcher">
+      <h2>Private PS1 Arcade</h2>
+      <p>Select your Tekken_3.bin (or any PS1 .bin/.img) to launch instantly:</p>
+      <button onclick="document.getElementById('rom-picker').click()">Load Game File</button>
+      <input type="file" id="rom-picker" accept=".bin,.img,.cue">
+    </div>
     <canvas id="player-canvas"></canvas>
   </div>
 
-  <!-- Imports Nostalgist from the global unpkg CDN network -->
   <script type="importmap">
     {
       "imports": {
@@ -28,51 +37,56 @@
   <script type="module">
     import { Nostalgist } from 'nostalgist';
 
-    async function bootEmulator() {
+    async function bootEmulator(file) {
+      // Hide the launcher UI and display the game canvas
+      document.getElementById('launcher').style.display = 'none';
+      document.getElementById('player-canvas').style.display = 'block';
+
       try {
         await Nostalgist.launch({
           element: document.getElementById('player-canvas'),
           core: 'pcsx_rearmed', 
           
-          // Points directly to the file sitting in the same main repository folder
-rom: 'https://github.com/civil-mac/index/releases/download/v1.0.0/Tekken_3.bin',
+          // Nostalgist natively accepts the raw local file object directly!
+          rom: file,
           
-          // The mandatory PlayStation system boot file
+          // Loads the authentic bios asset from your root repository folder
           bios: [
             './scph1001.bin'
           ],
           
-          // RetroArch configurations mapped clean for 3D fighting layout
           retroarchConfig: {
-            // Player 1 Movement (D-Pad) mapped to WASD
             input_player1_up: 'w',
             input_player1_down: 's',
             input_player1_left: 'a',
             input_player1_right: 'd',
             
-            // PS1 Face Buttons
-            input_player1_b: 'j',       // X Button (Left Kick)
-            input_player1_a: 'k',       // Circle Button (Right Kick)
-            input_player1_y: 'u',       // Square Button (Left Punch)
-            input_player1_x: 'i',       // Triangle Button (Right Punch)
+            input_player1_b: 'j',       // X Button
+            input_player1_a: 'k',       // Circle Button
+            input_player1_y: 'u',       // Square Button
+            input_player1_x: 'i',       // Triangle Button
             
-            // Menu elements
-            input_player1_start: 'space',  // Start button
-            input_player1_select: 'shift', // Select button
+            input_player1_start: 'space',
+            input_player1_select: 'shift',
             
-            // Shoulder Triggers
-            input_player1_l: 'l',       // L1 Trigger
-            input_player1_r: 'o',       // R1 Trigger
-            input_player1_l2: 'q',      // L2 Trigger
-            input_player1_r2: 'e'       // R2 Trigger
+            input_player1_l: 'l',       // L1
+            input_player1_r: 'o',       // R1
+            input_player1_l2: 'q',      // L2
+            input_player1_r2: 'e'       // R2
           }
         });
       } catch (err) {
         console.error("The emulator engine failed to initialize:", err);
+        alert("Emulator crash. Check your browser console (F12) for details.");
       }
     }
 
-    window.addEventListener('DOMContentLoaded', bootEmulator);
+    // Listen for when you select a file via the button
+    document.getElementById('rom-picker').addEventListener('change', function(e) {
+      if (e.target.files.length > 0) {
+        bootEmulator(e.target.files[0]);
+      }
+    });
   </script>
 </body>
 </html>
