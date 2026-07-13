@@ -11,19 +11,24 @@
     
     /* Loading Screen Styles */
     #loading-screen { text-align: center; max-width: 400px; width: 80%; z-index: 10; display: flex; flex-direction: column; align-items: center; }
-    .progress-container { width: 100%; background: #222; border: 2px solid #555; height: 20px; border-radius: 10px; overflow: hidden; margin-top: 15px; }
+    .progress-container { width: 100%; background: #222; border: 2px solid #555; height: 20px; border-radius: 10px; overflow: hidden; margin-top: 15px; margin-bottom: 15px; }
     .progress-bar { width: 0%; height: 100%; background: #00ff66; transition: width 0.1s linear; box-shadow: 0 0 10px #00ff66; }
     #status-text { margin-top: 10px; font-size: 14px; color: #aaa; }
+
+    /* Launch Button Style */
+    #launch-btn { display: none; background: #00ff66; color: #000; border: none; padding: 12px 30px; font-size: 18px; font-weight: bold; cursor: pointer; border-radius: 5px; box-shadow: 0 0 15px #00ff66; }
+    #launch-btn:hover { background: #00cc55; }
   </style>
 </head>
 <body>
 
   <div id="canvas-container">
     <div id="loading-screen">
-      <h2 style="margin: 0; font-weight: 400; letter-spacing: 1px;">Loading Game Data</h2>
-      <div class="progress-container">
+      <h2 id="title-text" style="margin: 0; font-weight: 400; letter-spacing: 1px;">Loading Game Data</h2>
+      <div class="progress-container" id="bar-wrapper">
         <div id="progress" class="progress-bar"></div>
       </div>
+      <button id="launch-btn">LAUNCH GAME</button>
       <div id="status-text">Connecting to repository stream...</div>
     </div>
     
@@ -41,14 +46,22 @@
   <script type="module">
     import { Nostalgist } from 'nostalgist';
 
-    // The official raw delivery stream for public repositories that resolves Git LFS
     const ROM_URL = 'https://raw.githubusercontent.com/civil-mac/index/main/Tekken_3.bin';
+    const BIOS_URL = './scph1001.bin';
+
     const progressBar = document.getElementById('progress');
     const statusText = document.getElementById('status-text');
+    const launchBtn = document.getElementById('launch-btn');
+    const barWrapper = document.getElementById('bar-wrapper');
+    const titleText = document.getElementById('title-text');
 
-    async function downloadRomWithProgress(url) {
+    let downloadedRomBlob = null;
+    let downloadedBiosBlob = null;
+
+    // Direct helper to download binary assets via standard stream tracking
+    async function downloadAsset(url, isRom) {
       const response = await fetch(url);
-      if (!response.ok) throw new Error(`Network error: ${response.status} ${response.statusText}`);
+      if (!response.ok) throw new Error(`Network error fetching asset: ${response.status}`);
 
       const contentLength = response.headers.get('content-length');
       const totalBytes = contentLength ? parseInt(contentLength, 10) : 0;
@@ -64,47 +77,51 @@
         chunks.push(value);
         loadedBytes += value.length;
 
-        if (totalBytes) {
+        if (isRom && totalBytes) {
           const percent = Math.round((loadedBytes / totalBytes) * 100);
           progressBar.style.width = `${percent}%`;
           statusText.innerText = `Downloading ROM: ${percent}% (${Math.round(loadedBytes / 1024 / 1024)}MB / ${Math.round(totalBytes / 1024 / 1024)}MB)`;
-        } else {
-          statusText.innerText = `Downloading ROM: ${Math.round(loadedBytes / 1024 / 1024)}MB received...`;
         }
       }
-
-      statusText.innerText = "Initializing emulation engine...";
       return new Blob(chunks);
     }
 
-    async function bootEmulator() {
+    async function initDownloadPipeline() {
       try {
-        // 1. Download directly from the raw usercontent pipeline
-        const gameBlob = await downloadRomWithProgress(ROM_URL);
+        // 1. Grab tiny BIOS asset first
+        statusText.innerText = "Loading system BIOS...";
+        downloadedBiosBlob = await downloadAsset(BIOS_URL, false);
 
-        // 2. Hide loading UI and show canvas
-        document.getElementById('loading-screen').style.display = 'none';
-        document.getElementById('player-canvas').style.display = 'block';
+        // 2. Grab massive Game asset second
+        downloadedRomBlob = await downloadAsset(ROM_URL, true);
 
-// 3. Launch the engine
-await Nostalgist.launch({
-  element: document.getElementById('player-canvas'),
-  core: 'pcsx_rearmed', 
-  
-  // Converts the data pool into a virtual file named Tekken_3.bin so Nostalgist auto-boots it!
-  rom: new File([gameBlob], 'Tekken_3.bin'),
-  
-  // List the exact filename the PlayStation core is looking for internally
-  bios: [
-    'scph1001.bin'
-  ],
-  
-  // This explicitly directs the engine to the correct server asset path
-  resolveBios(core, name) {
-    return `https://civil-mac.github.io/index/${name}`;
-  },
-  
-  retroarchConfig: {
+        // 3. Swap UI out from "Loading" to "Ready" once cache is filled
+        titleText.innerText = "Tekken 3 Ready";
+        barWrapper.style.display = 'none';
+        statusText.style.display = 'none';
+        launchBtn.style.display = 'block';
+      } catch (err) {
+        console.error(err);
+        statusText.style.color = '#ff3333';
+        statusText.innerText = `Error: ${err.message}`;
+      }
+    }
+
+    async function startEmulator() {
+      // Hide full overlay panel and display the active emulator target frame
+      document.getElementById('loading-screen').style.display = 'none';
+      document.getElementById('player-canvas').style.display = 'block';
+
+      try {
+        await Nostalgist.launch({
+          element: document.getElementById('player-canvas'),
+          core: 'pcsx_rearmed', 
+          
+          // Official format for passing custom in-memory blobs securely to Nostalgist
+          rom: { fileName: 'Tekken_3.bin', fileContent: downloadedRomBlob },
+          bios: [{ fileName: 'scph1001.bin', fileContent: downloadedBiosBlob }],
+          
+          retroarchConfig: {
             input_player1_up: 'w',
             input_player1_down: 's',
             input_player1_left: 'a',
@@ -125,13 +142,14 @@ await Nostalgist.launch({
           }
         });
       } catch (err) {
-        console.error("The emulator engine failed to initialize:", err);
-        statusText.style.color = '#ff3333';
-        statusText.innerText = `Error: ${err.message || 'Check browser console (F12).'}`;
+        console.error(err);
+        alert("Emulator initialization failed. Open F12 console to inspect details.");
       }
     }
 
-    window.addEventListener('DOMContentLoaded', bootEmulator);
+    // Bind initialization hooks
+    window.addEventListener('DOMContentLoaded', initDownloadPipeline);
+    launchBtn.addEventListener('click', startEmulator);
   </script>
 </body>
 </html>
