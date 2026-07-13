@@ -109,22 +109,25 @@
       document.getElementById('player-canvas').style.display = 'block';
 
       try {
-        // Create a perfect matching virtual .cue sheet mapping string
-        const cueContent = `FILE "Tekken_3.bin" BINARY\n  TRACK 01 MODE2/2352\n    INDEX 01 00:00:00`;
-        const cueBlob = new Blob([cueContent], { type: 'text/plain' });
-
-        // Turn all 3 elements into explicit File wrappers
-        const gameFile = new File([downloadedRomBlob], 'Tekken_3.bin');
-        const cueFile = new File([cueBlob], 'Tekken_3.cue');
-        const biosFile = new File([downloadedBiosBlob], 'scph1001.bin');
+        // Create a universal Blob URL that tricks Nostalgist into treating it like a standard string path
+        const romBlobUrl = URL.createObjectURL(downloadedRomBlob);
 
         await Nostalgist.launch({
           element: document.getElementById('player-canvas'),
           core: 'pcsx_rearmed', 
           
-          // Feed all files as a unified virtual directory cluster. 
-          // Nostalgist targets the .cue loader automatically to parse the heavy tracks.
-          rom: [cueFile, gameFile, biosFile],
+          // Nostalgist sees a string URL now, keeping the directory engine happy!
+          rom: romBlobUrl,
+          
+          // The exact BIOS name requested by pcsx_rearmed
+          bios: [
+            'scph1001.bin'
+          ],
+
+          // Correctly maps the absolute server route to fetch your 512KB motherboard file
+          resolveBios(core, name) {
+            return `https://civil-mac.github.io/index/${name}`;
+          },
           
           retroarchConfig: {
             input_player1_up: 'w',
