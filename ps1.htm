@@ -3,17 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Private Arcade Launcher</title>
+  <title>Private Arcade Launcher - PS1</title>
   <style>
     body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; font-family: sans-serif; }
     #canvas-container { width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; }
-    canvas { max-width: 100%; max-height: 100%; object-fit: contain; image-rendering: pixelated; }
+    canvas { width: 100vw !important; height: 100vh !important; object-fit: contain !important; image-rendering: pixelated; }
   </style>
 </head>
 <body>
 
   <div id="canvas-container">
-    <!-- The emulator will render Link here -->
     <canvas id="player-canvas"></canvas>
   </div>
 
@@ -26,48 +25,46 @@
     }
   </script>
 
-  <!-- Only ONE single application script block is needed -->
   <script type="module">
     import { Nostalgist } from 'nostalgist';
 
     async function bootEmulator() {
       try {
-        
-await Nostalgist.launch({
-  element: document.getElementById('player-canvas'),
-  core: 'pcsx_rearmed', // The standard fast PS1 core
-  rom: './assets/roms/ps1/castlevania.chd',
-  
-  // You must supply the system file path
-  bios: [
-    './assets/bios/scph5501.bin'
-  ]
-})
+        await Nostalgist.launch({
+          element: document.getElementById('player-canvas'),
+          core: 'pcsx_rearmed', 
           
-          // Your exact game file location
-            rom: '',
+          // Points directly to the file sitting in the same main repository folder
+          rom: './Tekken_3.bin',
           
-          // RetroArch configurations for custom keyboard keys
+          // The mandatory PlayStation system boot file
+          bios: [
+            './scph5501.bin'
+          ],
+          
+          // RetroArch configurations mapped clean for 3D fighting layout
           retroarchConfig: {
-            // Player 1 Movement mapped to WASD
+            // Player 1 Movement (D-Pad) mapped to WASD
             input_player1_up: 'w',
             input_player1_down: 's',
             input_player1_left: 'a',
             input_player1_right: 'd',
             
-            // Action buttons mapped to keys that feel like an emulator app
-            input_player1_a: 'k',       // Link's sword swing
-            input_player1_b: 'j',       // Run / Cancel / Talk
-            input_player1_x: 'i',       // Use secondary item (Bow, Boomerang, etc.)
-            input_player1_y: 'u',       // Secondary button alternative
+            // PS1 Face Buttons
+            input_player1_b: 'j',       // X Button (Left Kick)
+            input_player1_a: 'k',       // Circle Button (Right Kick)
+            input_player1_y: 'u',       // Square Button (Left Punch)
+            input_player1_x: 'i',       // Triangle Button (Right Punch)
             
-            // Menu buttons
-            input_player1_start: 'space',  // Opens Inventory/Map screen
-            input_player1_select: 'shift', // Save/Quit menu
+            // Menu elements
+            input_player1_start: 'space',  // Start button
+            input_player1_select: 'shift', // Select button
             
-            // Shoulder buttons (useful for swapping item sub-screens or fast mapping later)
-            input_player1_l: 'l',
-            input_player1_r: 'o'
+            // Shoulder Triggers
+            input_player1_l: 'l',       // L1 Trigger
+            input_player1_r: 'o',       // R1 Trigger
+            input_player1_l2: 'q',      // L2 Trigger
+            input_player1_r2: 'e'       // R2 Trigger
           }
         });
       } catch (err) {
@@ -75,7 +72,6 @@ await Nostalgist.launch({
       }
     }
 
-    // Keep the listener down here so the game runs automatically as soon as the page loads
     window.addEventListener('DOMContentLoaded', bootEmulator);
   </script>
 </body>
