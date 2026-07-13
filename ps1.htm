@@ -55,15 +55,15 @@
     const barWrapper = document.getElementById('bar-wrapper');
     const titleText = document.getElementById('title-text');
 
-    let downloadedRomArrayBuffer = null;
-    let downloadedBiosArrayBuffer = null;
+    let downloadedRomBlob = null;
+    let downloadedBiosBlob = null;
 
     async function downloadAsset(url, isRom) {
       const response = await fetch(url);
       if (!response.ok) throw new Error(`Network error fetching asset: ${response.status}`);
 
       if (!isRom) {
-        return await response.arrayBuffer();
+        return await response.blob();
       }
 
       const contentLength = response.headers.get('content-length');
@@ -86,23 +86,15 @@
           statusText.innerText = `Downloading ROM: ${percent}% (${Math.round(loadedBytes / 1024 / 1024)}MB / ${Math.round(totalBytes / 1024 / 1024)}MB)`;
         }
       }
-
-      // Flatten chunks into a continuous raw buffer array
-      const romBuffer = new Uint8Array(loadedBytes);
-      let position = 0;
-      for (let chunk of chunks) {
-        romBuffer.set(chunk, position);
-        position += chunk.length;
-      }
-      return romBuffer.buffer;
+      return new Blob(chunks);
     }
 
     async function initDownloadPipeline() {
       try {
         statusText.innerText = "Loading system BIOS...";
-        downloadedBiosArrayBuffer = await downloadAsset(BIOS_URL, false);
+        downloadedBiosBlob = await downloadAsset(BIOS_URL, false);
 
-        downloadedRomArrayBuffer = await downloadAsset(ROM_URL, true);
+        downloadedRomBlob = await downloadAsset(ROM_URL, true);
 
         titleText.innerText = "Tekken 3 Ready";
         barWrapper.style.display = 'none';
@@ -124,36 +116,21 @@
           element: document.getElementById('player-canvas'),
           core: 'pcsx_rearmed', 
           
-          // Provide empty placeholder strings so Nostalgist skips its faulty network loaders
-          rom: 'game.bin',
-          bios: [],
-          
-          // Manually mount the absolute paths into the WebAssembly file tree directly
-          beforeLaunch(nostalgist) {
-            const FS = nostalgist.getModule().FS;
-            
-            // 1. Manually build the exact directory paths the RetroArch core scans
-            try { FS.mkdirTree('/home/web_user/retroarch/userdata/system'); } catch(e){}
-            try { FS.mkdirTree('/home/web_user/retroarch/userdata/content'); } catch(e){}
-            
-            // 2. Direct byte-to-file array injection for the system BIOS 
-            FS.writeFile(
-              '/home/web_user/retroarch/userdata/system/scph1001.bin', 
-              new Uint8Array(downloadedBiosArrayBuffer)
-            );
-
-            // 3. Direct byte-to-file array injection for the Game binary matching the placeholder name
-            FS.writeFile(
-              '/home/web_user/retroarch/userdata/content/game.bin', 
-              new Uint8Array(downloadedRomArrayBuffer)
-            );
+          // Official explicit shape for passing custom local blobs to the engine 
+          rom: { 
+            fileName: 'Tekken_3.bin', 
+            fileContent: downloadedRomBlob 
           },
           
+          // Must match the exact array format containing the identical explicit file sub-object
+          bios: [
+            { 
+              fileName: 'scph1001.bin', 
+              fileContent: downloadedBiosBlob 
+            }
+          ],
+          
           retroarchConfig: {
-            // Point the initial startup sequence directly to our manually injected file path
-            main_menu_content_reload: "true",
-            rgui_browser_directory: "/home/web_user/retroarch/userdata/content",
-            
             input_player1_up: 'w',
             input_player1_down: 's',
             input_player1_left: 'a',
@@ -174,8 +151,8 @@
           }
         });
       } catch (err) {
-        console.error("Launch tracking crash details:", err);
-        alert(`Launch Failed: Check console to ensure files bound properly.`);
+        console.error("Launch error:", err);
+        alert(`Launch Failed. Open F12 console to read raw engine crash details.`);
       }
     }
 
