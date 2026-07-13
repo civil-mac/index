@@ -47,7 +47,7 @@
     import { Nostalgist } from 'nostalgist';
 
     const ROM_URL = 'https://raw.githubusercontent.com/civil-mac/index/main/Tekken_3.bin';
-    const BIOS_URL = 'https://raw.githubusercontent.com/civil-mac/index/main/scph1001.bin';
+    const BIOS_URL = './scph1001.bin';
 
     const progressBar = document.getElementById('progress');
     const statusText = document.getElementById('status-text');
@@ -56,11 +56,16 @@
     const titleText = document.getElementById('title-text');
 
     let downloadedRomBlob = null;
-    let downloadedBiosBlob = null;
+    let downloadedBiosArrayBuffer = null;
 
     async function downloadAsset(url, isRom) {
       const response = await fetch(url);
       if (!response.ok) throw new Error(`Network error fetching asset: ${response.status}`);
+
+      if (!isRom) {
+        // Cache the tiny BIOS directly as an ArrayBuffer for filesystem injection
+        return await response.arrayBuffer();
+      }
 
       const contentLength = response.headers.get('content-length');
       const totalBytes = contentLength ? parseInt(contentLength, 10) : 0;
@@ -76,7 +81,7 @@
         chunks.push(value);
         loadedBytes += value.length;
 
-        if (isRom && totalBytes) {
+        if (totalBytes) {
           const percent = Math.round((loadedBytes / totalBytes) * 100);
           progressBar.style.width = `${percent}%`;
           statusText.innerText = `Downloading ROM: ${percent}% (${Math.round(loadedBytes / 1024 / 1024)}MB / ${Math.round(totalBytes / 1024 / 1024)}MB)`;
@@ -87,10 +92,9 @@
 
     async function initDownloadPipeline() {
       try {
-        statusText.innerText = "Downloading system BIOS...";
-        downloadedBiosBlob = await downloadAsset(BIOS_URL, false);
+        statusText.innerText = "Loading system BIOS...";
+        downloadedBiosArrayBuffer = await downloadAsset(BIOS_URL, false);
 
-        statusText.innerText = "Connecting to game stream...";
         downloadedRomBlob = await downloadAsset(ROM_URL, true);
 
         titleText.innerText = "Tekken 3 Ready";
@@ -113,17 +117,23 @@
           element: document.getElementById('player-canvas'),
           core: 'pcsx_rearmed', 
           
-          // 1. Pass the pre-downloaded game data as a virtual File object
           rom: new File([downloadedRomBlob], 'Tekken_3.bin'),
           
-          // 2. MUST BE PLAIN STRINGS: No brackets, no fileContent objects. Just the filename.
-          bios: [
-            'scph1001.bin'
-          ],
+          // Leave this blank so Nostalgist doesn't run its broken asset fetcher
+          bios: [],
 
-          // 3. This grabs the plain string 'scph1001.bin' and builds the exact web path
-          resolveBios(core, name) {
-            return `https://civil-mac.github.io/index/${name}`;
+          // Inject the file directly into RetroArch's system directory before boot
+          beforeLaunch(nostalgist) {
+            const FS = nostalgist.getModule().FS;
+            
+            // Re-create the RetroArch system directory if it doesn't exist yet
+            try { FS.mkdirTree('/home/web_user/retroarch/userdata/system'); } catch(e){}
+            
+            // Force write our pre-downloaded BIOS data into the exact spot the core looks
+            FS.writeFile(
+              '/home/web_user/retroarch/userdata/system/scph1001.bin', 
+              new Uint8Array(downloadedBiosArrayBuffer)
+            );
           },
           
           retroarchConfig: {
