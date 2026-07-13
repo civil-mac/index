@@ -2,23 +2,43 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Arcade</title>
+  <title>Private Arcade Launcher</title>
   <style>
-    body { margin: 0; background: #000; color: #fff; font-family: sans-serif; }
-    #menu { padding: 20px; }
-    .game-btn { 
-      display: block; margin: 10px 0; padding: 15px; 
-      background: #333; color: #fff; border: 1px solid #fff; cursor: pointer; 
+    /* Basic Layout and CRT-lite look */
+    body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000080; color: #fff; font-family: sans-serif; overflow: hidden; }
+    
+    #menu { 
+      padding: 40px; display: flex; flex-direction: column; align-items: center; 
+      height: 100vh; background: #000080; 
     }
-    #player-canvas { width: 100vw; height: 100vh; display: none; }
+    
+    .zsnes-window { 
+      background: #c0c0c0; border: 4px outset #fff; padding: 2px; width: 600px; color: #000; 
+    }
+    
+    .window-header { background: #000080; color: #fff; padding: 5px; font-weight: bold; }
+    
+    .game-btn { 
+      display: block; width: 95%; margin: 10px auto; padding: 12px; 
+      background: #e0e0e0; border: 2px outset #fff; cursor: pointer; text-align: left; 
+    }
+    
+    .game-btn:hover { background: #d0d0d0; border-style: inset; }
+
+    #player-canvas { 
+      display: none; width: 100vw !important; height: 100vh !important; 
+      background: #000; object-fit: contain; 
+    }
   </style>
 </head>
 <body>
 
   <div id="menu">
-    <h1>Game Select</h1>
-    <button class="game-btn" onclick="launch('./A_Link_to_the_Past.smc')">Link to the Past</button>
-    <button class="game-btn" onclick="launch('./Killer_Instinct.smc')">Killer Instinct</button>
+    <div class="zsnes-window">
+      <div class="window-header">FILE SELECTOR</div>
+      <button class="game-btn" onclick="launch('./A_Link_to_the_Past.smc')">LOZ: A Link to the Past</button>
+      <button class="game-btn" onclick="launch('./Killer_Instinct.smc')">Killer Instinct</button>
+    </div>
   </div>
 
   <canvas id="player-canvas"></canvas>
@@ -38,9 +58,18 @@
         await Nostalgist.launch({
           element: document.getElementById('player-canvas'),
           core: 'snes9x',
-          rom: url
+          rom: url,
+          retroarchConfig: {
+            input_player1_up: 'w', input_player1_down: 's',
+            input_player1_left: 'a', input_player1_right: 'd',
+            input_player1_a: 'k', input_player1_b: 'j',
+            input_player1_x: 'i', input_player1_y: 'u',
+            input_player1_start: 'space', input_player1_select: 'shift',
+            input_player1_l: 'l', input_player1_r: 'o'
+          }
         });
       } catch (e) {
+        console.error(e);
         alert("Launch error: " + e.message);
       }
     };
