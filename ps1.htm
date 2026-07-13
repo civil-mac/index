@@ -16,6 +16,7 @@
     <canvas id="player-canvas"></canvas>
   </div>
 
+  <!-- Imports Nostalgist from the global unpkg CDN network -->
   <script type="importmap">
     {
       "imports": {
@@ -33,32 +34,37 @@
           element: document.getElementById('player-canvas'),
           core: 'pcsx_rearmed', 
           
-          // Streams your heavy game file via a CORS-friendly production CDN pipeline
-          rom: 'https://libs.statically.io/gh/civil-mac/index/main/Tekken_3.bin',
+          // Pulls the raw 656MB game from your GitHub Release asset via a CORS-friendly CDN proxy
+          rom: 'https://libs.statically.io/raw/civil-mac/index/v1.0.0/Tekken_3.bin',
           
           // Loads the raw local bios asset from your root repository folder
           bios: [
             './scph1001.bin'
           ],
           
+          // RetroArch configurations mapped clean for 3D fighting layout
           retroarchConfig: {
+            // Player 1 Movement (D-Pad) mapped to WASD
             input_player1_up: 'w',
             input_player1_down: 's',
             input_player1_left: 'a',
             input_player1_right: 'd',
             
-            input_player1_b: 'j',       // X Button
-            input_player1_a: 'k',       // Circle Button
-            input_player1_y: 'u',       // Square Button
-            input_player1_x: 'i',       // Triangle Button
+            // PS1 Face Buttons
+            input_player1_b: 'j',       // X Button (Left Kick)
+            input_player1_a: 'k',       // Circle Button (Right Kick)
+            input_player1_y: 'u',       // Square Button (Left Punch)
+            input_player1_x: 'i',       // Triangle Button (Right Punch)
             
-            input_player1_start: 'space',
-            input_player1_select: 'shift',
+            // Menu elements
+            input_player1_start: 'space',  // Start button
+            input_player1_select: 'shift', // Select button
             
-            input_player1_l: 'l',       // L1
-            input_player1_r: 'o',       // R1
-            input_player1_l2: 'q',      // L2
-            input_player1_r2: 'e'       // R2
+            // Shoulder Triggers
+            input_player1_l: 'l',       // L1 Trigger
+            input_player1_r: 'o',       // R1 Trigger
+            input_player1_l2: 'q',      // L2 Trigger
+            input_player1_r2: 'e'       // R2 Trigger
           }
         });
       } catch (err) {
