@@ -109,22 +109,19 @@
       document.getElementById('player-canvas').style.display = 'block';
 
       try {
-        // Create a universal Blob URL that tricks Nostalgist into treating it like a standard string path
-        const romBlobUrl = URL.createObjectURL(downloadedRomBlob);
-
         await Nostalgist.launch({
           element: document.getElementById('player-canvas'),
           core: 'pcsx_rearmed', 
           
-          // Nostalgist sees a string URL now, keeping the directory engine happy!
-          rom: romBlobUrl,
+          // 1. Pass the pre-downloaded game data as a virtual File object
+          rom: new File([downloadedRomBlob], 'Tekken_3.bin'),
           
-          // The exact BIOS name requested by pcsx_rearmed
+          // 2. MUST BE PLAIN STRINGS: No brackets, no fileContent objects. Just the filename.
           bios: [
             'scph1001.bin'
           ],
 
-          // Correctly maps the absolute server route to fetch your 512KB motherboard file
+          // 3. This grabs the plain string 'scph1001.bin' and builds the exact web path
           resolveBios(core, name) {
             return `https://civil-mac.github.io/index/${name}`;
           },
