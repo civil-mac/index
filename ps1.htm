@@ -8,8 +8,6 @@
     body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; font-family: sans-serif; color: #fff; }
     #canvas-container { width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; position: relative; }
     canvas { width: 100vw !important; height: 100vh !important; object-fit: contain !important; image-rendering: pixelated; display: none; }
-    
-    /* Loading Screen Styles */
     #loading-screen { text-align: center; max-width: 400px; width: 80%; z-index: 10; display: flex; flex-direction: column; align-items: center; }
     .progress-container { width: 100%; background: #222; border: 2px solid #555; height: 20px; border-radius: 10px; overflow: hidden; margin-top: 15px; margin-bottom: 15px; }
     .progress-bar { width: 0%; height: 100%; background: #00ff66; transition: width 0.1s linear; box-shadow: 0 0 10px #00ff66; }
@@ -26,16 +24,11 @@
       </div>
       <div id="status-text">Connecting to repository stream...</div>
     </div>
-    
     <canvas id="player-canvas"></canvas>
   </div>
 
   <script type="importmap">
-    {
-      "imports": {
-        "nostalgist": "https://cdn.jsdelivr.net/npm/nostalgist/+esm"
-      }
-    }
+    { "imports": { "nostalgist": "https://cdn.jsdelivr.net/npm/nostalgist/+esm" } }
   </script>
 
   <script type="module">
@@ -44,95 +37,46 @@
     const ROM_URL = 'https://raw.githubusercontent.com/civil-mac/index/main/Tekken_3.bin';
     const BIOS_URL = './scph1001.bin';
 
-    const progressBar = document.getElementById('progress');
-    const statusText = document.getElementById('status-text');
-    const barWrapper = document.getElementById('bar-wrapper');
-    const titleText = document.getElementById('title-text');
-
     let downloadedRomBlob = null;
     let downloadedBiosBlob = null;
 
     async function downloadAsset(url, isRom) {
       const response = await fetch(url);
-      if (!response.ok) throw new Error(`Network error fetching asset: ${response.status}`);
-
-      if (!isRom) {
-        return await response.blob();
-      }
-
-      const contentLength = response.headers.get('content-length');
-      const totalBytes = contentLength ? parseInt(contentLength, 10) : 0;
-      let loadedBytes = 0;
-
-      const reader = response.body.getReader();
-      const chunks = [];
-
-      while(true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        chunks.push(value);
-        loadedBytes += value.length;
-
-        if (totalBytes) {
-          const percent = Math.round((loadedBytes / totalBytes) * 100);
-          progressBar.style.width = `${percent}%`;
-          statusText.innerText = `Downloading ROM: ${percent}% (${Math.round(loadedBytes / 1024 / 1024)}MB / ${Math.round(totalBytes / 1024 / 1024)}MB)`;
-        }
-      }
-      return new Blob(chunks);
+      if (!response.ok) throw new Error(`Network error: ${response.status}`);
+      const blob = await response.blob();
+      return new Uint8Array(await blob.arrayBuffer());
     }
 
-   async function startEmulator() {
-      document.getElementById('loading-screen').style.display = 'none';
-      document.getElementById('player-canvas').style.display = 'block';
-
+    async function startEmulatorPipeline() {
       try {
+        const biosData = await downloadAsset(BIOS_URL, false);
+        const romData = await downloadAsset(ROM_URL, true);
+
+        document.getElementById('loading-screen').style.display = 'none';
+        document.getElementById('player-canvas').style.display = 'block';
+
         await Nostalgist.launch({
           element: document.getElementById('player-canvas'),
           core: 'pcsx_rearmed', 
-          
-          // Use string-based paths so the emulator core initializes its own internal pathing
           rom: 'game.bin',
-          
-          // Force the core to look in a specific, non-default system folder
           retroarchConfig: {
             system_directory: "/home/web_user/retroarch/userdata/system",
             rgui_browser_directory: "/home/web_user/retroarch/userdata/content",
-            
-            input_player1_up: 'w',
-            input_player1_down: 's',
-            input_player1_left: 'a',
-            input_player1_right: 'd',
-            input_player1_b: 'j',
-            input_player1_a: 'k',
-            input_player1_y: 'u',
-            input_player1_x: 'i',
-            input_player1_start: 'space',
-            input_player1_select: 'shift',
-            input_player1_l: 'l',
-            input_player1_r: 'o',
-            input_player1_l2: 'q',
-            input_player1_r2: 'e'
           },
-
-          // Inject the files into the exact paths defined above
           beforeLaunch(nostalgist) {
-            const FS = nostalgist.getModule().FS;
+            const FS = nostalgist.getEmscriptenModule().FS;
             FS.mkdirTree('/home/web_user/retroarch/userdata/system');
             FS.mkdirTree('/home/web_user/retroarch/userdata/content');
-            
-            FS.writeFile('/home/web_user/retroarch/userdata/system/scph1001.bin', new Uint8Array(downloadedBiosBlob));
-            FS.writeFile('/home/web_user/retroarch/userdata/content/game.bin', new Uint8Array(downloadedRomBlob));
+            FS.writeFile('/home/web_user/retroarch/userdata/system/scph1001.bin', biosData);
+            FS.writeFile('/home/web_user/retroarch/userdata/content/game.bin', romData);
           }
         });
       } catch (err) {
         console.error(err);
-        alert("Launch Failed.");
+        alert("Launch Failed: " + err.message);
       }
     }
 
-    // Execute the complete process automatically on page entry
     window.addEventListener('DOMContentLoaded', startEmulatorPipeline);
   </script>
 </body>
