@@ -9,8 +9,16 @@
     #canvas-container { width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; position: relative; }
     canvas { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; image-rendering: pixelated; display: none; }
     #loading-screen { text-align: center; max-width: 400px; width: 80%; color: #fff; font-family: sans-serif; }
-    .progress-container { width: 100%; background: #222; height: 20px; border-radius: 10px; overflow: hidden; margin: 15px 0; }
-    .progress-bar { width: 0%; height: 100%; background: #00ff66; transition: width 0.1s linear; }
+    .progress-container { width: 100%; background: #222; height: 20px; border-radius: 10px; overflow: hidden; margin: 15px 0; position: relative; }
+    .progress-bar {
+      position: absolute; top: 0; left: 0; width: 40%; height: 100%;
+      background: #00ff66; border-radius: 10px;
+      animation: indeterminate 1.3s ease-in-out infinite;
+    }
+    @keyframes indeterminate {
+      0%   { left: -40%; }
+      100% { left: 100%; }
+    }
     #status-text { font-size: 14px; color: #aaa; }
   </style>
 </head>
@@ -18,8 +26,8 @@
   <div id="canvas-container">
     <div id="loading-screen">
       <h2 style="font-weight: 400;">Loading Game Data</h2>
-      <div class="progress-container"><div id="progress" class="progress-bar"></div></div>
-      <div id="status-text">Connecting to repository stream...</div>
+      <div class="progress-container"><div class="progress-bar"></div></div>
+      <div id="status-text">Starting core, BIOS, and game...</div>
     </div>
     <canvas id="player-canvas"></canvas>
   </div>
@@ -34,55 +42,35 @@
     const ROM_URL = 'https://raw.githubusercontent.com/civil-mac/index/main/Tekken_3.bin';
     const BIOS_URL = 'https://raw.githubusercontent.com/civil-mac/index/main/scph1001.bin';
 
-    const progressBar = document.getElementById('progress');
     const statusText = document.getElementById('status-text');
-
-    async function downloadAsset(url, label) {
-      statusText.innerText = `Downloading ${label}...`;
-      const response = await fetch(url);
-      if (!response.ok) throw new Error(`Fetch error (${label}): ${response.status}`);
-      const contentLength = response.headers.get('content-length');
-      const total = parseInt(contentLength, 10);
-      let loaded = 0;
-      const reader = response.body.getReader();
-      const chunks = [];
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        chunks.push(value);
-        loaded += value.length;
-        if (total) progressBar.style.width = `${Math.round((loaded / total) * 100)}%`;
-      }
-      return new Uint8Array(await new Blob(chunks).arrayBuffer());
-    }
 
     async function init() {
       try {
-        const biosData = await downloadAsset(BIOS_URL, 'BIOS');
-        const romData = await downloadAsset(ROM_URL, 'ROM');
-
-        statusText.innerText = 'Starting emulator...';
-
-        document.getElementById('loading-screen').style.display = 'none';
-        document.getElementById('player-canvas').style.display = 'block';
-
-        // Passing bios/rom as {fileName, fileContent} objects lets Nostalgist
-        // write them straight into RetroArch's system/content directories
-        // itself. Passing a bare string like 'game.bin' instead makes
-        // Nostalgist try to resolve it against its own default ROM repo
-        // (retrobrews) based on the .bin extension - which is the wrong
-        // repo for a PS1 disc image and is what was breaking the launch.
         await Nostalgist.launch({
           element: document.getElementById('player-canvas'),
           core: 'pcsx_rearmed',
-          bios: { fileName: 'scph1001.bin', fileContent: new Blob([biosData]) },
-          rom: { fileName: 'Tekken_3.bin', fileContent: new Blob([romData]) },
-          retroarchConfig: {
-            pcsx_rearmed_show_bios_bootlogo: 'enabled'
+          // Plain https:// URLs let Nostalgist fetch AND auto-load the
+          // content itself - this is the code path all of its documented
+          // examples use. The {fileName, fileContent} object form we tried
+          // before does write the file into the virtual filesystem, but it
+          // does not reliably set the "auto-launch this content" argument,
+          // which is why RetroArch fell back to its manual file browser
+          // instead of booting straight into the game.
+          bios: BIOS_URL,
+          rom: ROM_URL,
+          // Core-specific options belong in retroarchCoreConfig, not
+          // retroarchConfig - this was misplaced in the previous version.
+          retroarchCoreConfig: {
+            pcsx_rearmed_show_bios_bootlogo: 'disabled'
+          },
+          onLaunch() {
+            document.getElementById('loading-screen').style.display = 'none';
+            document.getElementById('player-canvas').style.display = 'block';
           }
         });
       } catch (err) {
         console.error(err);
+        statusText.innerText = 'Launch failed: ' + err.message;
         alert("Launch Failed: " + err.message);
       }
     }
