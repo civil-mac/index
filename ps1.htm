@@ -75,8 +75,8 @@
         await Nostalgist.launch({
           element: document.getElementById('player-canvas'),
           core: 'pcsx_rearmed',
-          bios: { fileName: 'scph1001.bin', fileContent: biosData },
-          rom: { fileName: 'Tekken_3.bin', fileContent: romData },
+          bios: { fileName: 'scph1001.bin', fileContent: new Blob([biosData]) },
+          rom: { fileName: 'Tekken_3.bin', fileContent: new Blob([romData]) },
           retroarchConfig: {
             pcsx_rearmed_show_bios_bootlogo: 'enabled'
           }
