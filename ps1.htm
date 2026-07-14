@@ -47,6 +47,7 @@
   <script type="module">
     import { Nostalgist } from 'nostalgist';
 
+    const CUE_URL = 'https://raw.githubusercontent.com/civil-mac/index/main/Tekken_3.cue';
     const ROM_URL = 'https://raw.githubusercontent.com/civil-mac/index/main/Tekken_3.bin';
     const BIOS_URL = 'https://raw.githubusercontent.com/civil-mac/index/main/scph1001.bin';
 
@@ -65,7 +66,12 @@
           // which is why RetroArch fell back to its manual file browser
           // instead of booting straight into the game.
           bios: BIOS_URL,
-          rom: ROM_URL,
+          // Pass the .cue first (it's the file that gets "loaded"/booted)
+          // and the .bin second as a supporting file. Nostalgist writes
+          // both into the same content directory preserving their
+          // filenames, so the FILE "Tekken_3.bin" reference inside the
+          // .cue resolves correctly.
+          rom: [CUE_URL, ROM_URL],
           // Core-specific options belong in retroarchCoreConfig, not
           // retroarchConfig - this was misplaced in the previous version.
           retroarchCoreConfig: {
