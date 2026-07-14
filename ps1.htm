@@ -7,7 +7,7 @@
   <style>
     body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; }
     #canvas-container { width: 100vw; height: 100vh; display: flex; justify-content: center; align-items: center; position: relative; }
-    canvas { width: 100vw !important; height: 100vh !important; object-fit: contain !important; image-rendering: pixelated; display: none; }
+    canvas { max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; image-rendering: pixelated; display: none; }
     #loading-screen { text-align: center; max-width: 400px; width: 80%; color: #fff; font-family: sans-serif; }
     .progress-container { width: 100%; background: #222; height: 20px; border-radius: 10px; overflow: hidden; margin: 15px 0; }
     .progress-bar { width: 0%; height: 100%; background: #00ff66; transition: width 0.1s linear; }
@@ -32,14 +32,15 @@
     import { Nostalgist } from 'nostalgist';
 
     const ROM_URL = 'https://raw.githubusercontent.com/civil-mac/index/main/Tekken_3.bin';
-    const BIOS_URL = './scph1001.bin';
+    const BIOS_URL = 'https://raw.githubusercontent.com/civil-mac/index/main/scph1001.bin';
 
     const progressBar = document.getElementById('progress');
     const statusText = document.getElementById('status-text');
 
     async function downloadAsset(url, label) {
+      statusText.innerText = `Downloading ${label}...`;
       const response = await fetch(url);
-      if (!response.ok) throw new Error(`Fetch error: ${response.status}`);
+      if (!response.ok) throw new Error(`Fetch error (${label}): ${response.status}`);
       const contentLength = response.headers.get('content-length');
       const total = parseInt(contentLength, 10);
       let loaded = 0;
@@ -58,26 +59,26 @@
     async function init() {
       try {
         const biosData = await downloadAsset(BIOS_URL, 'BIOS');
-        statusText.innerText = "Downloading ROM...";
         const romData = await downloadAsset(ROM_URL, 'ROM');
+
+        statusText.innerText = 'Starting emulator...';
 
         document.getElementById('loading-screen').style.display = 'none';
         document.getElementById('player-canvas').style.display = 'block';
 
+        // Passing bios/rom as {fileName, fileContent} objects lets Nostalgist
+        // write them straight into RetroArch's system/content directories
+        // itself. Passing a bare string like 'game.bin' instead makes
+        // Nostalgist try to resolve it against its own default ROM repo
+        // (retrobrews) based on the .bin extension - which is the wrong
+        // repo for a PS1 disc image and is what was breaking the launch.
         await Nostalgist.launch({
           element: document.getElementById('player-canvas'),
           core: 'pcsx_rearmed',
-          rom: 'game.bin',
+          bios: { fileName: 'scph1001.bin', fileContent: biosData },
+          rom: { fileName: 'Tekken_3.bin', fileContent: romData },
           retroarchConfig: {
-            system_directory: "/home/web_user/retroarch/userdata/system",
-            rgui_browser_directory: "/home/web_user/retroarch/userdata/content"
-          },
-          beforeLaunch(instance) {
-            const FS = instance.getEmscriptenModule().FS;
-            FS.mkdirTree('/home/web_user/retroarch/userdata/system');
-            FS.mkdirTree('/home/web_user/retroarch/userdata/content');
-            FS.writeFile('/home/web_user/retroarch/userdata/system/scph1001.bin', biosData);
-            FS.writeFile('/home/web_user/retroarch/userdata/content/game.bin', romData);
+            pcsx_rearmed_show_bios_bootlogo: 'enabled'
           }
         });
       } catch (err) {
