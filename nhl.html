@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NHL Goal2Goal</title>
-  <!-- Load official Ruffle script -->
-  <script src="https://unpkg.com/@ruffle-rs/ruffle"></script>
+  <!-- Author's hosted WASM Polyfill -->
+  <script src="https://dirplayer-rs.s3.us-west-2.amazonaws.com/dirplayer-polyfill-latest.js"></script>
   <style>
     body {
       background-color: #0d1117;
@@ -32,21 +32,14 @@
 
   <h1>NHL Goal2Goal</h1>
 
-  <!-- Target Container -->
-  <div id="game-container"></div>
+  <!-- Standard Shockwave embed tag -->
+  <embed src="NHL69.dcr" type="application/x-director" width="623" height="350">
 
   <script>
-    window.addEventListener("DOMContentLoaded", () => {
-      // Access Ruffle API
-      const ruffle = window.RufflePlayer.newest();
-      const player = ruffle.createPlayer();
-      const container = document.getElementById("game-container");
-      
-      // Append player canvas to the div box
-      container.appendChild(player);
-      
-      // Load the .dcr movie directly
-      player.load("NHL69.dcr");
+    window.addEventListener('DOMContentLoaded', () => {
+      if (window.DirPlayer) {
+        DirPlayer.init();
+      }
     });
   </script>
 
