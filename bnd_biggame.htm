@@ -32,7 +32,6 @@
 
   <h1>Bugs & Daffy XXIX The Big Game</h1>
   
-<div id="game-container">
   <embed 
     src="game.dcr" 
     type="application/x-director" 
@@ -43,15 +42,28 @@
     swLiveConnect="false"
     runmode="Standalone"
   >
-</div>
+</embed>
 
-  <script>
-    window.addEventListener('DOMContentLoaded', () => {
-      if (window.DirPlayer) {
-        DirPlayer.init();
-      }
-    });
-  </script>
+<script>
+  // 1. Intercept the Lingo-to-JS bridge calls
+  window.looneyReady = function() {
+    console.log("looneyReady handshake intercepted successfully.");
+  };
+
+  // 2. Override internal runMode checks if exposed to global context
+  window.runMode = "Standalone";
+
+  window.addEventListener('DOMContentLoaded', () => {
+    if (window.DirPlayer) {
+      // 3. Pass command parameters directly into the WASM initializer
+      DirPlayer.init({
+        swParam1: "--setTheRunMode",
+        runMode: "Standalone",
+        swLiveConnect: false
+      });
+    }
+  });
+</script>
 
 </body>
 </html>
