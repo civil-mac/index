@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NHL Goal2Goal</title>
-  <!-- ProjectorRays Engine -->
-  <script src="https://cdn.jsdelivr.net/gh/ProjectorRays/ProjectorRays@master/projectorrays.js"></script>
+  <!-- Official Ruffle WebAssembly Engine -->
+  <script src="https://unpkg.com/@ruffle-rs/ruffle"></script>
   <style>
     body {
       background-color: #0d1117;
@@ -18,7 +18,7 @@
       margin: 0;
       font-family: system-ui, sans-serif;
     }
-    #game-container {
+    .game-box {
       width: 623px;
       height: 350px;
       border: 2px solid #30363d;
@@ -32,21 +32,10 @@
 
   <h1>NHL Goal2Goal</h1>
 
-  <!-- Canvas Container -->
-  <div id="game-container"></div>
-
-  <script>
-    window.addEventListener('DOMContentLoaded', () => {
-      if (window.ProjectorRays) {
-        ProjectorRays.attach({
-          container: document.getElementById('game-container'),
-          src: 'NHL69.dcr',
-          width: 623,
-          height: 350
-        });
-      }
-    });
-  </script>
+  <div class="game-box">
+    <!-- Ruffle automatically intercepts <embed> elements pointing to .dcr/.swf files -->
+    <embed src="NHL69.dcr" width="623" height="350">
+  </div>
 
 </body>
 </html>
