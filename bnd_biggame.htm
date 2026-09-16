@@ -31,9 +31,19 @@
 <body>
 
   <h1>Bugs & Daffy XXIX The Big Game</h1>
-
-  <!-- Standard Shockwave embed tag -->
-  <embed src="game.dcr" type="application/x-director" width="623" height="350">
+  
+<div id="game-container">
+  <embed 
+    src="game.dcr" 
+    type="application/x-director" 
+    width="640" 
+    height="480"
+    swRemote="swVerbose='true'" 
+    swParam1="--setTheRunMode"
+    swLiveConnect="false"
+    runmode="Standalone"
+  >
+</div>
 
   <script>
     window.addEventListener('DOMContentLoaded', () => {
