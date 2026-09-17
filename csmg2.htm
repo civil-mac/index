@@ -39,11 +39,19 @@
   <embed src="csmgmain.dcr" type="application/x-director" width="623" height="350">
 
   <script>
-window.addEventListener('beforeunload', () => {
-  if (window.DirPlayer && window.DirPlayer.unload) {
-    DirPlayer.unload();
-  }
-});
+    // Initialize the polyfill when the DOM is ready
+    window.addEventListener('DOMContentLoaded', () => {
+      if (window.DirPlayer) {
+        DirPlayer.init();
+      }
+    });
+
+    // Cleanup WebAssembly state before page refresh/unload
+    window.addEventListener('beforeunload', () => {
+      if (window.DirPlayer && window.DirPlayer.unload) {
+        DirPlayer.unload();
+      }
+    });
   </script>
 
 </body>
