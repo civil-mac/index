@@ -39,11 +39,11 @@
   <embed src="csmgmain.dcr" type="application/x-director" width="623" height="350">
 
   <script>
-    window.addEventListener('DOMContentLoaded', () => {
-      if (window.DirPlayer) {
-        DirPlayer.init();
-      }
-    });
+window.addEventListener('beforeunload', () => {
+  if (window.DirPlayer && window.DirPlayer.unload) {
+    DirPlayer.unload();
+  }
+});
   </script>
 
 </body>
