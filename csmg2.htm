@@ -35,21 +35,19 @@
   <!-- Standard Shockwave embed tag -->
   <embed src="csmgmain.dcr" type="application/x-director" width="623" height="350">
 
-  <script>
-    // Initialize the polyfill when the DOM is ready
+<script>
     window.addEventListener('DOMContentLoaded', () => {
+      const embedEl = document.querySelector('embed[src="csmgmain.dcr"]');
+      if (embedEl) {
+        // Append a unique timestamp to force a true network fetch every refresh
+        const timestamp = new Date().getTime();
+        embedEl.setAttribute('src', `csmgmain.dcr?v=${timestamp}`);
+      }
+
       if (window.DirPlayer) {
         DirPlayer.init();
       }
     });
-
-    // Cleanup WebAssembly state before page refresh/unload
-    window.addEventListener('beforeunload', () => {
-      if (window.DirPlayer && window.DirPlayer.unload) {
-        DirPlayer.unload();
-      }
-    });
   </script>
-
 </body>
 </html>
