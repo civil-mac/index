@@ -370,26 +370,6 @@ h1 {
     flex: 1;
 }
 
-.marquee-wrap::before,
-.marquee-wrap::after {
-    content: '';
-    position: absolute;
-    top: 0; bottom: 0;
-    width: 18px;
-    z-index: 2;
-    pointer-events: none;
-}
-
-.marquee-wrap::before {
-    left: 0;
-    background: linear-gradient(to right, rgba(15,22,35,1), transparent);
-}
-
-.marquee-wrap::after {
-    right: 0;
-    background: linear-gradient(to left, rgba(15,22,35,1), transparent);
-}
-
 .marquee-inner {
     display: inline-block;
     white-space: nowrap;
