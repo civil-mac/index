@@ -640,6 +640,24 @@ function togglePlaybackMode() {
     if (btn) {
         btn.textContent = isShuffleMode ? 'Mode: Shuffle' : 'Mode: Sequential';
     }
+
+    const currentTrackId = pool[currentIndex];
+
+    if (isShuffleMode) {
+        // Shuffling ON: place current track at index 0 (1 of Total)
+        executeInstantTargetShuffle(currentTrackId);
+    } else {
+        // Shuffling OFF: revert to masterList order, update index to match current track
+        pool = [...masterList];
+        const originalIndex = masterList.indexOf(currentTrackId);
+        currentIndex = originalIndex !== -1 ? originalIndex : 0;
+
+        document.getElementById('info').innerText =
+            'Track ' + (currentIndex + 1) + ' of ' + pool.length;
+
+        updateFeedUI();
+        updatePrevButton();
+    }
 }
 
 // ── FISHER-YATES SHUFFLE ─────────────────────────────────────────────────────
