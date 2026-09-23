@@ -7,7 +7,7 @@
 <meta name="description" content="1,177 tracks of fully improvised ARIatHOME music, properly shuffled.">
 <link rel="manifest" href="manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js');
@@ -20,10 +20,10 @@
     --border:    #1a2236;
     --accent:    #6366f1;
     --accent2:   #38bdf8;
-    --muted:     #3a4a63;
-    --text:      #e2e8f0;
-    --text-dim:  #64748b;
-    --text-faint:#2d3f58;
+    --muted:     #8ca3c7;
+    --text:      #ffffff;
+    --text-dim:  #e2e8f0;
+    --text-faint:#cbd5e1;
     --now:       #38bdf8;
     --radius:    12px;
 }
@@ -44,7 +44,7 @@ body {
         url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
 }
 
-/* ── HEADER ─────────────────────────────────────────────────────────────── */
+/* ── HEADER & SIDEBAR TRIGGER ───────────────────────────────────────────── */
 #header {
     width: 100%;
     padding: 24px 20px 16px;
@@ -73,6 +73,134 @@ h1 {
     color: #ffffff;
 }
 
+.sidebar-toggle-btn {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--accent2);
+    padding: 8px 12px;
+    border-radius: var(--radius);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+    z-index: 10;
+}
+
+.sidebar-toggle-btn:hover {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+}
+
+/* ── SIDEBAR BROWSER / NAVIGATOR ─────────────────────────────────────────── */
+#sidebar-drawer {
+    position: fixed;
+    top: 0;
+    left: -320px;
+    width: 320px;
+    height: 100vh;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    box-shadow: 10px 0 30px rgba(0,0,0,0.7);
+    z-index: 1000;
+    transition: left 0.3s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+#sidebar-drawer.open {
+    left: 0;
+}
+
+#sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(2px);
+    z-index: 999;
+    display: none;
+}
+
+#sidebar-overlay.open {
+    display: block;
+}
+
+.sidebar-header {
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(99,102,241,0.06);
+}
+
+.sidebar-header h2 {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    color: var(--accent2);
+    text-transform: uppercase;
+}
+
+.sidebar-close-btn {
+    background: none;
+    border: none;
+    color: var(--text-faint);
+    font-size: 1.2rem;
+    cursor: pointer;
+}
+
+.sidebar-close-btn:hover { color: #fff; }
+
+#sidebar-list-viewport {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0;
+}
+
+.sidebar-row {
+    padding: 10px 16px;
+    border-bottom: 1px solid rgba(26, 34, 54, 0.5);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    transition: background 0.15s;
+}
+
+.sidebar-row:hover {
+    background: rgba(99, 102, 241, 0.1);
+}
+
+.sidebar-row.active-track {
+    background: rgba(56, 189, 248, 0.15);
+    border-left: 3px solid var(--accent2);
+}
+
+.sidebar-track-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--accent);
+}
+
+.sidebar-track-title {
+    font-size: 0.8rem;
+    color: var(--text);
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 /* ── PLAYER ──────────────────────────────────────────────────────────────── */
 #player-wrapper {
     width: 100%;
@@ -84,7 +212,6 @@ h1 {
     box-shadow: 0 8px 40px rgba(0,0,0,0.6), 0 0 0 1px var(--border);
     margin: 0 auto 14px;
     padding: 0 16px;
-    box-sizing: border-box;
 }
 
 #player-wrapper > div {
@@ -99,37 +226,40 @@ h1 {
 /* ── TRACK COUNTER ───────────────────────────────────────────────────────── */
 #info {
     font-family: 'DM Mono', monospace;
-    font-size: 0.7rem;
-    color: var(--text-faint);
+    font-size: 0.72rem;
+    color: var(--accent2);
     letter-spacing: 0.12em;
     text-align: center;
     margin-bottom: 12px;
+    font-weight: 500;
 }
 
 /* ── CONTROLS ────────────────────────────────────────────────────────────── */
 .controls {
     display: flex;
-    gap: 12px;
+    gap: 8px;
     justify-content: center;
     margin-bottom: 20px;
     padding: 0 16px;
     width: 100%;
     max-width: 680px;
+    flex-wrap: wrap;
 }
 
 .btn {
     flex: 1;
-    max-width: 200px;
+    min-width: 110px;
+    max-width: 180px;
     background: var(--accent);
     color: #fff;
     border: none;
-    padding: 14px 0;
+    padding: 12px 0;
     border-radius: 10px;
     cursor: pointer;
     font-family: 'DM Mono', monospace;
-    font-size: 0.78rem;
+    font-size: 0.75rem;
     font-weight: 500;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
     -webkit-tap-highlight-color: transparent;
@@ -142,14 +272,15 @@ h1 {
     box-shadow: 0 0 20px rgba(99,102,241,0.4);
 }
 
-.btn.prev {
+.btn.prev, .btn.mode-btn {
     background: var(--surface);
     border: 1px solid var(--border);
+    color: var(--text);
 }
 
-.btn.prev:hover { background: #1a2a42; }
+.btn.prev:hover, .btn.mode-btn:hover { background: #1a2a42; }
 
-/* ── FEED CARD ───────────────────────────────────────────────────────────── */
+/* ── FEED CARD (HIGH CONTRAST OUTDOORS) ─────────────────────────────────── */
 #feed-container {
     width: calc(100% - 32px);
     max-width: 648px;
@@ -171,21 +302,11 @@ h1 {
 
 #feed-header span {
     font-family: 'DM Mono', monospace;
-    font-size: 0.62rem;
+    font-size: 0.65rem;
     letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: var(--accent);
-}
-
-#feed-header .dots {
-    display: flex;
-    gap: 5px;
-}
-
-#feed-header .dot {
-    width: 6px; height: 6px;
-    border-radius: 50%;
-    background: var(--border);
+    color: var(--accent2);
+    font-weight: 500;
 }
 
 #feed-list {
@@ -206,83 +327,63 @@ h1 {
 
 .feed-label {
     font-family: 'DM Mono', monospace;
-    font-size: 0.6rem;
+    font-size: 0.65rem;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: var(--muted);
+    color: var(--accent2);
     flex-shrink: 0;
     width: 64px;
     text-align: right;
+    font-weight: 500;
 }
 
 .feed-title {
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     color: var(--text-dim);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     flex: 1;
+    font-weight: 400;
 }
 
 /* Last played row */
-.feed-item.last-played .feed-label { color: var(--text-faint); }
+.feed-item.last-played .feed-label { color: var(--muted); }
 .feed-item.last-played .feed-title { color: var(--text-faint); font-style: italic; }
 
 /* Now playing row — marquee */
 .feed-item.now-playing {
-    background: linear-gradient(90deg, rgba(99,102,241,0.12) 0%, rgba(56,189,248,0.06) 100%);
-    border-left: 2px solid var(--accent);
-    padding-left: 12px;
-    border-bottom: 1px solid rgba(99,102,241,0.2);
+    background: linear-gradient(90deg, rgba(99,102,241,0.18) 0%, rgba(56,189,248,0.1) 100%);
+    border-left: 3px solid var(--accent);
+    padding-left: 11px;
+    border-bottom: 1px solid rgba(99,102,241,0.3);
 }
 
 .feed-item.now-playing .feed-label {
-    color: var(--accent);
-    font-weight: 500;
+    color: var(--accent2);
+    font-weight: 700;
 }
 
-/* Marquee container */
-.marquee-wrap.short .marquee-inner {
-    animation: none;
-    padding-left: 0;
-    color: #ffffff; 
-}
-
-.marquee-wrap::before,
-.marquee-wrap::after {
-    content: '';
-    position: absolute;
-    top: 0; bottom: 0;
-    width: 18px;
-    z-index: 2;
-    pointer-events: none;
-}
-
-.marquee-wrap::before {
-    left: 0;
-    background: linear-gradient(to right, rgba(15,22,35,1), transparent);
-}
-
-.marquee-wrap::after {
-    right: 0;
-    background: linear-gradient(to left, rgba(15,22,35,1), transparent);
+.marquee-wrap {
+    position: relative;
+    overflow: hidden;
+    flex: 1;
 }
 
 .marquee-inner {
     display: inline-block;
     white-space: nowrap;
-    font-size: 0.82rem;
-    font-weight: 500;
+    font-size: 0.88rem;
+    font-weight: 700;
     color: #ffffff; 
     animation: marquee-scroll 18s linear infinite;
     padding-left: 100%;
 }
 
-/* Only scroll if text is actually long — controlled via JS class */
 .marquee-wrap.short .marquee-inner {
     animation: none;
     padding-left: 0;
-    color: var(--now);
+    color: #ffffff;
 }
 
 @keyframes marquee-scroll {
@@ -290,13 +391,9 @@ h1 {
     100% { transform: translateX(-100%); }
 }
 
-/* Next rows */
-.feed-item.next-track .feed-label { color: var(--text-faint); }
-.feed-item.next-track .feed-title { color: var(--text-dim); font-size: 0.76rem; }
-.feed-item.next-track:nth-child(4) .feed-title { color: #4a5a72; }
-.feed-item.next-track:nth-child(5) .feed-title { color: #36465c; }
-.feed-item.next-track:nth-child(6) .feed-title { color: #2a3849; }
-.feed-item.next-track:nth-child(7) .feed-title { color: #1e2a38; }
+/* Next rows — Brightened for outdoors */
+.feed-item.next-track .feed-label { color: var(--muted); }
+.feed-item.next-track .feed-title { color: var(--text); font-size: 0.82rem; }
 
 /* ── SEARCH INTERFACE ARCHITECTURE ──────────────────────────────────────── */
 .search-container-frame {
@@ -429,13 +526,13 @@ h1 {
     box-shadow: 0 0 10px rgba(99, 102, 241, 0.4);
 }
 
-/* ── DESCRIPTION (fine print, below feed) ────────────────────────────────── */
+/* ── DESCRIPTION ────────────────────────────────────────────────────────── */
 #description {
     width: calc(100% - 32px);
     max-width: 648px;
-    font-size: 0.68rem;
+    font-size: 0.72rem;
     line-height: 1.65;
-    color: #2d3f58;
+    color: var(--muted);
     text-align: center;
     padding: 0 4px;
 }
@@ -447,7 +544,20 @@ h1 {
     src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAAAA"
     loop preload="auto"></audio>
 
+<!-- SIDEBAR DRAWER -->
+<div id="sidebar-overlay" onclick="toggleSidebar()"></div>
+<div id="sidebar-drawer">
+    <div class="sidebar-header">
+        <h2>Playlist Navigator</h2>
+        <button class="sidebar-close-btn" onclick="toggleSidebar()">&times;</button>
+    </div>
+    <div id="sidebar-list-viewport"></div>
+</div>
+
 <div id="header">
+    <button class="sidebar-toggle-btn" onclick="toggleSidebar()">
+        &#9776; Browse All
+    </button>
     <div class="label-tag">Improv Music Playlist Shuffler</div>
     <h1>ARI AT EVERYTHING</h1>
 </div>
@@ -460,6 +570,7 @@ h1 {
 
 <div class="controls">
     <button class="btn prev" id="btn-prev" onclick="prevTrack()">&#9664; Prev</button>
+    <button class="btn mode-btn" id="btn-mode" onclick="togglePlaybackMode()">Mode: Shuffle</button>
     <button class="btn" onclick="nextTrack()">Next &#9654;</button>
 </div>
 
@@ -483,7 +594,7 @@ h1 {
 </div>
   
 <p id="description">
-    All music by ARIatHOME &mdash; fully improvised on the spot. Hand-picked by @civil_mac.
+    All music by ARIatHOME &mdash; fully improvised on the spot. Hand-picked by @civil_mac.<br>
     Compiled from YouTube channels @civil_mac, @ariathome2 (2026), @ARIatHOMEUnofficial (2021&ndash;2025),
     @ARIatHOMEMusic and others, including fan-edited releases, unedited IRL and @Home content
     from previous ARIatHOME streams.
@@ -500,15 +611,115 @@ let pool = [];
 let currentIndex = 0;
 let currentTrackTitle = '';
 let player = null;
+let isShuffleMode = true;
+
+// ── PLAYBACK MODE TOGGLE ──────────────────────────────────────────────────────
+function togglePlaybackMode() {
+    isShuffleMode = !isShuffleMode;
+    const btn = document.getElementById('btn-mode');
+    if (btn) {
+        btn.textContent = isShuffleMode ? 'Mode: Shuffle' : 'Mode: Sequential';
+    }
+
+    const currentTrackId = pool[currentIndex];
+
+    if (isShuffleMode) {
+        // Shuffling ON: place current track at index 0 (1 of Total)
+        executeInstantTargetShuffle(currentTrackId);
+    } else {
+        // Shuffling OFF: revert to masterList order, update index to match current track
+        pool = [...masterList];
+        const originalIndex = masterList.indexOf(currentTrackId);
+        currentIndex = originalIndex !== -1 ? originalIndex : 0;
+
+        document.getElementById('info').innerText =
+            'Track ' + (currentIndex + 1) + ' of ' + pool.length;
+
+        updateFeedUI();
+        updatePrevButton();
+    }
+}
 
 // ── FISHER-YATES SHUFFLE ─────────────────────────────────────────────────────
 function shufflePool() {
     pool = [...masterList];
-    for (let i = pool.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [pool[i], pool[j]] = [pool[j], pool[i]];
+    if (isShuffleMode) {
+        for (let i = pool.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [pool[i], pool[j]] = [pool[j], pool[i]];
+        }
     }
     currentIndex = 0;
+}
+
+// ── SIDEBAR DRAWER LOGIC ──────────────────────────────────────────────────────
+function toggleSidebar() {
+    const drawer = document.getElementById('sidebar-drawer');
+    const overlay = document.getElementById('sidebar-overlay');
+    if (drawer && overlay) {
+        drawer.classList.toggle('open');
+        overlay.classList.toggle('open');
+    }
+}
+
+function buildSidebarList() {
+    const viewport = document.getElementById('sidebar-list-viewport');
+    if (!viewport) return;
+    viewport.innerHTML = '';
+
+    const frag = document.createDocumentFragment();
+    for (let i = 0; i < masterList.length; i++) {
+        const id = masterList[i];
+        const title = masterTrackMap[id] || id;
+
+        const row = document.createElement('div');
+        row.className = 'sidebar-row';
+        row.id = `sidebar-item-${id}`;
+
+        const num = document.createElement('span');
+        num.className = 'sidebar-track-num';
+        num.textContent = `Track ${i + 1}`;
+
+        const name = document.createElement('span');
+        name.className = 'sidebar-track-title';
+        name.textContent = title;
+
+        row.appendChild(num);
+        row.appendChild(name);
+
+        row.onclick = function() {
+            selectTrackFromSidebar(id);
+            toggleSidebar();
+        };
+
+        frag.appendChild(row);
+    }
+    viewport.appendChild(frag);
+}
+
+function updateSidebarActiveTrack(currentId) {
+    const prevActive = document.querySelector('.sidebar-row.active-track');
+    if (prevActive) prevActive.classList.remove('active-track');
+
+    const newActive = document.getElementById(`sidebar-item-${currentId}`);
+    if (newActive) {
+        newActive.classList.add('active-track');
+        newActive.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+}
+
+function selectTrackFromSidebar(selectedId) {
+    if (isShuffleMode) {
+        executeInstantTargetShuffle(selectedId);
+    } else {
+        const targetIndex = masterList.indexOf(selectedId);
+        if (targetIndex !== -1) {
+            pool = [...masterList];
+            currentIndex = targetIndex;
+            keepSilentAudioAlive();
+            playCurrentTrack();
+        }
+    }
 }
 
 // ── NAVIGATION ───────────────────────────────────────────────────────────────
@@ -547,6 +758,7 @@ function playCurrentTrack() {
 
     updateFeedUI();
     updatePrevButton();
+    updateSidebarActiveTrack(videoId);
 
     if ('mediaSession' in navigator) {
         navigator.mediaSession.metadata = new MediaMetadata({
@@ -602,6 +814,7 @@ document.addEventListener('visibilitychange', function() {
 // ── YOUTUBE IFRAME API CALLBACK ───────────────────────────────────────────────
 function onYouTubeIframeAPIReady() {
     shufflePool();
+    buildSidebarList();
     if (pool.length === 0) return;
     
     const firstVideoId = pool[0];
@@ -621,6 +834,7 @@ function onYouTubeIframeAPIReady() {
                 e.target.playVideo();
                 updateFeedUI();
                 updatePrevButton();
+                updateSidebarActiveTrack(firstVideoId);
                 
                 document.getElementById('info').innerText =
                     'Track ' + (currentIndex + 1) + ' of ' + (pool.length);
@@ -696,7 +910,7 @@ function updatePrevButton() {
     btn.style.cursor  = (currentIndex === 0) ? 'not-allowed' : 'pointer';
 }
 
-// ── ANDROID MEDIA SESSION CONTROLS ───────────────────────────────────────────
+// ── MEDIA SESSION CONTROLS ────────────────────────────────────────────────────
 if ('mediaSession' in navigator) {
     try {
         navigator.mediaSession.setActionHandler('play', function() {
@@ -736,7 +950,7 @@ function initializeSearchEngine() {
 
         const badge = document.createElement('span');
         badge.className = 'slot-badge-indicator';
-        badge.textContent = '⚡ Instant Shuffle';
+        badge.textContent = '⚡ Instant Play';
 
         row.appendChild(label);
         row.appendChild(badge);
@@ -751,7 +965,6 @@ if (document.readyState === 'loading') {
     initializeSearchEngine();
 }
 
-// FIXED: Handles form submit actions gracefully without refreshing page
 function handleSearchSubmit(event) {
     if (event) event.preventDefault();
     executeClientQuery();
@@ -779,14 +992,11 @@ function executeClientQuery() {
 
         const nominalTitle = masterTrackMap[currentId] || '';
         const sequenceHeader = `Track ${trackingIndex}`;
-        
-        // KEEPING TRACK NUMBERS SEARCHABLE: We index sequenceHeader here so typing "319" still triggers a match...
         const searchBlob = `${sequenceHeader} ${currentId} ${nominalTitle}`.toLowerCase();
 
         if (searchBlob.includes(queryToken)) {
             queryMatches.push({
                 id: currentId,
-                // ...BUT WE DROP IT HERE: The dropdown display string reads only the pristine song title cleanly!
                 displayText: nominalTitle ? nominalTitle : `Untitled (${currentId})`
             });
         }
@@ -809,7 +1019,7 @@ function renderSyncSlotsUI() {
             slotDOMNode.style.display = 'flex';
 
             slotDOMNode.onclick = function() {
-                executeInstantTargetShuffle(recordMatch.id);
+                selectTrackFromSidebar(recordMatch.id);
                 document.getElementById('search-scroll-viewport').style.display = 'none';
                 document.getElementById('search-field-input').value = '';
                 clearActiveSearchSlots();
@@ -876,7 +1086,6 @@ function clearActiveSearchSlots() {
     tag.src = 'https://www.youtube.com/iframe_api';
     document.head.appendChild(tag);
 })();
-  
 </script>
 </body>
 </html>
